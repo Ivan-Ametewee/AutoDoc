@@ -1,0 +1,545 @@
+import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
+import { EventEmitter } from 'events';
+import WifiManager from 'react-native-wifi-reborn';
+import TcpSocket from 'react-native-tcp-socket'; // Changed for TypeScript compatibility
+
+// --- Type Definitions ---
+interface OBDServerConfig {
+  host: string;
+  port: number;
+  timeout: number;
+}
+
+interface Network {
+  SSID: string;
+  BSSID: string;
+  capabilities: string;
+  level: number;
+  frequency: number;
+  isOBD?: boolean; // Optional property for OBD networks
+  signal?: 'excellent' | 'good' | 'fair' | 'weak' | 'very_weak';
+  security?: 'WPA3' | 'WPA2' | 'WPA' | 'WEP' | 'OPEN';
+}
+
+interface ConnectionInfo {
+  ssid: string | null;
+  bssid: string | null;
+  ipAddress: string | null;
+  subnetMask: string | null;
+  gateway: string | null;
+  dnsServers: string[];
+  rssi: number;
+  frequency: number;
+  linkSpeed: number;
+  hiddenSSID: boolean;
+  isConnected: boolean;
+  isConnectionSuspended: boolean;
+  // Add other properties if known from WifiManager.connectionStatus()
+}
+
+type ConnectionState = 'disconnected' | 'connecting' | 'connected';
+type NetworkState = 'idle' | 'scanning' | 'connecting';
+type ServerState = 'disconnected' | 'connecting' | 'connected';
+
+// --- WiFiService Class ---
+class WiFiService extends EventEmitter {
+  private socket: any | null;
+  private isConnected: boolean;
+  private isConnecting: boolean;
+  private currentNetwork: { ssid: string; connected: boolean } | null;
+  private obdServerConfig: OBDServerConfig;
+  private readBuffer: string;
+  private reconnectAttempts: number;
+  private maxReconnectAttempts: number;
+  private heartbeatInterval: any | null; // Use any for cross-platform compatibility
+
+  constructor() {
+    super();
+    this.socket = null;
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.currentNetwork = null;
+    this.obdServerConfig = {
+      host: '192.168.0.10',
+      port: 35000,
+      timeout: 5000
+    };
+    this.readBuffer = '';
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 3;
+    this.heartbeatInterval = null;
+
+    this.setupNetworkListeners();
+  }
+
+  private setupNetworkListeners(): void {
+    // Android-specific network monitoring could be added here
+  }
+
+  async requestPermissions(): Promise<boolean> {
+    if (Platform.OS === 'android') {
+      try {
+        // Only request permissions that are available in PermissionsAndroid.PERMISSIONS
+        const permissionsToRequest: string[] = [];
+
+        // Location permissions (required for WiFi scanning on Android)
+        const fineLocation = PermissionsAndroid.PERMISSIONS?.ACCESS_FINE_LOCATION;
+        if (fineLocation && typeof fineLocation === 'string') {
+          permissionsToRequest.push(fineLocation);
+        }
+
+        // Coarse location for older Android versions
+        if (Platform.Version < 29) {
+          const coarseLocation = PermissionsAndroid.PERMISSIONS?.ACCESS_COARSE_LOCATION;
+          if (coarseLocation && typeof coarseLocation === 'string') {
+            permissionsToRequest.push(coarseLocation);
+          }
+        }
+
+        // For Android 13+ (API 33+), add nearby WiFi devices permission if available
+        if (Platform.Version >= 33) {
+          const nearbyWifiDevices = PermissionsAndroid.PERMISSIONS?.NEARBY_WIFI_DEVICES;
+          if (nearbyWifiDevices && typeof nearbyWifiDevices === 'string') {
+            permissionsToRequest.push(nearbyWifiDevices);
+          }
+        }
+
+        console.log('Platform Version:', Platform.Version);
+        console.log('Platform OS:', Platform.OS);
+        console.log('Requesting permissions:', permissionsToRequest);
+
+        if (!PermissionsAndroid || !PermissionsAndroid.requestMultiple) {
+          console.warn('PermissionsAndroid not available, assuming permissions granted');
+          return true;
+        }
+
+        if (permissionsToRequest.length === 0) {
+          console.warn('No permissions to request, assuming granted');
+          return true;
+        }
+
+        const granted = await PermissionsAndroid.requestMultiple(
+          permissionsToRequest as any // Cast to avoid type issues
+        );
+
+        const allGranted = Object.values(granted).every(
+          permission => permission === PermissionsAndroid.RESULTS.GRANTED
+        );
+
+        console.log('Permission results:', granted);
+        console.log('All permissions granted:', allGranted);
+
+        if (!allGranted) {
+          Object.entries(granted).forEach(([permission, result]) => {
+            if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+              console.warn(`Permission denied: ${permission} - ${result}`);
+            }
+          });
+          console.warn('Some WiFi permissions were denied, but continuing anyway');
+        }
+
+        return true;
+      } catch (error: any) { // Use 'any' for caught errors if not explicitly typed
+        console.error('WiFi permission request failed:', error);
+        console.error('Error details:', error.message);
+        console.warn('Permission request failed, but continuing. WiFi operations may be limited.');
+        this.emit('error', error);
+        return true;
+      }
+    }
+    return true;
+  }
+
+  async isWiFiEnabled(): Promise<boolean> {
+    try {
+      const enabled: boolean = await WifiManager.isEnabled();
+      console.log('WiFi enabled:', enabled);
+      return enabled;
+    } catch (error: any) {
+      console.error('Error checking WiFi state:', error);
+      this.emit('error', error);
+      return false;
+    }
+  }
+
+  async enableWiFi(): Promise<boolean> {
+    try {
+      if (Platform.OS === 'android') {
+        await WifiManager.setEnabled(true);
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error('Error enabling WiFi:', error);
+      this.emit('error', error);
+      return false;
+    }
+  }
+
+  async scanNetworks(): Promise<{ all: Network[]; obd: Network[] }> {
+    try {
+      const hasPermissions = await this.requestPermissions();
+      if (!hasPermissions) {
+        throw new Error('WiFi permissions not granted');
+      }
+
+      const isEnabled = await this.isWiFiEnabled();
+      if (!isEnabled) {
+        const enabled = await this.enableWiFi();
+        if (!enabled) {
+          throw new Error('WiFi is not enabled');
+        }
+      }
+
+      console.log('Scanning for WiFi networks...');
+      this.emit('scanStarted');
+
+      const networks: Network[] = await WifiManager.loadWifiList();
+
+      const obdNetworks = networks.filter(network =>
+        this.isLikelyOBDNetwork(network)
+      );
+
+      console.log(`Found ${networks.length} networks, ${obdNetworks.length} potential OBDII networks`);
+      this.emit('scanCompleted', { all: networks, obd: obdNetworks });
+
+      return { all: networks, obd: obdNetworks };
+
+    } catch (error: any) {
+      console.error('Error scanning networks:', error);
+      this.emit('error', error);
+      throw error;
+    }
+  }
+
+  private isLikelyOBDNetwork(network: Network): boolean {
+    const obdKeywords = [
+      'obd', 'elm327', 'elm', 'wifi', 'obdii', 'diagnostic', 'scan',
+      'torque', 'car', 'auto', 'vehicle', 'ecu', 'can'
+    ];
+
+    const ssid = (network.SSID || '').toLowerCase();
+
+    const keywordMatch = obdKeywords.some(keyword =>
+      ssid.includes(keyword)
+    );
+
+    const patternMatch = /^(obd|elm|wifi|car|auto|diagnostic)/i.test(network.SSID || '');
+
+    const obdPatterns = [
+      /^WiFi_?OBD/i,
+      /^ELM327/i,
+      /^OBD.*WiFi/i,
+      /^Car.*WiFi/i,
+      /^Auto.*WiFi/i
+    ];
+
+    const specificPatternMatch = obdPatterns.some(pattern =>
+      pattern.test(network.SSID || '')
+    );
+
+    return keywordMatch || patternMatch || specificPatternMatch;
+  }
+
+  async connectToNetwork(ssid: string, password = ''): Promise<boolean> {
+    try {
+      if (this.isConnecting) {
+        console.log('Already connecting to a network');
+        return false;
+      }
+
+      this.isConnecting = true;
+      this.emit('connecting', { ssid });
+
+      console.log('Connecting to WiFi network:', ssid);
+
+      await WifiManager.connectToProtectedSSID(ssid, password, false, false);
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const currentSSID: string | null = await WifiManager.getCurrentWifiSSID();
+      if (currentSSID) {
+        console.log('Connected to network:', currentSSID);
+        this.currentNetwork = { ssid: currentSSID, connected: true };
+        this.emit('networkConnected', this.currentNetwork);
+        return true;
+      } else {
+        throw new Error('Failed to get current SSID after connection');
+      }
+
+    } catch (error: any) {
+      console.error('Error connecting to network:', error);
+      this.emit('error', error);
+      return false;
+    } finally {
+      this.isConnecting = false;
+    }
+  }
+
+  async disconnectFromNetwork(): Promise<boolean> {
+    try {
+      if (this.currentNetwork) {
+        console.log('Disconnecting from WiFi network');
+
+        if (this.socket) {
+          await this.closeSocket();
+        }
+
+        await WifiManager.disconnect();
+
+        const network = this.currentNetwork;
+        this.currentNetwork = null;
+        this.emit('networkDisconnected', network);
+
+        return true;
+      }
+      return true;
+    } catch (error: any) {
+      console.error('Error disconnecting from network:', error);
+      this.emit('error', error);
+      return false;
+    }
+  }
+
+  async connectToOBDServer(host: string | null = null, port: number | null = null): Promise<boolean> {
+    try {
+      if (this.isConnected) {
+        console.log('Already connected to OBDII server');
+        return true;
+      }
+
+      const serverHost = host || this.obdServerConfig.host;
+      const serverPort = port || this.obdServerConfig.port;
+
+      console.log(`Connecting to OBDII server at ${serverHost}:${serverPort}`);
+      this.emit('serverConnecting', { host: serverHost, port: serverPort });
+
+      return new Promise((resolve, reject) => {
+        const socket = TcpSocket.createConnection({
+          port: serverPort,
+          host: serverHost
+        }, () => {
+          // Connection callback
+          console.log('Connected to OBDII server');
+          this.socket = socket;
+          this.isConnected = true;
+          this.reconnectAttempts = 0;
+          this.startHeartbeat();
+          this.emit('serverConnected', { host: serverHost, port: serverPort });
+          resolve(true);
+        });
+
+        socket.setTimeout(this.obdServerConfig.timeout);
+
+        socket.on('data', (data: string | Buffer) => { // data can be string or Buffer
+          const strData = typeof data === 'string' ? data : data.toString();
+          this.handleIncomingData(strData);
+        });
+
+        socket.on('error', (error: Error) => { // error is an Error object
+          console.error('Socket error:', error);
+          this.emit('error', error);
+
+          if (!this.isConnected) {
+            reject(error);
+          } else {
+            this.handleDisconnection();
+          }
+        });
+
+        socket.on('close', () => {
+          console.log('Socket connection closed');
+          this.handleDisconnection();
+        });
+
+        socket.on('timeout', () => {
+          console.log('Socket connection timeout');
+          socket.destroy();
+          reject(new Error('Connection timeout'));
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Error connecting to OBDII server:', error);
+      this.emit('error', error);
+      return false;
+    }
+  }
+
+  async closeSocket(): Promise<void> {
+    try {
+      if (this.socket) {
+        this.stopHeartbeat();
+        this.socket.destroy();
+        this.socket = null;
+        this.isConnected = false;
+        console.log('Socket connection closed');
+      }
+    } catch (error: any) {
+      console.error('Error closing socket:', error);
+    }
+  }
+
+  async sendData(data: string): Promise<boolean> {
+    try {
+      if (!this.isConnected || !this.socket) {
+        throw new Error('Not connected to OBDII server');
+      }
+
+      console.log('Sending data:', data);
+
+      return new Promise((resolve, reject) => {
+        this.socket?.write(data, 'utf8', (error?: Error) => { // error is optional
+          if (error) {
+            console.error('Error sending data:', error);
+            reject(error);
+          } else {
+            this.emit('dataSent', data);
+            resolve(true);
+          }
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Error sending data:', error);
+      this.emit('error', error);
+      return false;
+    }
+  }
+
+  private handleIncomingData(data: string): void {
+    console.log('Received data:', data);
+
+    this.readBuffer += data;
+
+    const messages = this.readBuffer.split(/[\r\n]+/);
+
+    this.readBuffer = messages.pop() || '';
+
+    messages.forEach(message => {
+      if (message.trim()) {
+        this.emit('dataReceived', {
+          data: message.trim(),
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+  }
+
+  private handleDisconnection(): void {
+    const wasConnected = this.isConnected;
+    this.isConnected = false;
+    this.stopHeartbeat();
+
+    if (this.socket) {
+      this.socket = null;
+    }
+
+    if (wasConnected) {
+      this.emit('serverDisconnected');
+
+      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.attemptReconnection();
+      }
+    }
+  }
+
+  private async attemptReconnection(): Promise<void> {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
+      this.emit('reconnectionFailed');
+      return;
+    }
+
+    this.reconnectAttempts++;
+    console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+
+    this.emit('reconnecting', { attempt: this.reconnectAttempts });
+
+    setTimeout(async () => {
+      try {
+        const success = await this.connectToOBDServer();
+        if (success) {
+          console.log('Reconnection successful');
+          this.emit('reconnected');
+        } else {
+          this.attemptReconnection();
+        }
+      } catch (error: any) {
+        console.error('Reconnection failed:', error);
+        this.attemptReconnection();
+      }
+    }, 2000 * this.reconnectAttempts) as any;
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat(); // Ensure only one heartbeat is active
+    this.heartbeatInterval = setInterval(() => {
+      if (this.isConnected) {
+        this.sendData('010C\r').catch(err => console.warn('Heartbeat send failed:', err));
+      }
+    }, 30000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  async getCurrentNetwork(): Promise<{ ssid: string | null; [key: string]: any } | null> {
+    try {
+      const ssid: string | null = await WifiManager.getCurrentWifiSSID();
+      const info: any = await WifiManager.connectionStatus(); // Use any to avoid type conflicts
+      
+      return {
+        ...info,
+        ssid: ssid // Put ssid last to avoid overwrite warning
+      };
+    } catch (error: any) {
+      console.error('Error getting current network:', error);
+      return null;
+    }
+  }
+
+  async getNetworkInfo(): Promise<any | null> {
+    try {
+      const info: any = await WifiManager.connectionStatus();
+      return info;
+    } catch (error: any) {
+      console.error('Error getting network info:', error);
+      return null;
+    }
+  }
+
+  isConnectedToServer(): boolean {
+    return this.isConnected;
+  }
+
+  getCurrentNetworkSSID(): string | null {
+    return this.currentNetwork?.ssid || null;
+  }
+
+  setServerConfig(host: string, port: number): void {
+    this.obdServerConfig.host = host;
+    this.obdServerConfig.port = port;
+  }
+
+  getServerConfig(): OBDServerConfig {
+    return { ...this.obdServerConfig };
+  }
+
+  clearBuffer(): void {
+    this.readBuffer = '';
+  }
+
+  destroy(): void {
+    this.stopHeartbeat();
+    this.closeSocket(); // This is async, but destroy usually doesn't await
+    this.disconnectFromNetwork(); // This is async, but destroy usually doesn't await
+    this.removeAllListeners();
+  }
+}
+
+export default new WiFiService();
