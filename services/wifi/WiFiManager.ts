@@ -360,7 +360,7 @@ class WiFiManager extends EventEmitter {
     }
   }
 
-  async sendCommand(command: string): Promise<boolean> {
+  async sendData(command: string): Promise<boolean> {
     try {
       if (!this.isConnected()) {
         throw new Error('Not connected to OBDII server');
@@ -391,7 +391,7 @@ class WiFiManager extends EventEmitter {
 
       console.log('Testing OBDII connection...');
 
-      const success = await this.sendCommand('ATZ');
+      const success = await this.sendData('ATZ');
 
       if (success) {
         this.emit('connectionTested', { success: true });

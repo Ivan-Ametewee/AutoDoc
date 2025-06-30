@@ -131,15 +131,15 @@ class BluetoothManager extends EventEmitter {
       const isEnabled = await this.bluetoothService.checkBluetoothEnabled();
       
       if (!isEnabled) {
-        const enabled = await this.bluetoothService.enableBluetooth();
-        if (!enabled) {
-          throw new Error('Bluetooth could not be enabled');
-        }
+        // const enabled = await this.bluetoothService.enableBluetooth();
+        // if (!enabled) {
+        //   throw new Error('Bluetooth could not be enabled');
+        // }
       }
-
       console.log('Bluetooth Manager initialized successfully');
       this.emit('initialized');
       return true;
+
 
     } catch (error) {
       console.error('Failed to initialize Bluetooth Manager:', error);
@@ -158,7 +158,7 @@ class BluetoothManager extends EventEmitter {
       this.processBondedDevices(bondedDevices);
 
       // Optionally start discovery for new devices (but bonded devices are usually sufficient)
-      const discoveredDevices = await this.bluetoothService.startScan(duration);
+      const discoveredDevices = await this.bluetoothService.startScan();
       this.processDiscoveredDevices(discoveredDevices);
 
       return {
@@ -285,7 +285,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
     }
   }
 
-  stopScan(): Promise<void> {
+  stopScan(): Promise<boolean> {
     return this.bluetoothService.stopScan();
   }
 
@@ -382,7 +382,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
   // Cleanup
   destroy(): void {
     console.log('Destroying Bluetooth Manager...');
-    this.bluetoothService.destroy();
+    this.bluetoothService.disconnect();
     this.discoveredDevices.clear();
     this.obdDevices.clear();
     this.removeAllListeners();

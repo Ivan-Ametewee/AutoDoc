@@ -62,7 +62,7 @@ class WiFiService extends EventEmitter {
     this.obdServerConfig = {
       host: '192.168.0.10',
       port: 35000,
-      timeout: 5000
+      timeout: 30000
     };
     this.readBuffer = '';
     this.reconnectAttempts = 0;

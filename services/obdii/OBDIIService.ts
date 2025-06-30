@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import BluetoothService from '../bluetooth/BluetoothService';
-import WiFiService from '../wifi/WiFiService';
+import WiFiManager from '../wifi/WiFiManager';
 import { simulationService } from '../simulation/SimulationService';
 import { OBDIIParser, ParsedPIDData } from './OBDIIParser';
 import { PIDDefinition, PIDDefinitions } from './PIDDefinitions';
@@ -27,15 +27,16 @@ interface CommandQueueItem {
 // --- Central OBD-II Service ---
 class OBDIIService extends EventEmitter {
   private connectionInfo: ConnectionInfo;
-  private commService: typeof BluetoothService | typeof WiFiService | null = null;
+  private commService: typeof BluetoothService | typeof WiFiManager | null = null;
   private subscribers: Set<SubscriberCallback> = new Set();
   private commandQueue: CommandQueueItem[] = [];
   private isProcessingQueue = false;
   private activePollingPIDs: Map<string, number> = new Map();
   private mockDataGenerator: typeof MockDataGenerator;
+
+  // **REFACTORED**: Simplified state for handling command responses
   private responseBuffer = '';
-  private currentCommandResolver: ((value: string) => void) | null = null;
-  private currentCommandRejecter: ((reason?: any) => void) | null = null;
+  private currentCommand: CommandQueueItem | null = null;
 
   constructor() {
     super();
@@ -47,54 +48,44 @@ class OBDIIService extends EventEmitter {
     this.mockDataGenerator = MockDataGenerator;
   }
 
-  // --- Connection Management ---
+  // --- Connection & State Management ---
 
   public async connect(device: any, type: 'bluetooth' | 'wifi'): Promise<boolean> {
     if (this.connectionInfo.status === 'connected' || this.connectionInfo.status === 'connecting') {
-      console.warn('Already connected or connecting. Please disconnect first.');
       return false;
     }
     this.updateConnectionInfo('connecting', type, device);
 
     try {
       simulationService.stopSimulation();
-      this.removeAllListeners('simulation_data');
-
       let isConnected = false;
       if (type === 'bluetooth') {
         this.commService = BluetoothService;
         await this.commService.initialize();
         isConnected = await this.commService.connectToDevice(device);
       } else if (type === 'wifi') {
-        this.commService = WiFiService;
-        // **FIXED**: Call the correct two-step connection method for Wi-Fi.
-        isConnected = await this.commService.connectToNetwork(device.ssid, device.password);
+        this.commService = WiFiManager;
+        isConnected = await this.commService.connectToOBDNetwork(device.ssid, device.password);
       }
 
       if (isConnected && this.commService) {
         this.commService.on('dataReceived', this.handleDataReceived);
         this.commService.on('deviceDisconnected', this.handleDisconnection);
-        
-        // **FIXED**: Update status before sending commands to prevent race conditions.
         this.updateConnectionInfo('connected', type, device);
-        
         await this.initializeAdapter();
         return true;
       } else {
-        throw new Error('The communication service failed to connect.');
+        throw new Error(`The ${type} service failed to establish a connection.`);
       }
     } catch (error: any) {
+      await this.disconnect();
       this.updateConnectionInfo('error', type, device, error.message);
-      this.commService = null;
       return false;
     }
   }
 
   public enableSimulation(): void {
-    if (this.connectionInfo.status === 'connected') {
-       console.warn('Already connected to a real device. Please disconnect first.');
-       return;
-    }
+    if (this.connectionInfo.status === 'connected') return;
     this.updateConnectionInfo('connected', 'simulation');
     simulationService.startSimulation();
     simulationService.registerCallback(this.handleSimulationData);
@@ -102,34 +93,25 @@ class OBDIIService extends EventEmitter {
 
   public async disconnect(): Promise<void> {
     this.stopAllPolling();
-    
     if (this.connectionInfo.type === 'simulation') {
       simulationService.stopSimulation();
-      simulationService.unregisterCallback(this.handleSimulationData);
     } else if (this.commService) {
+      await this.commService.disconnect();
       this.commService.removeListener('dataReceived', this.handleDataReceived);
       this.commService.removeListener('deviceDisconnected', this.handleDisconnection);
-      await this.commService.disconnect();
     }
-    
-    // Clean up internal state
-    if (this.currentCommandRejecter) {
-      this.currentCommandRejecter(new Error('Disconnected'));
+    if (this.currentCommand) {
+      this.currentCommand.reject(new Error("Disconnected"));
     }
     this.commandQueue = [];
+    this.currentCommand = null;
     this.isProcessingQueue = false;
     this.responseBuffer = '';
-    this.currentCommandResolver = null;
-    this.currentCommandRejecter = null;
-    
     this.updateConnectionInfo('disconnected', null);
     this.commService = null;
   }
 
-  private handleDisconnection = () => {
-    this.disconnect();
-    console.warn('Device disconnected unexpectedly.');
-  };
+  private handleDisconnection = () => this.disconnect();
 
   private updateConnectionInfo(status: ConnectionStatus, type: ConnectionType | null, device?: any, error?: string) {
     this.connectionInfo = { status, type, device, error };
@@ -143,13 +125,7 @@ class OBDIIService extends EventEmitter {
   }
 
   private notifySubscribers(event: string, data: any): void {
-    this.subscribers.forEach(callback => {
-      try {
-        callback(event, data);
-      } catch (error) {
-        console.error('Subscriber callback error:', error);
-      }
-    });
+    this.subscribers.forEach(callback => callback(event, data));
   }
 
   // --- Command & Data Processing ---
@@ -157,10 +133,9 @@ class OBDIIService extends EventEmitter {
   public async initializeAdapter(): Promise<void> {
     try {
       await this.sendCommand('ATZ');
-      await new Promise(resolve => setTimeout(resolve, 500)); // Wait for reset
-      await this.sendCommand('ATE0'); // Echo off
-      await this.sendCommand('ATL0'); // Line feeds off
-      await this.sendCommand('ATSP0'); // Auto protocol
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await this.sendCommand('ATE0');
+      await this.sendCommand('ATSP0');
       console.log('OBD-II adapter initialized successfully.');
     } catch (error) {
       console.error('Failed to initialize adapter:', error);
@@ -170,17 +145,9 @@ class OBDIIService extends EventEmitter {
 
   public sendCommand(command: string): Promise<string> {
     if (this.connectionInfo.type === 'simulation') {
-      // Handle simulation commands separately
-      return new Promise(resolve => {
-        const response = command.startsWith('AT') ? 'OK' : '4100BE1FA811'; // Generic simulated OK or PID data
-        setTimeout(() => resolve(response), 50 + Math.random() * 50);
-      });
+      return new Promise(resolve => setTimeout(() => resolve('OK'), 100));
     }
-
     return new Promise((resolve, reject) => {
-      if (this.connectionInfo.status !== 'connected') {
-        return reject(new Error('Not connected to a device.'));
-      }
       this.commandQueue.push({ command, resolve, reject });
       if (!this.isProcessingQueue) {
         this.processQueue();
@@ -193,58 +160,51 @@ class OBDIIService extends EventEmitter {
       this.isProcessingQueue = false;
       return;
     }
-
     this.isProcessingQueue = true;
-    const { command, resolve, reject } = this.commandQueue.shift()!;
-
+    this.currentCommand = this.commandQueue.shift()!;
     try {
-      if (!this.commService) throw new Error('Communication service is not available.');
+      if (!this.commService) throw new Error('Communication service unavailable.');
 
-      this.currentCommandResolver = resolve;
-      this.currentCommandRejecter = reject;
-
-      // Timeout for the command
       const timeoutId = setTimeout(() => {
-        if (this.currentCommandRejecter) {
-          this.currentCommandRejecter(new Error(`Timeout: No response for command '${command}'`));
-          this.currentCommandResolver = null;
-          this.currentCommandRejecter = null;
-          this.processQueue(); // Move to next command
+        if (this.currentCommand) {
+          this.currentCommand.reject(new Error(`Timeout on command: ${this.currentCommand.command}`));
+          this.currentCommand = null;
+          this.processQueue();
         }
-      }, 5000);
+      }, 15000); // 15-second timeout
 
-      this.currentCommandRejecter = (reason?: any) => {
+      this.currentCommand.reject = (reason) => {
           clearTimeout(timeoutId);
-          reject(reason);
-      }
-      this.currentCommandResolver = (value: string) => {
-          clearTimeout(timeoutId);
-          resolve(value);
-      }
+          this.commandQueue.unshift(this.currentCommand!);
+          this.currentCommand = null;
+      };
       
-      await this.commService.sendData(command + '\r');
-    } catch (error) {
-      reject(error);
-      this.isProcessingQueue = false; // Stop queue on error
+      this.currentCommand.resolve = (value) => {
+          clearTimeout(timeoutId);
+      };
+      
+      await this.commService.sendData(this.currentCommand.command + '\r');
+    } catch (error: any) {
+      if (this.currentCommand) this.currentCommand.reject(error);
+      this.isProcessingQueue = false;
     }
   }
-
+  
   private handleDataReceived = (data: string) => {
     this.responseBuffer += data;
-    // Responses are terminated by a '>' character.
     const promptIndex = this.responseBuffer.indexOf('>');
     if (promptIndex !== -1) {
       const fullResponse = this.responseBuffer.substring(0, promptIndex).trim();
-      this.responseBuffer = this.responseBuffer.substring(promptIndex + 1);
-
-      if (this.currentCommandResolver) {
-        this.currentCommandResolver(fullResponse);
-        // Reset for the next command
-        this.currentCommandResolver = null;
-        this.currentCommandRejecter = null;
-        // Process the next command in the queue
-        this.processQueue();
+      const cleanedResponse = fullResponse.replace(this.currentCommand?.command || '', '').trim();
+      
+      if (this.currentCommand) {
+        this.currentCommand.resolve(cleanedResponse);
+        this.currentCommand = null;
       }
+      
+      this.responseBuffer = this.responseBuffer.substring(promptIndex + 1);
+      this.isProcessingQueue = false;
+      this.processQueue();
     }
   };
 
@@ -279,7 +239,6 @@ class OBDIIService extends EventEmitter {
 
   public startPollingPID(pidName: string, interval = 1000): void {
     if (this.activePollingPIDs.has(pidName)) return;
-
     const pollingId = setInterval(async () => {
       if (this.connectionInfo.status !== 'connected') {
         this.stopPollingPID(pidName);
@@ -291,7 +250,6 @@ class OBDIIService extends EventEmitter {
         console.error(`Error during polling of ${pidName}:`, error);
       }
     }, interval);
-
     this.activePollingPIDs.set(pidName, pollingId as unknown as number);
   }
 
@@ -309,7 +267,7 @@ class OBDIIService extends EventEmitter {
   }
 
   private handleSimulationData = (eventType: string, data: any) => {
-    if (eventType === 'data_update' && this.connectionInfo.type === 'simulation') {
+    if (eventType === 'data_update') {
       this.notifySubscribers('dataUpdate', data);
     }
   };
