@@ -6,6 +6,7 @@ const initialState = {
   isConnecting: false,
   isScanning: false,
   connectionType: null, // 'bluetooth' | 'wifi' | null
+  mode: null, // 'demo' | 'bluetooth' | 'wifi' | null
   
   // Device Information
   connectedDevice: null,
@@ -150,6 +151,14 @@ const connectionReducer = (state = initialState, action) => {
         isConnecting: false,
         error: 'Maximum reconnection attempts reached',
         reconnectAttempts: 0,
+      };
+
+    case 'SET_CONNECTION_MODE':
+      return {
+        ...state,
+        mode: action.payload.mode, // 'demo', 'bluetooth', or 'wifi'
+        connectedDevice: action.payload.device || null,
+        connectionType: action.payload.connectionType || null,
       };
 
     // Connection Health

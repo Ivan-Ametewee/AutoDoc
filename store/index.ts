@@ -1,13 +1,15 @@
-// store/index.js
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
+import { persistReducer, persistStore } from 'redux-persist';
 
 // Import reducers
 import connectionReducer from './reducers/connectionReducer';
+import type { ConnectionState } from './reducers/connectionReducer.d';
 import dataReducer from './reducers/dataReducer';
+import type { DataState } from './reducers/dataReducer.d';
 import settingsReducer from './reducers/settingsReducer';
 import vehicleReducer from './reducers/vehicleReducer';
+import type { VehicleState } from './reducers/vehicleReducer.d';
 
 // Settings persist config
 const settingsPersistConfig = {
@@ -21,12 +23,12 @@ const vehiclePersistConfig = {
   storage: AsyncStorage,
 };
 
-// Combine all reducers
+// Combine all reducers with explicit types
 const rootReducer = combineReducers({
-  connection: connectionReducer,
-  data: dataReducer,
+  connection: connectionReducer as unknown as (state: ConnectionState | undefined, action: any) => ConnectionState,
+  data: dataReducer as unknown as (state: DataState | undefined, action: any) => DataState,
   settings: persistReducer(settingsPersistConfig, settingsReducer),
-  vehicle: persistReducer(vehiclePersistConfig, vehicleReducer),
+  vehicle: persistReducer(vehiclePersistConfig, vehicleReducer as unknown as (state: VehicleState | undefined, action: any) => VehicleState),
 });
 
 // Main persist configuration
@@ -57,5 +59,8 @@ const store = configureStore({
 // Create persistor
 const persistor = persistStore(store);
 
-export { store, persistor };
+// Export types for TypeScript
+export type RootState = ReturnType<typeof rootReducer>;
+
+export { persistor, store };
 export default store;

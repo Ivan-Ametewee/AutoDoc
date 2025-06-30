@@ -1,359 +1,1333 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  useColorScheme,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  Calendar,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  FileText,
-  Filter,
-  Search,
-} from 'lucide-react-native';
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function TabsHistory() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [selectedFilter, setSelectedFilter] = useState('all');
+interface DiagnosticSession {
+  id: string;
+  timestamp: Date;
+  vehicleInfo: {
+    make: string;
+    model: string;
+    year: number;
+    vin: string;
+  };
+  dtcCodes: {
+    code: string;
+    description: string;
+    severity: 'critical' | 'moderate' | 'minor';
+    status: 'active' | 'pending' | 'cleared';
+    system: string;
+  }[];
+  readinessMonitors: {
+    total: number;
+    ready: number;
+    notReady: number;
+  };
+  liveDataSnapshot: {
+    rpm: number;
+    speed: number;
+    engineLoad: number;
+    coolantTemp: number;
+    fuelLevel: number;
+  };
+  duration: number; // in minutes
+  notes?: string;
+}
 
-  // Mock history data
-  const [historyData] = useState([
+interface HistoryFilter {
+  dateRange: 'all' | 'week' | 'month' | 'quarter';
+  severity: 'all' | 'critical' | 'moderate' | 'minor';
+  status: 'all' | 'active' | 'pending' | 'cleared';
+  system: 'all' | 'engine' | 'transmission' | 'abs' | 'airbag' | 'emissions' | 'electrical';
+}
+
+interface Styles {
+  container: ViewStyle;
+  header: ViewStyle;
+  title: TextStyle;
+  searchContainer: ViewStyle;
+  searchInput: TextStyle;
+  statsContainer: ViewStyle;
+  statItem: ViewStyle;
+  statNumber: TextStyle;
+  statLabel: TextStyle;
+  loadingContainer: ViewStyle;
+  loadingText: TextStyle;
+  sessionsList: ViewStyle;
+  sessionItem: ViewStyle;
+  sessionHeader: ViewStyle;
+  sessionDate: TextStyle;
+  sessionDuration: TextStyle;
+  sessionVehicle: TextStyle;
+  sessionSummary: TextStyle;
+  sessionFooter: ViewStyle;
+  sessionTags: ViewStyle;
+  sessionTag: ViewStyle;
+  sessionTagText: TextStyle;
+  emptyState: ViewStyle;
+  emptyStateTitle: TextStyle;
+  emptyStateMessage: TextStyle;
+  modalContainer: ViewStyle;
+  modalHeader: ViewStyle;
+  modalTitle: TextStyle;
+  modalContent: ViewStyle;
+  modalFooter: ViewStyle;
+  filterSection: ViewStyle;
+  filterSectionTitle: TextStyle;
+  filterOptions: ViewStyle;
+  filterOption: ViewStyle;
+  activeFilterOption: ViewStyle;
+  filterOptionText: TextStyle;
+  activeFilterOptionText: TextStyle;
+  clearFiltersButton: ViewStyle;
+  clearFiltersButtonText: TextStyle;
+  notesInput: ViewStyle & TextStyle;
+  saveNotesButton: ViewStyle;
+  saveNotesButtonText: TextStyle;
+  sessionDetailHeader: ViewStyle;
+  sessionDetailDate: TextStyle;
+  sessionDetailVehicle: TextStyle;
+  sessionDetailSection: ViewStyle;
+  sessionDetailSectionTitle: TextStyle;
+  vehicleInfoGrid: ViewStyle;
+  vehicleInfoItem: ViewStyle;
+  vehicleInfoLabel: TextStyle;
+  vehicleInfoValue: TextStyle;
+  dtcCodeItem: ViewStyle;
+  dtcCodeHeader: ViewStyle;
+  dtcCodeNumber: TextStyle;
+  dtcCodeStatus: ViewStyle;
+  statusDot: ViewStyle;
+  statusText: TextStyle;
+  dtcCodeDescription: TextStyle;
+  dtcCodeSystem: TextStyle;
+  noDtcCodes: TextStyle;
+  readinessGrid: ViewStyle;
+  readinessItem: ViewStyle;
+  readinessLabel: TextStyle;
+  readinessValue: TextStyle;
+  liveDataGrid: ViewStyle;
+  liveDataItem: ViewStyle;
+  liveDataLabel: TextStyle;
+  liveDataValue: TextStyle;
+  notesHeader: ViewStyle;
+  notesText: TextStyle;
+  exportButton: ViewStyle;
+  exportButtonText: TextStyle;
+  deleteButton: ViewStyle;
+  deleteButtonText: TextStyle;
+}
+
+export default function HistoryScreen() {
+  const [sessions, setSessions] = useState<DiagnosticSession[]>([
     {
-      id: 1,
-      date: '2024-06-10',
-      time: '09:15 AM',
-      type: 'diagnostic_scan',
-      title: 'Full System Scan',
-      status: 'completed',
-      issues_found: 2,
-      description: 'Routine diagnostic scan completed',
+      id: '1',
+      timestamp: new Date(Date.now() - 86400000), // 1 day ago
+      vehicleInfo: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2018,
+        vin: '1HGBH41JXMN109186',
+      },
+      dtcCodes: [
+        {
+          code: 'P0171',
+          description: 'System Too Lean (Bank 1)',
+          severity: 'moderate',
+          status: 'active',
+          system: 'engine',
+        },
+        {
+          code: 'P0420',
+          description: 'Catalyst System Efficiency Below Threshold',
+          severity: 'moderate',
+          status: 'pending',
+          system: 'emissions',
+        },
+      ],
+      readinessMonitors: {
+        total: 11,
+        ready: 11,
+        notReady: 0,
+      },
+      liveDataSnapshot: {
+        rpm: 820,
+        speed: 0,
+        engineLoad: 15,
+        coolantTemp: 88,
+        fuelLevel: 78,
+      },
+      duration: 8,
+      notes: 'Routine maintenance check after oil change.',
     },
     {
-      id: 2,
-      date: '2024-06-09',
-      time: '03:30 PM',
-      type: 'error_cleared',
-      title: 'Error Code Cleared',
-      status: 'completed',
-      issues_found: 0,
-      description: 'P0301 - Cylinder 1 Misfire cleared after repair',
+      id: '3',
+      timestamp: new Date(Date.now() - 604800000), // 1 week ago
+      vehicleInfo: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2018,
+        vin: '1HGBH41JXMN109186',
+      },
+      dtcCodes: [
+        {
+          code: 'P0300',
+          description: 'Random/Multiple Cylinder Misfire Detected',
+          severity: 'critical',
+          status: 'cleared',
+          system: 'engine',
+        },
+        {
+          code: 'P0171',
+          description: 'System Too Lean (Bank 1)',
+          severity: 'moderate',
+          status: 'cleared',
+          system: 'engine',
+        },
+      ],
+      readinessMonitors: {
+        total: 11,
+        ready: 10,
+        notReady: 1,
+      },
+      liveDataSnapshot: {
+        rpm: 750,
+        speed: 0,
+        engineLoad: 20,
+        coolantTemp: 85,
+        fuelLevel: 45,
+      },
+      duration: 15,
+      notes: 'Engine was running rough. Replaced spark plugs and cleared codes.',
     },
     {
-      id: 3,
-      date: '2024-06-08',
-      time: '11:45 AM',
-      type: 'live_data',
-      title: 'Live Data Session',
-      status: 'completed',
-      issues_found: 1,
-      description: '45-minute monitoring session',
+      id: '4',
+      timestamp: new Date(Date.now() - 1209600000), // 2 weeks ago
+      vehicleInfo: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2018,
+        vin: '1HGBH41JXMN109186',
+      },
+      dtcCodes: [],
+      readinessMonitors: {
+        total: 11,
+        ready: 11,
+        notReady: 0,
+      },
+      liveDataSnapshot: {
+        rpm: 800,
+        speed: 0,
+        engineLoad: 12,
+        coolantTemp: 87,
+        fuelLevel: 92,
+      },
+      duration: 5,
+      notes: 'Pre-inspection diagnostic scan. All systems normal.',
     },
     {
-      id: 4,
-      date: '2024-06-07',
-      time: '02:20 PM',
-      type: 'diagnostic_scan',
-      title: 'Quick Scan',
-      status: 'interrupted',
-      issues_found: 3,
-      description: 'Scan interrupted - connection lost',
+      id: '2',
+      timestamp: new Date(Date.now() - 259200000), // 3 days ago
+      vehicleInfo: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2018,
+        vin: '1HGBH41JXMN109186',
+      },
+      dtcCodes: [
+        {
+          code: 'B1342',
+          description: 'ECM/PCM Internal Engine Off Timer Performance',
+          severity: 'minor',
+          status: 'cleared',
+          system: 'electrical',
+        },
+      ],
+      readinessMonitors: {
+        total: 11,
+        ready: 9,
+        notReady: 2,
+      },
+      liveDataSnapshot: {
+        rpm: 875,
+        speed: 0,
+        engineLoad: 18,
+        coolantTemp: 91,
+        fuelLevel: 65,
+      },
+      duration: 12,
+      notes: 'Check engine light came on during highway driving. Performance seems normal.',
     },
     {
-      id: 5,
-      date: '2024-06-06',
-      time: '10:00 AM',
-      type: 'report_generated',
-      title: 'Monthly Report',
-      status: 'completed',
-      issues_found: 0,
-      description: 'Monthly diagnostic report generated',
+      id: '2',
+      timestamp: new Date(Date.now() - 259200000), // 3 days ago
+      vehicleInfo: {
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2018,
+        vin: '1HGBH41JXMN109186',
+      },
+      dtcCodes: [
+        {
+          code: 'B1342',
+          description: 'ECM/PCM Internal Engine Off Timer Performance',
+          severity: 'minor',
+          status: 'cleared',
+          system: 'electrical',
+        },
+      ],
+      readinessMonitors: {
+        total: 11,
+        ready: 11,
+        notReady: 0,
+      },
+      liveDataSnapshot: {
+        rpm: 800,
+        speed: 0,
+        engineLoad: 14,
+        coolantTemp: 89,
+        fuelLevel: 82,
+      },
+      duration: 6,
+      notes: 'Regular maintenance checkup. All systems functioning normally.',
     },
   ]);
 
-  const filters = [
-    { key: 'all', label: 'All', count: historyData.length },
-    { key: 'diagnostic_scan', label: 'Scans', count: 2 },
-    { key: 'error_cleared', label: 'Repairs', count: 1 },
-    { key: 'live_data', label: 'Sessions', count: 1 },
-    { key: 'report_generated', label: 'Reports', count: 1 },
-  ];
+  const [filteredSessions, setFilteredSessions] = useState<DiagnosticSession[]>(sessions);
+  const [selectedSession, setSelectedSession] = useState<DiagnosticSession | null>(null);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [editingNotes, setEditingNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const filteredData = selectedFilter === 'all' 
-    ? historyData 
-    : historyData.filter(item => item.type === selectedFilter);
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: isDark ? '#111111' : '#f5f5f5',
-    },
-    scrollContent: {
-      padding: 16,
-    },
-    filterContainer: {
-      backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
-    },
-    filterRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    filterChip: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: isDark ? '#374151' : '#d1d5db',
-    },
-    filterChipActive: {
-      backgroundColor: '#3b82f6',
-      borderColor: '#3b82f6',
-    },
-    filterText: {
-      fontSize: 14,
-      color: isDark ? '#d1d5db' : '#4b5563',
-    },
-    filterTextActive: {
-      color: 'white',
-      fontWeight: '600',
-    },
-    historyCard: {
-      backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
-      borderLeftWidth: 4,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 8,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: isDark ? '#ffffff' : '#1f1f1f',
-      flex: 1,
-    },
-    statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-      marginLeft: 8,
-    },
-    statusText: {
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    cardMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    metaText: {
-      fontSize: 12,
-      color: isDark ? '#9ca3af' : '#6b7280',
-      marginLeft: 4,
-    },
-    cardDescription: {
-      fontSize: 14,
-      color: isDark ? '#d1d5db' : '#4b5563',
-      lineHeight: 20,
-      marginBottom: 8,
-    },
-    issuesFound: {
-      fontSize: 12,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
-    actionRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginTop: 20,
-    },
-    actionButton: {
-      flex: 1,
-      backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-      borderRadius: 8,
-      padding: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    actionText: {
-      fontSize: 14,
-      color: isDark ? '#ffffff' : '#1f1f1f',
-      marginLeft: 8,
-      fontWeight: '500',
-    },
-    emptyState: {
-      alignItems: 'center',
-      padding: 40,
-    },
-    emptyText: {
-      fontSize: 16,
-      color: isDark ? '#9ca3af' : '#6b7280',
-      textAlign: 'center',
-      marginTop: 16,
-    },
+  const [filters, setFilters] = useState<HistoryFilter>({
+    dateRange: 'all',
+    severity: 'all',
+    status: 'all',
+    system: 'all',
   });
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'diagnostic_scan': return '#3b82f6';
-      case 'error_cleared': return '#10b981';
-      case 'live_data': return '#f59e0b';
-      case 'report_generated': return '#8b5cf6';
-      default: return '#6b7280';
+  useEffect(() => {
+    applyFilters();
+  }, [filters, searchQuery, sessions]);
+
+  const applyFilters = () => {
+    let filtered = [...sessions];
+
+    // Date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      const cutoffDate = new Date();
+
+      switch (filters.dateRange) {
+        case 'week':
+          cutoffDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoffDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          cutoffDate.setMonth(now.getMonth() - 3);
+          break;
+      }
+
+      filtered = filtered.filter(session => session.timestamp >= cutoffDate);
+    }
+
+    // DTC-based filters
+    if (filters.severity !== 'all' || filters.status !== 'all' || filters.system !== 'all') {
+      filtered = filtered.filter(session =>
+        session.dtcCodes.some(code =>
+          (filters.severity === 'all' || code.severity === filters.severity) &&
+          (filters.status === 'all' || code.status === filters.status) &&
+          (filters.system === 'all' || code.system === filters.system)
+        )
+      );
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(session =>
+        session.dtcCodes.some(code =>
+          code.code.toLowerCase().includes(query) ||
+          code.description.toLowerCase().includes(query)
+        ) ||
+        session.notes?.toLowerCase().includes(query) ||
+        session.vehicleInfo.make.toLowerCase().includes(query) ||
+        session.vehicleInfo.model.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredSessions(filtered);
+  };
+
+  const getSeverityColor = (severity: 'critical' | 'moderate' | 'minor') => {
+    switch (severity) {
+      case 'critical': return '#FF4444';
+      case 'moderate': return '#FF8800';
+      case 'minor': return '#FFAA00';
+      default: return '#666';
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: 'active' | 'pending' | 'cleared') => {
     switch (status) {
-      case 'completed': return '#10b981';
-      case 'interrupted': return '#ef4444';
-      case 'in_progress': return '#f59e0b';
-      default: return '#6b7280';
+      case 'active': return '#FF4444';
+      case 'pending': return '#FF8800';
+      case 'cleared': return '#4CAF50';
+      default: return '#666';
     }
   };
 
-  const getIssuesColor = (count: number) => {
-    if (count === 0) return '#10b981';
-    if (count <= 2) return '#f59e0b';
-    return '#ef4444';
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  type FilterType = {
-    key: string;
-    label: string;
-    count: number;
+  const getSessionSummary = (session: DiagnosticSession) => {
+    const activeCodes = session.dtcCodes.filter(code => code.status === 'active').length;
+    const pendingCodes = session.dtcCodes.filter(code => code.status === 'pending').length;
+    const clearedCodes = session.dtcCodes.filter(code => code.status === 'cleared').length;
+
+    if (activeCodes > 0) return `${activeCodes} Active Issue${activeCodes > 1 ? 's' : ''}`;
+    if (pendingCodes > 0) return `${pendingCodes} Pending Issue${pendingCodes > 1 ? 's' : ''}`;
+    if (clearedCodes > 0) return `${clearedCodes} Cleared Code${clearedCodes > 1 ? 's' : ''}`;
+    return 'No Issues Found';
   };
 
-  const FilterChip = ({ filter }: { filter: FilterType }) => (
-    <TouchableOpacity
-      style={[
-        styles.filterChip,
-        selectedFilter === filter.key && styles.filterChipActive
-      ]}
-      onPress={() => setSelectedFilter(filter.key)}
+  const getSessionSeverity = (session: DiagnosticSession) => {
+    const severities = session.dtcCodes.map(code => code.severity);
+    if (severities.includes('critical')) return 'critical';
+    if (severities.includes('moderate')) return 'moderate';
+    if (severities.includes('minor')) return 'minor';
+    return 'normal';
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    Alert.alert(
+      'Delete Session',
+      'Are you sure you want to delete this diagnostic session? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setSessions(prev => prev.filter(session => session.id !== sessionId));
+            setShowSessionModal(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleExportSession = async (session: DiagnosticSession) => {
+    const exportData = {
+      timestamp: session.timestamp.toISOString(),
+      vehicle: `${session.vehicleInfo.year} ${session.vehicleInfo.make} ${session.vehicleInfo.model}`,
+      vin: session.vehicleInfo.vin,
+      dtcCodes: session.dtcCodes,
+      readinessMonitors: session.readinessMonitors,
+      liveData: session.liveDataSnapshot,
+      duration: session.duration,
+      notes: session.notes || 'No notes',
+    };
+
+    try {
+      await Share.share({
+        message: `Diagnostic Report\n\n${JSON.stringify(exportData, null, 2)}`,
+        title: `Diagnostic Report - ${formatDate(session.timestamp)}`,
+      });
+    } catch (error) {
+      Alert.alert('Export Failed', 'Unable to share the diagnostic report.');
+    }
+  };
+
+  const handleSaveNotes = () => {
+    if (selectedSession) {
+      setSessions(prev =>
+        prev.map(session =>
+          session.id === selectedSession.id
+            ? { ...session, notes: editingNotes }
+            : session
+        )
+      );
+      setShowNotesModal(false);
+      setEditingNotes('');
+    }
+  };
+
+  const renderFilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
     >
-      <Text style={[
-        styles.filterText,
-        selectedFilter === filter.key && styles.filterTextActive
-      ]}>
-        {filter.label} ({filter.count})
-      </Text>
-    </TouchableOpacity>
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Filter History</Text>
+          <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+            <Ionicons name="close" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Date Range</Text>
+            <View style={styles.filterOptions}>
+              {['all', 'week', 'month', 'quarter'].map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.filterOption,
+                    filters.dateRange === option && styles.activeFilterOption
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, dateRange: option as any }))}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    filters.dateRange === option && styles.activeFilterOptionText
+                  ]}>
+                    {option === 'all' ? 'All Time' : `Last ${option}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Severity</Text>
+            <View style={styles.filterOptions}>
+              {['all', 'critical', 'moderate', 'minor'].map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.filterOption,
+                    filters.severity === option && styles.activeFilterOption
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, severity: option as any }))}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    filters.severity === option && styles.activeFilterOptionText
+                  ]}>
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Status</Text>
+            <View style={styles.filterOptions}>
+              {['all', 'active', 'pending', 'cleared'].map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.filterOption,
+                    filters.status === option && styles.activeFilterOption
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, status: option as any }))}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    filters.status === option && styles.activeFilterOptionText
+                  ]}>
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>System</Text>
+            <View style={styles.filterOptions}>
+              {['all', 'engine', 'transmission', 'abs', 'airbag', 'emissions', 'electrical'].map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.filterOption,
+                    filters.system === option && styles.activeFilterOption
+                  ]}
+                  onPress={() => setFilters(prev => ({ ...prev, system: option as any }))}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    filters.system === option && styles.activeFilterOptionText
+                  ]}>
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+
+        <View style={styles.modalFooter}>
+          <TouchableOpacity
+            style={styles.clearFiltersButton}
+            onPress={() => setFilters({
+              dateRange: 'all',
+              severity: 'all',
+              status: 'all',
+              system: 'all',
+            })}
+          >
+            <Text style={styles.clearFiltersButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 
-  type HistoryItem = {
-    id: number;
-    date: string;
-    time: string;
-    type: string;
-    title: string;
-    status: string;
-    issues_found: number;
-    description: string;
-  };
-
-  const HistoryCard = ({ item }: { item: HistoryItem }) => (
-    <View style={[
-      styles.historyCard,
-      { borderLeftColor: getTypeColor(item.type) }
-    ]}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusColor(item.status) + '20' }
-        ]}>
-          <Text style={[
-            styles.statusText,
-            { color: getStatusColor(item.status) }
-          ]}>
-            {item.status.replace('_', ' ').toUpperCase()}
-          </Text>
+  const renderNotesModal = () => (
+    <Modal
+      visible={showNotesModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Edit Notes</Text>
+          <TouchableOpacity onPress={() => setShowNotesModal(false)}>
+            <Ionicons name="close" size={24} color="#007AFF" />
+          </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.cardMeta}>
-        <Calendar size={12} color={isDark ? '#9ca3af' : '#6b7280'} />
-        <Text style={styles.metaText}>{item.date}</Text>
-        <Clock size={12} color={isDark ? '#9ca3af' : '#6b7280'} style={{ marginLeft: 12 }} />
-        <Text style={styles.metaText}>{item.time}</Text>
-      </View>
+        <View style={styles.modalContent}>
+          <TextInput
+            style={styles.notesInput}
+            multiline
+            placeholder="Add notes about this diagnostic session..."
+            value={editingNotes}
+            onChangeText={setEditingNotes}
+            textAlignVertical="top"
+          />
+        </View>
 
-      <Text style={styles.cardDescription}>{item.description}</Text>
+        <View style={styles.modalFooter}>
+          <TouchableOpacity
+            style={styles.saveNotesButton}
+            onPress={handleSaveNotes}
+          >
+            <Text style={styles.saveNotesButtonText}>Save Notes</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
 
-      <View style={styles.cardMeta}>
-        <AlertTriangle size={12} color={getIssuesColor(item.issues_found)} />
-        <Text style={[
-          styles.issuesFound,
-          { color: getIssuesColor(item.issues_found) }
-        ]}>
-          {item.issues_found} issues found
-        </Text>
-      </View>
-    </View>
+  const renderSessionModal = () => (
+    <Modal
+      visible={showSessionModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Session Details</Text>
+          <TouchableOpacity onPress={() => setShowSessionModal(false)}>
+            <Ionicons name="close" size={24} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        {selectedSession && (
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.sessionDetailHeader}>
+              <Text style={styles.sessionDetailDate}>
+                {formatDate(selectedSession.timestamp)}
+              </Text>
+              <Text style={styles.sessionDetailVehicle}>
+                {selectedSession.vehicleInfo.year} {selectedSession.vehicleInfo.make} {selectedSession.vehicleInfo.model}
+              </Text>
+            </View>
+
+            <View style={styles.sessionDetailSection}>
+              <Text style={styles.sessionDetailSectionTitle}>Vehicle Information</Text>
+              <View style={styles.vehicleInfoGrid}>
+                <View style={styles.vehicleInfoItem}>
+                  <Text style={styles.vehicleInfoLabel}>VIN</Text>
+                  <Text style={styles.vehicleInfoValue}>{selectedSession.vehicleInfo.vin}</Text>
+                </View>
+                <View style={styles.vehicleInfoItem}>
+                  <Text style={styles.vehicleInfoLabel}>Duration</Text>
+                  <Text style={styles.vehicleInfoValue}>{selectedSession.duration} min</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.sessionDetailSection}>
+              <Text style={styles.sessionDetailSectionTitle}>Diagnostic Trouble Codes</Text>
+              {selectedSession.dtcCodes.length > 0 ? (
+                selectedSession.dtcCodes.map((code, index) => (
+                  <View key={index} style={styles.dtcCodeItem}>
+                    <View style={styles.dtcCodeHeader}>
+                      <Text style={styles.dtcCodeNumber}>{code.code}</Text>
+                      <View style={styles.dtcCodeStatus}>
+                        <View style={[
+                          styles.statusDot,
+                          { backgroundColor: getSeverityColor(code.severity) }
+                        ]} />
+                        <Text style={[
+                          styles.statusText,
+                          { color: getStatusColor(code.status) }
+                        ]}>
+                          {code.status.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.dtcCodeDescription}>{code.description}</Text>
+                    <Text style={styles.dtcCodeSystem}>{code.system.toUpperCase()}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noDtcCodes}>No diagnostic trouble codes found</Text>
+              )}
+            </View>
+
+            <View style={styles.sessionDetailSection}>
+              <Text style={styles.sessionDetailSectionTitle}>Readiness Monitors</Text>
+              <View style={styles.readinessGrid}>
+                <View style={styles.readinessItem}>
+                  <Text style={styles.readinessLabel}>Total</Text>
+                  <Text style={styles.readinessValue}>{selectedSession.readinessMonitors.total}</Text>
+                </View>
+                <View style={styles.readinessItem}>
+                  <Text style={styles.readinessLabel}>Ready</Text>
+                  <Text style={[styles.readinessValue, { color: '#4CAF50' }]}>
+                    {selectedSession.readinessMonitors.ready}
+                  </Text>
+                </View>
+                <View style={styles.readinessItem}>
+                  <Text style={styles.readinessLabel}>Not Ready</Text>
+                  <Text style={[styles.readinessValue, { color: '#FF8800' }]}>
+                    {selectedSession.readinessMonitors.notReady}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.sessionDetailSection}>
+              <Text style={styles.sessionDetailSectionTitle}>Live Data Snapshot</Text>
+              <View style={styles.liveDataGrid}>
+                <View style={styles.liveDataItem}>
+                  <Text style={styles.liveDataLabel}>RPM</Text>
+                  <Text style={styles.liveDataValue}>{selectedSession.liveDataSnapshot.rpm}</Text>
+                </View>
+                <View style={styles.liveDataItem}>
+                  <Text style={styles.liveDataLabel}>Speed</Text>
+                  <Text style={styles.liveDataValue}>{selectedSession.liveDataSnapshot.speed} mph</Text>
+                </View>
+                <View style={styles.liveDataItem}>
+                  <Text style={styles.liveDataLabel}>Load</Text>
+                  <Text style={styles.liveDataValue}>{selectedSession.liveDataSnapshot.engineLoad}%</Text>
+                </View>
+                <View style={styles.liveDataItem}>
+                  <Text style={styles.liveDataLabel}>Coolant</Text>
+                  <Text style={styles.liveDataValue}>{selectedSession.liveDataSnapshot.coolantTemp}°C</Text>
+                </View>
+                <View style={styles.liveDataItem}>
+                  <Text style={styles.liveDataLabel}>Fuel</Text>
+                  <Text style={styles.liveDataValue}>{selectedSession.liveDataSnapshot.fuelLevel}%</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.sessionDetailSection}>
+              <View style={styles.notesHeader}>
+                <Text style={styles.sessionDetailSectionTitle}>Notes</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingNotes(selectedSession.notes || '');
+                    setShowNotesModal(true);
+                  }}
+                >
+                  <Ionicons name="create" size={20} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.notesText}>
+                {selectedSession.notes || 'No notes added'}
+              </Text>
+            </View>
+          </ScrollView>
+        )}
+
+        <View style={styles.modalFooter}>
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => selectedSession && handleExportSession(selectedSession)}
+          >
+            <Ionicons name="share" size={20} color="#007AFF" />
+            <Text style={styles.exportButtonText}>Export</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => selectedSession && handleDeleteSession(selectedSession.id)}
+          >
+            <Ionicons name="trash" size={20} color="#FF4444" />
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Filters */}
-        <View style={styles.filterContainer}>
-          <View style={styles.filterRow}>
-            {filters.map((filter) => (
-              <FilterChip key={filter.key} filter={filter} />
-            ))}
-          </View>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Diagnostic History</Text>
+        <TouchableOpacity onPress={() => setShowFilterModal(true)}>
+          <Ionicons name="filter" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
 
-        {/* History Items */}
-        {filteredData.length > 0 ? (
-          filteredData.map((item) => (
-            <HistoryCard key={item.id} item={item} />
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <FileText size={48} color={isDark ? '#4b5563' : '#9ca3af'} />
-            <Text style={styles.emptyText}>
-              No history items found for the selected filter
-            </Text>
-          </View>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#666" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search codes, descriptions, or notes..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
         )}
+      </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/history')}
-          >
-            <Search size={16} color={isDark ? '#9ca3af' : '#6b7280'} />
-            <Text style={styles.actionText}>Advanced Search</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/reports')}
-          >
-            <FileText size={16} color={isDark ? '#9ca3af' : '#6b7280'} />
-            <Text style={styles.actionText}>Export History</Text>
-          </TouchableOpacity>
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{sessions.length}</Text>
+          <Text style={styles.statLabel}>Total Sessions</Text>
         </View>
-      </ScrollView>
-    </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>
+            {sessions.reduce((sum, session) => sum + session.dtcCodes.filter(code => code.status === 'active').length, 0)}
+          </Text>
+          <Text style={styles.statLabel}>Active Issues</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>
+            {Math.round(sessions.reduce((sum, session) => sum + session.duration, 0) / sessions.length) || 0}
+          </Text>
+          <Text style={styles.statLabel}>Avg Duration (min)</Text>
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading history...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.sessionsList}>
+          {filteredSessions.length > 0 ? (
+            filteredSessions.map((session) => (
+              <TouchableOpacity
+                key={session.id}
+                style={[
+                  styles.sessionItem,
+                  { borderLeftColor: getSeverityColor(getSessionSeverity(session) as any) }
+                ]}
+                onPress={() => {
+                  setSelectedSession(session);
+                  setShowSessionModal(true);
+                }}
+              >
+                <View style={styles.sessionHeader}>
+                  <Text style={styles.sessionDate}>{formatDate(session.timestamp)}</Text>
+                  <Text style={styles.sessionDuration}>{session.duration} min</Text>
+                </View>
+
+                <Text style={styles.sessionVehicle}>
+                  {session.vehicleInfo.year} {session.vehicleInfo.make} {session.vehicleInfo.model}
+                </Text>
+
+                <Text style={styles.sessionSummary}>{getSessionSummary(session)}</Text>
+
+                <View style={styles.sessionFooter}>
+                  <View style={styles.sessionTags}>
+                    {session.dtcCodes.length > 0 && (
+                      <View style={styles.sessionTag}>
+                        <Text style={styles.sessionTagText}>{session.dtcCodes.length} DTC</Text>
+                      </View>
+                    )}
+                    <View style={[
+                      styles.sessionTag,
+                      { backgroundColor: session.readinessMonitors.notReady > 0 ? '#FFE5CC' : '#E5F5E5' }
+                    ]}>
+                      <Text style={[
+                        styles.sessionTagText,
+                        { color: session.readinessMonitors.notReady > 0 ? '#FF8800' : '#4CAF50' }
+                      ]}>
+                        {session.readinessMonitors.ready}/{session.readinessMonitors.total} Ready
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color="#666" />
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text" size={64} color="#CCC" />
+              <Text style={styles.emptyStateTitle}>No Sessions Found</Text>
+              <Text style={styles.emptyStateMessage}>
+                {searchQuery || Object.values(filters).some(f => f !== 'all')
+                  ? 'Try adjusting your search or filters'
+                  : 'Your diagnostic history will appear here'}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
+
+      {renderFilterModal()}
+      {renderSessionModal()}
+      {renderNotesModal()}
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create<Styles>({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+  sessionsList: {
+    flex: 1,
+    padding: 20,
+  },
+  sessionItem: {
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+  },
+  sessionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sessionDate: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sessionDuration: {
+    fontSize: 12,
+    color: '#666',
+  },
+  sessionVehicle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  sessionSummary: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+  },
+  sessionFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sessionTags: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sessionTag: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  sessionTagText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  emptyStateMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    padding: 20,
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F0F0F0',
+  },
+  activeFilterOption: {
+    backgroundColor: '#007AFF',
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  activeFilterOptionText: {
+    color: '#FFF',
+  },
+  clearFiltersButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#F0F0F0',
+  },
+  clearFiltersButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  notesInput: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 8,
+    fontSize: 16,
+    minHeight: 200,
+  },
+  saveNotesButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  saveNotesButtonText: {
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: '500',
+  },
+  sessionDetailHeader: {
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  sessionDetailDate: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  sessionDetailVehicle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sessionDetailSection: {
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  sessionDetailSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+  },
+  vehicleInfoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  vehicleInfoItem: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  vehicleInfoLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  vehicleInfoValue: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  dtcCodeItem: {
+    backgroundColor: '#F8F8F8',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  dtcCodeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dtcCodeNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  dtcCodeStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  dtcCodeDescription: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 8,
+  },
+  dtcCodeSystem: {
+    fontSize: 12,
+    color: '#666',
+  },
+  noDtcCodes: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  readinessGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  readinessItem: {
+    flex: 1,
+    backgroundColor: '#F8F8F8',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  readinessLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  readinessValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+  },
+  liveDataGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  liveDataItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#F8F8F8',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  liveDataLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  liveDataValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notesText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#F0F0F0',
+  },
+  exportButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#FFF0F0',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    color: '#FF4444',
+    fontWeight: '500',
+  },
+});

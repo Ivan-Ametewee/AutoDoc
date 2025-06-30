@@ -1,21 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
   ActivityIndicator,
-  Platform,
-  TextInput,
+  Alert,
   Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useDispatch } from 'react-redux';
 import BluetoothManager from '../services/bluetooth/BluetoothManager';
 import WiFiManager from '../services/wifi/WiFiManager';
+//import { setConnectionType } from '../../store/actions/connectionActions';
 
 // Types
 interface ConnectionOption {
@@ -43,7 +45,7 @@ interface WiFiNetwork {
 
 // Constants
 const SCAN_TIMEOUT = 10000;
-const CONNECTION_TIMEOUT = 2000;
+const CONNECTION_TIMEOUT = 5000;
 
 const DEFAULT_CONNECTIONS: ConnectionOption[] = [
   {
@@ -70,6 +72,7 @@ const DEFAULT_CONNECTIONS: ConnectionOption[] = [
 ];
 
 export default function ConnectionScreen() {
+  const dispatch = useDispatch();
   // State
   const [connections, setConnections] = useState<ConnectionOption[]>(DEFAULT_CONNECTIONS);
   const [isScanning, setIsScanning] = useState(false);
@@ -98,7 +101,7 @@ export default function ConnectionScreen() {
   // Cleanup on unmount
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     return () => {
       isMountedRef.current = false;
       cleanupManagers();
@@ -127,12 +130,12 @@ export default function ConnectionScreen() {
 
   // Error handler
   const handleError = useCallback((title: string, error: unknown, onDismiss?: () => void) => {
-    const message = error && typeof error === 'object' && 'message' in error 
-      ? String(error.message) 
+    const message = error && typeof error === 'object' && 'message' in error
+      ? String(error.message)
       : 'An unexpected error occurred';
-    
+
     console.error(`${title}:`, error);
-    
+
     Alert.alert(title, message, [
       { text: 'OK', onPress: onDismiss }
     ]);
@@ -146,11 +149,11 @@ export default function ConnectionScreen() {
     try {
       manager.on('initialized', () => {
         safeSetState(() => {
-          setBluetoothState(prev => ({ 
-            ...prev, 
-            initialized: true, 
-            enabled: true, 
-            hasPermissions: true 
+          setBluetoothState(prev => ({
+            ...prev,
+            initialized: true,
+            enabled: true,
+            hasPermissions: true
           }));
         });
         startBluetoothScan();
@@ -171,11 +174,11 @@ export default function ConnectionScreen() {
       manager.on('connectionStateChanged', ({ state, device }: any) => {
         if (device?.id) {
           updateDeviceStatus(device.id, state);
-          
+
           if (state === 'connected') {
             setTimeout(() => {
               if (isMountedRef.current) {
-                router.replace('/dashboard');
+                router.replace('/(tabs)/dashboard');
               }
             }, CONNECTION_TIMEOUT);
           }
@@ -186,7 +189,7 @@ export default function ConnectionScreen() {
         safeSetState(() => {
           setBluetoothState(prev => ({ ...prev, enabled }));
         });
-        
+
         if (!enabled) {
           Alert.alert(
             'Bluetooth Disabled',
@@ -236,7 +239,7 @@ export default function ConnectionScreen() {
             updateWiFiNetworkStatus(selectedNetwork.id, 'connected');
             setTimeout(() => {
               if (isMountedRef.current) {
-                router.replace('/dashboard');
+                router.replace('/(tabs)/dashboard');
               }
             }, CONNECTION_TIMEOUT);
           } else if (state === 'disconnected') {
@@ -270,12 +273,12 @@ export default function ConnectionScreen() {
     try {
       setupBluetoothListeners();
       const success = await bluetoothManagerRef.current.initialize();
-      
+
       if (!success) {
-        const message = Platform.OS === 'android' 
+        const message = Platform.OS === 'android'
           ? 'Please enable Bluetooth and grant location permissions to scan for OBD adapters.'
           : 'Please enable Bluetooth to connect to OBD adapters.';
-          
+
         Alert.alert('Bluetooth Setup Required', message, [
           { text: 'Cancel', onPress: () => setShowBluetoothDevices(false) },
           { text: 'Try Again', onPress: initializeBluetooth }
@@ -298,7 +301,7 @@ export default function ConnectionScreen() {
     try {
       setupWiFiListeners();
       const success = await wifiManagerRef.current.initialize();
-      
+
       if (!success) {
         Alert.alert(
           'WiFi Setup Required',
@@ -323,7 +326,7 @@ export default function ConnectionScreen() {
     try {
       setIsScanning(true);
       setBluetoothDevices([]);
-      
+
       await bluetoothManagerRef.current.scanForDevices(SCAN_TIMEOUT);
     } catch (error) {
       handleError('Scan Failed', error);
@@ -339,7 +342,7 @@ export default function ConnectionScreen() {
     try {
       setIsScanning(true);
       setWifiNetworks([]);
-      
+
       await wifiManagerRef.current.scanForNetworks();
     } catch (error) {
       handleError('Scan Failed', error);
@@ -370,7 +373,7 @@ export default function ConnectionScreen() {
     safeSetState(() => {
       setBluetoothDevices(prev => {
         const existingIndex = prev.findIndex(conn => conn.id === connectionOption.id);
-        
+
         if (existingIndex >= 0) {
           const updated = [...prev];
           updated[existingIndex] = { ...updated[existingIndex], ...connectionOption };
@@ -396,7 +399,7 @@ export default function ConnectionScreen() {
     safeSetState(() => {
       setWifiNetworks(prev => {
         const existingIndex = prev.findIndex(conn => conn.id === connectionOption.id);
-        
+
         if (existingIndex >= 0) {
           const updated = [...prev];
           updated[existingIndex] = { ...updated[existingIndex], ...connectionOption };
@@ -430,7 +433,7 @@ export default function ConnectionScreen() {
     status: string
   ) => {
     if (!deviceId) return;
-    
+
     const statusMap: { [key: string]: ConnectionOption['status'] } = {
       'connecting': 'connecting',
       'connected': 'connected',
@@ -442,7 +445,7 @@ export default function ConnectionScreen() {
     safeSetState(() => {
       setBluetoothDevices(prev =>
         prev.map(conn =>
-          conn.id === deviceId 
+          conn.id === deviceId
             ? { ...conn, status: newStatus }
             : conn
         )
@@ -458,7 +461,7 @@ export default function ConnectionScreen() {
     safeSetState(() => {
       setWifiNetworks(prev =>
         prev.map(conn =>
-          conn.id === networkId 
+          conn.id === networkId
             ? { ...conn, status: status }
             : conn
         )
@@ -472,7 +475,7 @@ export default function ConnectionScreen() {
     const bluetoothDevice = bluetoothDevices.find(c => c.id === connectionId);
     const wifiNetwork = wifiNetworks.find(c => c.id === connectionId);
     const targetConnection = connection || bluetoothDevice || wifiNetwork;
-    
+
     if (!targetConnection) return;
 
     // Handle option selection
@@ -513,16 +516,16 @@ export default function ConnectionScreen() {
       if (targetConnection.type === 'demo') {
         // Demo mode
         await new Promise(resolve => setTimeout(resolve, CONNECTION_TIMEOUT));
-        
+        //dispatch(setConnectionType('demo'));
         setConnections(prev =>
           prev.map(c =>
             c.id === connectionId ? { ...c, status: 'connected' } : c
           )
         );
-        
+
         setTimeout(() => {
           if (isMountedRef.current) {
-            router.replace('/dashboard');
+            router.replace('/(tabs)/dashboard');
           }
         }, 500);
 
@@ -540,6 +543,7 @@ export default function ConnectionScreen() {
           throw new Error('Failed to connect to Bluetooth device');
         }
 
+        //dispatch(setConnectionType('bluetooth'/*, targetConnection, 'bluetooth'*/));
       } else if (targetConnection.type === 'wifi') {
         if (!wifiInitialized) {
           throw new Error('WiFi is not available');
@@ -551,6 +555,7 @@ export default function ConnectionScreen() {
           setShowPasswordModal(true);
         } else {
           await connectToWiFiNetwork(targetConnection.id, '');
+          //dispatch(setConnectionType('wifi'/*, targetConnection, 'wifi'*/));
         }
       }
 
@@ -567,13 +572,13 @@ export default function ConnectionScreen() {
           )
         );
       }
-      
+
       handleError('Connection Failed', error);
     }
   }, [
     connections, bluetoothDevices, wifiNetworks, bluetoothState, wifiInitialized,
     initializeBluetooth, initializeWiFi, startBluetoothScan, startWiFiScan,
-    updateDeviceStatus, updateWiFiNetworkStatus, handleError
+    updateDeviceStatus, updateWiFiNetworkStatus, handleError, dispatch
   ]);
 
   // Connect to WiFi network
@@ -602,13 +607,14 @@ export default function ConnectionScreen() {
     try {
       setShowPasswordModal(false);
       await connectToWiFiNetwork(selectedNetwork.id, networkPassword);
+      //dispatch(setConnectionType('wifi'/*, selectedNetwork, 'wifi'*/));
     } catch (error) {
       handleError('Connection Failed', error);
     } finally {
       setNetworkPassword('');
       setSelectedNetwork(null);
     }
-  }, [selectedNetwork, networkPassword, connectToWiFiNetwork, handleError]);
+  }, [selectedNetwork, networkPassword, connectToWiFiNetwork, handleError, dispatch]);
 
   // Handle custom server connection
   const handleCustomServerConnect = useCallback(async () => {
@@ -616,21 +622,21 @@ export default function ConnectionScreen() {
 
     try {
       setShowCustomServerModal(false);
-      
+
       const host = customHost.trim();
       const port = parseInt(customPort.trim());
-      
+
       if (!host || isNaN(port)) {
         throw new Error('Please enter valid host and port');
       }
 
       const success = await wifiManagerRef.current.connectToCustomServer(
-        selectedNetwork.id, 
-        networkPassword, 
-        host, 
+        selectedNetwork.id,
+        networkPassword,
+        host,
         port
       );
-      
+
       if (!success) {
         throw new Error('Failed to connect to custom server');
       }
@@ -672,7 +678,7 @@ export default function ConnectionScreen() {
     setShowWifiNetworks(false);
     setBluetoothDevices([]);
     setWifiNetworks([]);
-    
+
     if (isScanning) {
       try {
         if (bluetoothState.initialized && bluetoothManagerRef.current) {
@@ -714,7 +720,7 @@ export default function ConnectionScreen() {
   const renderConnectionCard = useCallback((connection: ConnectionOption) => {
     const isBluetoothDevice = connection.type === 'bluetooth' && connection.id !== 'bluetooth-scan';
     const isWiFiNetwork = connection.type === 'wifi' && connection.id !== 'wifi-scan';
-    
+
     const deviceInfo = isBluetoothDevice ? (
       <Text style={styles.deviceInfo}>
         {connection.address && `${connection.address}`}
@@ -745,7 +751,7 @@ export default function ConnectionScreen() {
             color={getStatusColor(connection.status)}
           />
         </View>
-        
+
         <View style={styles.connectionInfo}>
           <Text style={styles.connectionName}>{connection.name}</Text>
           {deviceInfo}
@@ -770,26 +776,26 @@ export default function ConnectionScreen() {
   }, [handleConnect, getStatusColor, getStatusText, getSignalIcon]);
 
   // Computed values
-  const currentDevices = showBluetoothDevices ? bluetoothDevices : 
-                        showWifiNetworks ? wifiNetworks : 
-                        connections;
+  const currentDevices = showBluetoothDevices ? bluetoothDevices :
+    showWifiNetworks ? wifiNetworks :
+      connections;
 
-  const currentTitle = showBluetoothDevices ? 'Bluetooth Devices' : 
-                      showWifiNetworks ? 'WiFi Networks' : 
-                      'Connection Options';
+  const currentTitle = showBluetoothDevices ? 'Bluetooth Devices' :
+    showWifiNetworks ? 'WiFi Networks' :
+      'Connection Options';
 
   const emptyStateText = showBluetoothDevices ? 'No Bluetooth adapters found' :
-                        showWifiNetworks ? 'No WiFi OBD adapters found' :
-                        'No connection options';
+    showWifiNetworks ? 'No WiFi OBD adapters found' :
+      'No connection options';
 
-  const emptyStateSubtext = showBluetoothDevices ? 
+  const emptyStateSubtext = showBluetoothDevices ?
     'Make sure your OBD adapter is plugged in and in pairing mode' :
-    showWifiNetworks ? 
-    'Make sure your WiFi OBD adapter is powered on and broadcasting' :
-    '';
+    showWifiNetworks ?
+      'Make sure your WiFi OBD adapter is powered on and broadcasting' :
+      '';
 
-  const canRescan = (showBluetoothDevices && bluetoothState.initialized) || 
-                   (showWifiNetworks && wifiInitialized);
+  const canRescan = (showBluetoothDevices && bluetoothState.initialized) ||
+    (showWifiNetworks && wifiInitialized);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -802,9 +808,9 @@ export default function ConnectionScreen() {
         )}
         <Text style={styles.title}>OBDII Diagnostic</Text>
         <Text style={styles.subtitle}>
-          {showBluetoothDevices ? 'Choose Bluetooth device' : 
-           showWifiNetworks ? 'Choose WiFi network' :
-           'Connect to your vehicle'}
+          {showBluetoothDevices ? 'Choose Bluetooth device' :
+            showWifiNetworks ? 'Choose WiFi network' :
+              'Connect to your vehicle'}
         </Text>
       </View>
 
@@ -821,11 +827,11 @@ export default function ConnectionScreen() {
                 {isScanning ? (
                   <ActivityIndicator size="small" color="#007AFF" />
                 ) : (
-                  <Ionicons 
-                    name="refresh" 
-                    size={20} 
+                  <Ionicons
+                    name="refresh"
+                    size={20}
                     color={canRescan ? "#007AFF" : "#C7C7CC"}
-                    />
+                  />
                 )}
                 <Text style={[styles.scanText, { color: canRescan ? "#007AFF" : "#C7C7CC" }]}>
                   {isScanning ? 'Scanning...' : 'Rescan'}
@@ -838,10 +844,10 @@ export default function ConnectionScreen() {
             currentDevices.map(renderConnectionCard)
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons 
-                name={showBluetoothDevices ? "bluetooth" : showWifiNetworks ? "wifi" : "car-sport"} 
-                size={48} 
-                color="#C7C7CC" 
+              <Ionicons
+                name={showBluetoothDevices ? "bluetooth" : showWifiNetworks ? "wifi" : "car-sport"}
+                size={48}
+                color="#C7C7CC"
               />
               <Text style={styles.emptyStateText}>{emptyStateText}</Text>
               {emptyStateSubtext && (
@@ -870,7 +876,7 @@ export default function ConnectionScreen() {
             <Text style={styles.modalSubtitle}>
               Network: {selectedNetwork?.name}
             </Text>
-            
+
             <TextInput
               style={styles.passwordInput}
               placeholder="Password"
@@ -879,7 +885,7 @@ export default function ConnectionScreen() {
               secureTextEntry={true}
               autoFocus={true}
             />
-            
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -891,7 +897,7 @@ export default function ConnectionScreen() {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.modalButton, styles.connectButton]}
                 onPress={handlePasswordSubmit}
@@ -927,7 +933,7 @@ export default function ConnectionScreen() {
             <Text style={styles.modalSubtitle}>
               Network: {selectedNetwork?.name}
             </Text>
-            
+
             <TextInput
               style={styles.passwordInput}
               placeholder="Password"
@@ -935,14 +941,14 @@ export default function ConnectionScreen() {
               onChangeText={setNetworkPassword}
               secureTextEntry={true}
             />
-            
+
             <TextInput
               style={styles.passwordInput}
               placeholder="Host (e.g., 192.168.0.10)"
               value={customHost}
               onChangeText={setCustomHost}
             />
-            
+
             <TextInput
               style={styles.passwordInput}
               placeholder="Port (e.g., 35000)"
@@ -950,7 +956,7 @@ export default function ConnectionScreen() {
               onChangeText={setCustomPort}
               keyboardType="numeric"
             />
-            
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -962,7 +968,7 @@ export default function ConnectionScreen() {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.modalButton, styles.connectButton]}
                 onPress={handleCustomServerConnect}
@@ -1194,3 +1200,230 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 });
+
+// import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable } from 'react-native';
+// import { router } from 'expo-router';
+// import React, { useState, useEffect, useCallback } from 'react';
+// import { Wifi, Bluetooth, PlayCircle, ChevronLeft, ServerCrash } from 'lucide-react-native';
+
+// // Import all necessary services
+// import OBDIIService from '../services/obdii/OBDIIService';
+// import WiFiService from '../services/wifi/WiFiService';
+// import BluetoothService from '../services/bluetooth/BluetoothService';
+
+// // Define types for discovered devices to be used in the list
+// interface DiscoveredDevice {
+//   name: string;
+//   address: string; // MAC address for Bluetooth, SSID for Wi-Fi
+//   type: 'wifi' | 'bluetooth';
+//   raw: any; // The original device object from the service
+// }
+
+// export default function ConnectionScreen() {
+//   const colorScheme = useColorScheme();
+//   const isDark = colorScheme === 'dark';
+
+//   // --- UI State Management ---
+//   const [view, setView] = useState<'initial' | 'discovering' | 'connecting'>('initial');
+//   const [discoveryType, setDiscoveryType] = useState<'wifi' | 'bluetooth' | null>(null);
+//   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
+//   const [error, setError] = useState<string | null>(null);
+
+//   // --- Service Subscription ---
+//   useEffect(() => {
+//     // Listen for the final connection status from the central service
+//     const unsubscribe = OBDIIService.subscribe((event, data) => {
+//       if (event === 'connectionStatus') {
+//         if (data.status === 'connected') {
+//           // On successful connection, navigate to the dashboard
+//           router.replace('/(tabs)/dashboard');
+//         } else if (data.status === 'error') {
+//           setError(data.error || 'An unknown connection error occurred.');
+//           setView('initial'); // Go back to the initial screen on error
+//         } else if (data.status === 'connecting') {
+//           setView('connecting');
+//         }
+//       }
+//     });
+
+//     return () => unsubscribe();
+//   }, []);
+
+//   // --- Action Handlers ---
+//   const handleStartDiscovery = useCallback(async (type: 'wifi' | 'bluetooth') => {
+//     setView('discovering');
+//     setDiscoveryType(type);
+//     setError(null);
+//     setDevices([]);
+
+//     try {
+//       let foundDevices: DiscoveredDevice[] = [];
+//       if (type === 'wifi') {
+//         await WiFiService.requestPermissions();
+//         const { obd: obdNetworks } = await WiFiService.scanNetworks();
+//         foundDevices = obdNetworks.map(net => ({
+//           name: net.SSID,
+//           address: net.SSID, // Use SSID as the unique identifier
+//           type: 'wifi',
+//           raw: net,
+//         }));
+//       } else { // Bluetooth
+//         await BluetoothService.requestPermissions();
+//         // Getting bonded (already paired) devices is usually faster and more reliable
+//         const bondedDevices = await BluetoothService.getBondedDevices();
+//         foundDevices = bondedDevices.map(dev => ({
+//           name: dev.name || 'Unknown Device',
+//           address: dev.address,
+//           type: 'bluetooth',
+//           raw: dev,
+//         }));
+//       }
+//       setDevices(foundDevices);
+//     } catch (e: any) {
+//       setError(`Failed to scan for ${type} devices. Please check permissions and try again.`);
+//       setView('initial');
+//     }
+//   }, []);
+
+//   const handleSelectDevice = async (device: DiscoveredDevice) => {
+//     setError(null);
+//     setView('connecting');
+//     try {
+//       // For Wi-Fi, we need the SSID. For Bluetooth, we pass the whole device object.
+//       const connectionTarget = device.type === 'wifi' ? { ssid: device.address, password: '' } : device.raw;
+//       await OBDIIService.connect(connectionTarget, device.type);
+//     } catch (e: any) {
+//       setError(e.message || 'Failed to connect.');
+//       setView('initial');
+//     }
+//   };
+
+//   const handleStartDemo = () => {
+//     setError(null);
+//     setView('connecting');
+//     OBDIIService.enableSimulation();
+//   };
+
+//   const resetView = () => {
+//     setView('initial');
+//     setError(null);
+//     setDevices([]);
+//   };
+
+//   const styles = getStyles(isDark);
+
+//   // --- Render Logic ---
+//   const renderInitialView = () => (
+//     <>
+//       <View style={styles.header}>
+//         <Image source={require('../assets/images/icon.png')} style={styles.logo} />
+//         <Text style={styles.title}>OBD-II Simulator</Text>
+//         <Text style={styles.subtitle}>Connect to your vehicle to get started</Text>
+//       </View>
+//       <View style={styles.buttonContainer}>
+//         <ConnectionButton icon={Wifi} label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
+//         <ConnectionButton icon={Bluetooth} label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
+//         <ConnectionButton icon={PlayCircle} label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
+//       </View>
+//     </>
+//   );
+
+//   const renderDiscoveryView = () => (
+//     <>
+//       <View style={styles.listHeader}>
+//         <TouchableOpacity onPress={resetView} style={styles.backButton}>
+//           <ChevronLeft color={isDark ? '#fff' : '#000'} size={28} />
+//         </TouchableOpacity>
+//         <Text style={styles.title}>Select a {discoveryType === 'wifi' ? 'Wi-Fi' : 'Bluetooth'} Device</Text>
+//       </View>
+//       {devices.length === 0 ? (
+//         <View style={styles.centeredMessage}>
+//             <ActivityIndicator size="large" />
+//             <Text style={styles.statusText}>Scanning for devices...</Text>
+//         </View>
+//       ) : (
+//         <FlatList
+//           data={devices}
+//           keyExtractor={(item) => item.address}
+//           renderItem={({ item }) => (
+//             <Pressable style={styles.deviceButton} onPress={() => handleSelectDevice(item)}>
+//               <Text style={styles.deviceText}>{item.name}</Text>
+//               <Text style={styles.deviceSubtext}>{item.address}</Text>
+//             </Pressable>
+//           )}
+//           ListEmptyComponent={() => (
+//             <View style={styles.centeredMessage}>
+//                 <ServerCrash color={isDark ? '#888' : '#666'} size={48} />
+//                 <Text style={styles.statusText}>No devices found.</Text>
+//                 <Text style={styles.statusSubtext}>Ensure the OBD-II adapter is powered on and in range.</Text>
+//             </View>
+//           )}
+//         />
+//       )}
+//     </>
+//   );
+
+//   const renderConnectingView = () => (
+//     <View style={styles.centeredMessage}>
+//       <ActivityIndicator size="large" color={isDark ? '#fff' : '#000'} />
+//       <Text style={styles.statusText}>Connecting...</Text>
+//     </View>
+//   );
+
+
+//   const renderContent = () => {
+//     switch (view) {
+//       case 'discovering':
+//         return renderDiscoveryView();
+//       case 'connecting':
+//         return renderConnectingView();
+//       case 'initial':
+//       default:
+//         return renderInitialView();
+//     }
+//   }
+
+//   return (
+//     <View style={styles.container}>
+//       {renderContent()}
+//       {error && (
+//         <View style={styles.errorContainer}>
+//             <Text style={styles.errorText}>{error}</Text>
+//         </View>
+//       )}
+//     </View>
+//   );
+// }
+
+// // --- Helper Components & Styles ---
+// const ConnectionButton = ({ icon: Icon, label, onPress, isDark }: any) => {
+//     const styles = getStyles(isDark);
+//     return (
+//       <TouchableOpacity style={styles.button} onPress={onPress}>
+//         <Icon color={isDark ? '#fff' : '#000'} size={24} />
+//         <Text style={styles.buttonText}>{label}</Text>
+//       </TouchableOpacity>
+//     );
+// };
+
+// const getStyles = (isDark: boolean) => StyleSheet.create({
+//     container: { flex: 1, backgroundColor: isDark ? '#121212' : '#f5f5f5', paddingTop: 60, paddingHorizontal: 20 },
+//     header: { alignItems: 'center', marginBottom: 60, marginTop: 40 },
+//     logo: { width: 100, height: 100, marginBottom: 20 },
+//     title: { fontSize: 28, fontWeight: 'bold', color: isDark ? '#fff' : '#000', textAlign: 'center' },
+//     subtitle: { fontSize: 16, color: isDark ? '#a0a0a0' : '#666', marginTop: 8 },
+//     buttonContainer: { width: '100%', maxWidth: 400, alignSelf: 'center' },
+//     button: { flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? '#1e1e1e' : '#fff', paddingVertical: 15, paddingHorizontal: 20, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: isDark ? '#333' : '#ddd' },
+//     buttonText: { fontSize: 18, color: isDark ? '#fff' : '#000', marginLeft: 15 },
+//     statusContainer: { marginTop: 40, alignItems: 'center', height: 60 },
+//     statusText: { marginTop: 20, fontSize: 16, color: isDark ? '#a0a0a0' : '#666', textAlign: 'center' },
+//     statusSubtext: { marginTop: 8, fontSize: 14, color: isDark ? '#777' : '#888', textAlign: 'center' },
+//     errorContainer: { position: 'absolute', bottom: 40, left: 20, right: 20, padding: 15, backgroundColor: isDark ? '#5c1f1f' : '#fdecea', borderRadius: 10, borderWidth: 1, borderColor: isDark ? '#993333' : '#f5c6cb' },
+//     errorText: { color: isDark ? '#ffb3b3' : '#721c24', textAlign: 'center', fontSize: 16 },
+//     listHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+//     backButton: { padding: 5 },
+//     deviceButton: { backgroundColor: isDark ? '#1e1e1e' : '#fff', padding: 20, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: isDark ? '#333' : '#ddd' },
+//     deviceText: { fontSize: 16, fontWeight: '600', color: isDark ? '#eee' : '#222' },
+//     deviceSubtext: { fontSize: 12, color: isDark ? '#999' : '#555', marginTop: 4 },
+//     centeredMessage: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+// });

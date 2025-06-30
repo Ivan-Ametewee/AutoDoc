@@ -1,258 +1,433 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  useColorScheme,
-  RefreshControl,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React, { useState } from 'react';
 import {
-  Car,
-  Gauge,
-  Thermometer,
-  Fuel,
-  AlertTriangle,
-  Activity,
-  Zap,
-  Navigation,
-} from 'lucide-react-native';
+  Dimensions,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 
-export default function TabsDashboard() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [refreshing, setRefreshing] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('connected');
+const { width } = Dimensions.get('window');
 
-  // Mock real-time data
-  const [vehicleData, setVehicleData] = useState({
-    speed: 65,
-    rpm: 2100,
-    engineTemp: 195,
-    fuelLevel: 78,
-    batteryVoltage: 12.4,
-    mileage: 45230,
-  });
+// Default values to prevent undefined errors
+const defaultLiveData = {
+  rpm: 0,
+  speed: 0,
+  coolantTemp: 0,
+  engineLoad: 0,
+  batteryVoltage: 12.0,
+  fuelLevel: 0,
+  throttlePosition: 0,
+  maf: 0,
+};
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // Simulate data refresh
-    setTimeout(() => {
-      setVehicleData(prev => ({
-        ...prev,
-        speed: Math.floor(Math.random() * 80),
-        rpm: Math.floor(Math.random() * 3000) + 1000,
-      }));
-      setRefreshing(false);
-    }, 1000);
-  };
+const defaultConnectionState = {
+  isConnected: false,
+  isConnecting: false,
+  mode: null,
+  device: null,
+  protocol: null,
+};
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: isDark ? '#111111' : '#f5f5f5',
-    },
-    scrollContent: {
-      padding: 16,
-    },
-    connectionCard: {
-      backgroundColor: isDark ? '#1e40af' : '#3b82f6',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    connectionText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 12,
-    },
-    metricsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-      marginBottom: 20,
-    },
-    metricCard: {
-      backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-      borderRadius: 12,
-      padding: 16,
-      flex: 1,
-      minWidth: '45%',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.3 : 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    metricValue: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: isDark ? '#ffffff' : '#1f1f1f',
-      marginTop: 8,
-    },
-    metricLabel: {
-      fontSize: 12,
-      color: isDark ? '#9ca3af' : '#6b7280',
-      marginTop: 4,
-      textAlign: 'center',
-    },
-    quickActionsCard: {
-      backgroundColor: isDark ? '#1f1f1f' : '#ffffff',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 20,
-    },
-    cardTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: isDark ? '#ffffff' : '#1f1f1f',
-      marginBottom: 16,
-    },
-    actionButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDark ? '#2a2a2a' : '#f3f4f6',
-      borderRadius: 8,
-      padding: 12,
-      marginBottom: 8,
-    },
-    actionText: {
-      fontSize: 16,
-      color: isDark ? '#ffffff' : '#1f1f1f',
-      marginLeft: 12,
-      flex: 1,
-    },
-    statusIndicator: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: '#10b981',
-    },
-  });
-
-  type MetricCardProps = {
-    icon: React.ComponentType<{ size?: number; color?: string }>;
-    value: string | number;
-    label: string;
-    color?: string;
-  };
-
-  const MetricCard = ({
-    icon: Icon,
-    value,
-    label,
-    color = isDark ? '#3b82f6' : '#2563eb',
-  }: MetricCardProps) => (
-    <View style={styles.metricCard}>
-      <Icon size={24} color={color} />
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </View>
+export default function DashboardScreen() {
+  // Safe state access with defaults
+  const liveData = useSelector((state: RootState) => 
+    state.data?.liveData || defaultLiveData
+  );
+  const connectionState = useSelector((state: RootState) => 
+    state.connection || defaultConnectionState
   );
 
-  type ActionButtonProps = {
-    icon: React.ComponentType<{ size?: number; color?: string }>;
-    title: string;
-    onPress: () => void;
-    color?: string;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const quickActions = [
+    {
+      id: 'diagnostics',
+      title: 'Diagnostics',
+      icon: 'medical-outline' as const,
+      route: '/(tabs)/diagnostics',
+      color: '#FF3B30',
+    },
+    {
+      id: 'history',
+      title: 'History',
+      icon: 'time-outline' as const,
+      route: '/(tabs)/history',
+      color: '#007AFF',
+    },
+    {
+      id: 'alerts',
+      title: 'Alerts',
+      icon: 'notifications-outline' as const,
+      route: '/alerts',
+      color: '#FF9500',
+    },
+    {
+      id: 'reports',
+      title: 'Reports',
+      icon: 'document-text-outline' as const,
+      route: '/reports',
+      color: '#34C759',
+    },
+  ];
+
+  // Conditionally use the hook only if it exists
+  // const { } = useLiveOBDData?.() || {};
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
-  const ActionButton = ({
-    icon: Icon,
-    title,
-    onPress,
-    color = isDark ? '#6b7280' : '#4b5563',
-  }: ActionButtonProps) => (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
-      <Icon size={20} color={color} />
-      <Text style={styles.actionText}>{title}</Text>
-      <View style={styles.statusIndicator} />
-    </TouchableOpacity>
-  );
+  const handleQuickAction = (route: string) => {
+    try {
+      router.push(route as any);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
+  const handleDisconnect = () => {
+    try {
+      router.push('/');
+    } catch (error) {
+      console.error('Disconnect navigation error:', error);
+    }
+  };
+
+  const formatValue = (value: number | undefined, decimals: number = 0): string => {
+    if (typeof value !== 'number' || isNaN(value)) {
+      return '0';
+    }
+    return value.toFixed(decimals);
+  };
+
+  const getStatusColor = () => {
+    if (connectionState.isConnected) return '#34C759';
+    if (connectionState.isConnecting) return '#FF9500';
+    return '#FF3B30';
+  };
+
+  const getStatusText = () => {
+    if (connectionState.isConnected) return 'Connected';
+    if (connectionState.isConnecting) return 'Connecting...';
+    return 'Disconnected';
+  };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.title}>Dashboard</Text>
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
+            <Text style={[styles.statusText, { color: getStatusColor() }]}>
+              {getStatusText()}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
+          <Ionicons name="power" size={24} color="#FF3B30" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
       >
-        {/* Connection Status */}
-        <View style={styles.connectionCard}>
-          <Car size={24} color="white" />
-          <Text style={styles.connectionText}>
-            Connected to Vehicle • Live Data
-          </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Engine Status</Text>
+          <View style={styles.primaryGauges}>
+            <View style={styles.gaugeCard}>
+              <Text style={styles.gaugeLabel}>RPM</Text>
+              <Text style={styles.gaugeValue}>{formatValue(liveData.rpm)}</Text>
+              <Text style={styles.gaugeUnit}>rpm</Text>
+            </View>
+            <View style={styles.gaugeCard}>
+              <Text style={styles.gaugeLabel}>Speed</Text>
+              <Text style={styles.gaugeValue}>{formatValue(liveData.speed)}</Text>
+              <Text style={styles.gaugeUnit}>mph</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Real-time Metrics */}
-        <View style={styles.metricsGrid}>
-          <MetricCard
-            icon={Gauge}
-            value={`${vehicleData.speed} mph`}
-            label="Current Speed"
-          />
-          <MetricCard
-            icon={Activity}
-            value={`${vehicleData.rpm}`}
-            label="Engine RPM"
-          />
-          <MetricCard
-            icon={Thermometer}
-            value={`${vehicleData.engineTemp}°F`}
-            label="Engine Temp"
-            color={vehicleData.engineTemp > 220 ? '#ef4444' : '#10b981'}
-          />
-          <MetricCard
-            icon={Fuel}
-            value={`${vehicleData.fuelLevel}%`}
-            label="Fuel Level"
-            color={vehicleData.fuelLevel < 20 ? '#f59e0b' : '#10b981'}
-          />
-          <MetricCard
-            icon={Zap}
-            value={`${vehicleData.batteryVoltage}V`}
-            label="Battery"
-          />
-          <MetricCard
-            icon={Navigation}
-            value={vehicleData.mileage.toLocaleString()}
-            label="Odometer"
-          />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Vehicle Metrics</Text>
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <Ionicons name="thermometer" size={20} color="#FF6B35" />
+              <Text style={styles.metricLabel}>Coolant Temp</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.coolantTemp)}°C</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="car" size={20} color="#007AFF" />
+              <Text style={styles.metricLabel}>Engine Load</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.engineLoad)}%</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="battery-half" size={20} color="#34C759" />
+              <Text style={styles.metricLabel}>Battery</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.batteryVoltage, 1)}V</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="water" size={20} color="#5AC8FA" />
+              <Text style={styles.metricLabel}>Fuel Level</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.fuelLevel)}%</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="speedometer" size={20} color="#FF9500" />
+              <Text style={styles.metricLabel}>Throttle</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.throttlePosition)}%</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="logo-buffer" size={20} color="#AF52DE" />
+              <Text style={styles.metricLabel}>MAF</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.maf, 1)} g/s</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsCard}>
-          <Text style={styles.cardTitle}>Quick Actions</Text>
-          
-          <ActionButton
-            icon={AlertTriangle}
-            title="Check Error Codes"
-            onPress={() => router.push('/(tabs)/diagnostics')}
-            color="#ef4444"
-          />
-          
-          <ActionButton
-            icon={Activity}
-            title="View Live Parameters"
-            onPress={() => router.push('/dashboard')}
-          />
-          
-          <ActionButton
-            icon={Car}
-            title="Vehicle Profile"
-            onPress={() => router.push('/vehicle-profile')}
-          />
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={`${action.id}-${index}`}
+                style={[styles.actionCard, { borderColor: action.color }]}
+                onPress={() => handleQuickAction(action.route)}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: `${action.color}15` }]}>
+                  <Ionicons name={action.icon} size={24} color={action.color} />
+                </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.activityCard}>
+            <View style={styles.activityItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+              <Text style={styles.activityText}>System scan completed - No issues found</Text>
+              <Text style={styles.activityTime}>2 min ago</Text>
+            </View>
+            <View style={styles.activityItem}>
+              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Text style={styles.activityText}>Engine temperature within normal range</Text>
+              <Text style={styles.activityTime}>5 min ago</Text>
+            </View>
+            <View style={styles.activityItem}>
+              <Ionicons name="warning" size={20} color="#FF9500" />
+              <Text style={styles.activityText}>Low fuel level detected</Text>
+              <Text style={styles.activityTime}>1 hour ago</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  disconnectButton: {
+    padding: 8,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  primaryGauges: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  gaugeCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  gaugeLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 8,
+  },
+  gaugeValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  gaugeUnit: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  metricCard: {
+    width: (width - 52) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionCard: {
+    width: (width - 52) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
+  activityText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#000000',
+    marginLeft: 12,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+});

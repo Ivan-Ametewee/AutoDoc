@@ -257,25 +257,59 @@ class WiFiManager extends EventEmitter {
 
   async connectToOBDNetwork(ssid: string, password = ''): Promise<boolean> {
     try {
-      console.log('Connecting to OBDII network:', ssid);
+      console.log('Connecting to OBDII network and server:', ssid);
 
+      // // Listen for the network connection event
+      // this.wifiService.once('networkConnected', async (network) => {
+      //   if (network.ssid === ssid) {
+      //     console.log('Network connection confirmed for', ssid);
+      //     try {
+      //       // Now that the network is connected, connect to the OBD server
+      //       const serverSuccess = await this.wifiService.connectToOBDServer();
+      //       if (!serverSuccess) {
+      //         throw new Error('Failed to connect to OBDII server after WiFi connection.');
+      //       }
+      //       console.log('Successfully connected to OBDII network and server');
+      //       // Consider emitting a success event here
+      //     } catch (error) {
+      //       console.error('Server connection failed:', error);
+      //       this.emit('error', error);
+      //     }
+      //   }
+      // });
+
+      // // Initiate the connection to the WiFi network
+      // const networkSuccess = await this.wifiService.connectToNetwork(ssid, password);
+      // if (!networkSuccess) {
+      //   throw new Error('Failed to initiate connection to WiFi network');
+      // }
+
+      // // The rest of the logic is now handled by the event listener above.
+      // // This function can now resolve true if the initial call is successful.
+      // return true;
+
+      // Improved connection logic with better error handling and flow
+      // Step 1: Connect to the WiFi network. This now waits until the connection
+      // is fully confirmed by the polling logic in WiFiService.
       const networkSuccess = await this.wifiService.connectToNetwork(ssid, password);
+      
       if (!networkSuccess) {
-        throw new Error('Failed to connect to WiFi network');
+        throw new Error('Failed to connect to WiFi network. Please check credentials and signal.');
       }
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
+      // Step 2: Once WiFi is confirmed, immediately connect to the OBD server.
+      // The unreliable 3-second timeout has been removed.
       const serverSuccess = await this.wifiService.connectToOBDServer();
+      
       if (!serverSuccess) {
-        throw new Error('Failed to connect to OBDII server');
+        throw new Error('Connected to WiFi, but failed to connect to the OBDII server. Check the device IP and port.');
       }
 
       console.log('Successfully connected to OBDII network and server');
       return true;
 
     } catch (error: any) {
-      console.error('Error connecting to OBDII network:', error);
+      console.error('Error connecting to OBDII network:', error.message || error);
       this.emit('error', error);
       return false;
     }

@@ -18,6 +18,7 @@ export const CONNECTION_TYPES = {
   CLEAR_DEVICES: 'CLEAR_DEVICES',
 
   // Connection
+  SET_CONNECTION_MODE: 'SET_CONNECTION_MODE',
   CONNECT_START: 'CONNECT_START',
   CONNECT_SUCCESS: 'CONNECT_SUCCESS',
   CONNECT_FAILED: 'CONNECT_FAILED',
@@ -199,6 +200,11 @@ export const setConnectionType = (connectionType) => ({
 export const setConnectionStatus = (status) => ({
   type: CONNECTION_TYPES.SET_CONNECTION_STATUS,
   payload: { status }
+});
+
+export const setConnectionMode = (mode, device = null, connectionType = setConnectionMode | null) => ({
+  type: CONNECTION_TYPES.SET_CONNECTION_MODE,
+  payload: { mode, device, connectionType },
 });
 
 export const setSignalStrength = (strength) => ({

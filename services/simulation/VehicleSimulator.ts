@@ -1,8 +1,65 @@
-// src/services/simulation/VehicleSimulator.js
+// src/services/simulation/VehicleSimulator.ts
+
+interface VehicleState {
+  rpm: number;
+  speed: number; // km/h
+  engineLoad: number; // %
+  throttlePos: number; // %
+  coolantTemp: number; // °C
+  intakeTemp: number; // °C
+  oilTemp: number; // °C
+  fuelLevel: number; // %
+  fuelPressure: number; // kPa
+  fuelTrim: number; // %
+  maf: number; // g/s
+  map: number; // kPa
+  o2Sensor: number; // V
+  catalystTemp: number; // °C
+  batteryVoltage: number; // V
+  alternatorOutput: number; // V
+  gearPosition: 'P' | 'R' | 'N' | 'D' | 'L';
+  transTemp: number; // °C
+  ambientTemp: number; // °C
+  barometricPressure: number; // kPa
+  engineRunning: boolean;
+  odometer: number; // km
+  tripOdometer: number; // km
+  fuelEconomy: number; // L/100km
+  averageSpeed: number; // km/h
+  engineHours: number;
+}
+
+interface VehicleLimits {
+  rpm: { min: number; max: number; redline: number };
+  speed: { min: number; max: number };
+  coolantTemp: { min: number; max: number; normal: { min: number; max: number } };
+  oilTemp: { min: number; max: number; normal: { min: number; max: number } };
+  batteryVoltage: { min: number; max: number; normal: { min: number; max: number } };
+  fuelPressure: { min: number; max: number; normal: { min: number; max: number } };
+  engineLoad: { min: number; max: number };
+  throttlePos: { min: number; max: number };
+}
+
+interface TrendState {
+  rpmTrend: number;
+  speedTrend: number;
+  loadTrend: number;
+  tempTrend: number;
+  warmupPhase: boolean;
+  warmupTime: number; // seconds
+}
 
 export class VehicleSimulator {
+  public state: VehicleState;
+  private limits: VehicleLimits;
+  private trends: TrendState;
+  private faultStates: { [key: string]: boolean };
+  private engineRunTime: number;
+  private tripDistance: number;
+  private fuelConsumed: number;
+
   constructor() {
-    this.state = this.getInitialState();
+    this.state = this.getInitialState() as VehicleState;
     this.limits = this.getVehicleLimits();
     this.trends = this.getInitialTrends();
     this.faultStates = {};
@@ -14,7 +71,7 @@ export class VehicleSimulator {
   /**
    * Get initial vehicle state
    */
-  getInitialState() {
+  getInitialState(): VehicleState {
     return {
       // Engine parameters
       rpm: 800,                    // Engine RPM
@@ -110,7 +167,7 @@ export class VehicleSimulator {
   /**
    * Update vehicle state based on scenario and time
    */
-  update(deltaTime, scenario) {
+  update(deltaTime: number, scenario: string) {
     // Update running time
     this.engineRunTime += deltaTime;
     this.trends.warmupTime += deltaTime;
@@ -132,19 +189,19 @@ export class VehicleSimulator {
         this.updateCityDriving(deltaTime);
         break;
       case 'idle':
-        this.updateIdle(deltaTime);
+        this.updateIdle();
         break;
       case 'cold_start':
-        this.updateColdStart(deltaTime);
+        this.updateColdStart();
         break;
       case 'overheating':
         this.updateOverheating(deltaTime);
         break;
       case 'engine_trouble':
-        this.updateEngineTrouble(deltaTime);
+        this.updateEngineTrouble();
         break;
       case 'low_fuel':
-        this.updateLowFuel(deltaTime);
+        this.updateLowFuel();
         break;
       default:
         this.updateNormalDriving(deltaTime);
@@ -163,7 +220,7 @@ export class VehicleSimulator {
   /**
    * Update for normal driving scenario
    */
-  updateNormalDriving(deltaTime) {
+  updateNormalDriving(deltaTime: number) {
     // Simulate varying driving conditions
     const variation = Math.sin(this.engineRunTime * 0.1) * 0.5 + 0.5;
     
@@ -180,7 +237,7 @@ export class VehicleSimulator {
   /**
    * Update for highway driving scenario
    */
-  updateHighwayDriving(deltaTime) {
+  updateHighwayDriving(deltaTime: number) {
     const cruiseVariation = Math.sin(this.engineRunTime * 0.05) * 0.3 + 0.7;
     
     this.state.speed = 90 + cruiseVariation * 20; // 90-110 km/h
@@ -195,7 +252,7 @@ export class VehicleSimulator {
   /**
    * Update for city driving scenario
    */
-  updateCityDriving(deltaTime) {
+  updateCityDriving(deltaTime: number) {
     // Simulate stop-and-go traffic
     const stopGoCycle = Math.sin(this.engineRunTime * 0.3);
     const isAccelerating = stopGoCycle > 0;
@@ -218,7 +275,7 @@ export class VehicleSimulator {
   /**
    * Update for idle scenario
    */
-  updateIdle(deltaTime) {
+  updateIdle() {
     this.state.speed = 0;
     this.state.rpm = 750 + Math.sin(this.engineRunTime * 2) * 50; // Idle variation
     this.state.throttlePos = 0;
@@ -230,7 +287,7 @@ export class VehicleSimulator {
   /**
    * Update for cold start scenario
    */
-  updateColdStart(deltaTime) {
+  updateColdStart() {
     const warmupProgress = Math.min(this.trends.warmupTime / 300, 1); // 5 min warmup
     
     // High idle during warmup
@@ -248,7 +305,7 @@ export class VehicleSimulator {
   /**
    * Update for overheating scenario
    */
-  updateOverheating(deltaTime) {
+  updateOverheating(deltaTime: number) {
     // Gradually increase temperature
     this.state.coolantTemp = Math.min(110, this.state.coolantTemp + deltaTime * 2);
     this.state.oilTemp = Math.min(130, this.state.oilTemp + deltaTime * 1.5);
@@ -266,7 +323,7 @@ export class VehicleSimulator {
   /**
    * Update for engine trouble scenario
    */
-  updateEngineTrouble(deltaTime) {
+  updateEngineTrouble() {
     // Simulate rough idle and misfires
     this.state.rpm = 800 + Math.random() * 200 - 100; // Rough idle
     this.state.engineLoad = 20 + Math.random() * 20;
@@ -285,7 +342,7 @@ export class VehicleSimulator {
   /**
    * Update for low fuel scenario
    */
-  updateLowFuel(deltaTime) {
+  updateLowFuel() {
     // Simulate low fuel level
     this.state.fuelLevel = Math.max(5, 10 + Math.sin(this.engineRunTime * 0.1) * 5);
     this.state.fuelPressure = Math.max(180, 250 - (15 - this.state.fuelLevel) * 10);
@@ -300,7 +357,7 @@ export class VehicleSimulator {
   /**
    * Update calculated values
    */
-  updateCalculatedValues(deltaTime) {
+  updateCalculatedValues(deltaTime: number) {
     // Update odometer
     const distanceTraveled = (this.state.speed * deltaTime) / 3600; // km
     this.state.tripOdometer += distanceTraveled;
@@ -354,7 +411,7 @@ export class VehicleSimulator {
    */
   applyRealisticVariations() {
     // Add small random variations to simulate real sensor noise
-    const addNoise = (value, percentage = 0.02) => {
+    const addNoise = (value: number, percentage = 0.02) => {
       return value + (value * (Math.random() - 0.5) * percentage);
     };
     
@@ -394,7 +451,7 @@ export class VehicleSimulator {
   /**
    * Set simulation scenario
    */
-  setScenario(scenario) {
+  setScenario(scenario: string) {
     // Reset some state when changing scenarios
     if (scenario === 'cold_start') {
       this.trends.warmupTime = 0;

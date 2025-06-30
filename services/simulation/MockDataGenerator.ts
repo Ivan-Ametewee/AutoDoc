@@ -1,4 +1,27 @@
+interface EngineState {
+  running: boolean;
+  warmupTime: number;
+  rpm: number;
+  speed: number;
+  coolantTemp: number;
+  throttlePosition: number;
+  engineLoad: number;
+  fuelLevel: number;
+  intakeAirTemp: number;
+  mafRate: number;
+}
+
+type DrivingScenario = 'idle' | 'city' | 'highway' | 'aggressive';
+
 class MockDataGenerator {
+  private engineState: EngineState;
+  private drivingScenario: DrivingScenario;
+  private lastUpdate: number;
+  private faults: any[];
+  private faultProbability: number; // Probability of generating a fault
+  private tripDistance: number; // Distance for the current trip
+  private totalDistance: number; // Total distance (odometer reading)
+
   constructor() {
     this.engineState = {
       running: false,
@@ -11,7 +34,7 @@ class MockDataGenerator {
       fuelLevel: 75,
       intakeAirTemp: 25,
       mafRate: 0
-    };
+    } as EngineState;
     
     this.drivingScenario = 'idle'; // idle, city, highway, aggressive
     this.lastUpdate = Date.now();
@@ -24,7 +47,7 @@ class MockDataGenerator {
   }
 
   // Main data generation method
-  generateRealtimeData() {
+  public generateRealtimeData() {
     const now = Date.now();
     const deltaTime = (now - this.lastUpdate) / 1000; // seconds
     this.lastUpdate = now;
@@ -36,7 +59,7 @@ class MockDataGenerator {
     return this.getCurrentReadings();
   }
 
-  updateEngineState(deltaTime) {
+  updateEngineState(deltaTime: number) {
     if (this.engineState.running) {
       this.engineState.warmupTime += deltaTime;
       
@@ -53,7 +76,7 @@ class MockDataGenerator {
     }
   }
 
-  simulateDrivingScenario(deltaTime) {
+  simulateDrivingScenario(deltaTime: number) {
     switch (this.drivingScenario) {
       case 'idle':
         this.simulateIdle();
@@ -83,7 +106,7 @@ class MockDataGenerator {
     this.engineState.mafRate = 2.5 + this.randomVariation(0.5);
   }
 
-  simulateCityDriving(deltaTime) {
+  simulateCityDriving(deltaTime: number) {
     // Variable speed and RPM for city driving
     const baseSpeed = 35 + Math.sin(Date.now() / 10000) * 20;
     this.engineState.speed = Math.max(0, baseSpeed + this.randomVariation(10));
@@ -95,7 +118,7 @@ class MockDataGenerator {
     this.updateDistance(deltaTime);
   }
 
-  simulateHighwayDriving(deltaTime) {
+  simulateHighwayDriving(deltaTime: number) {
     // Steady highway speed
     this.engineState.speed = 75 + this.randomVariation(5);
     this.engineState.rpm = this.calculateRPMFromSpeed(this.engineState.speed) + this.randomVariation(50);
@@ -106,7 +129,7 @@ class MockDataGenerator {
     this.updateDistance(deltaTime);
   }
 
-  simulateAggressiveDriving(deltaTime) {
+  simulateAggressiveDriving(deltaTime: number) {
     // High RPM and throttle
     this.engineState.speed = 50 + Math.sin(Date.now() / 5000) * 30;
     this.engineState.rpm = Math.min(6500, this.calculateRPMFromSpeed(this.engineState.speed) * 1.3) + this.randomVariation(200);
@@ -117,7 +140,7 @@ class MockDataGenerator {
     this.updateDistance(deltaTime);
   }
 
-  calculateRPMFromSpeed(speed) {
+  calculateRPMFromSpeed(speed: number): number {
     // Simplified transmission simulation
     if (speed === 0) return 700; // Idle
     
@@ -138,7 +161,7 @@ class MockDataGenerator {
     return wheelRPM * gearRatio * finalDrive;
   }
 
-  updateDistance(deltaTime) {
+  updateDistance(deltaTime: number) {
     const distanceKm = (this.engineState.speed * 1.60934 * deltaTime) / 3600;
     this.tripDistance += distanceKm;
     this.totalDistance += distanceKm;
@@ -148,7 +171,7 @@ class MockDataGenerator {
     const scenarios = ['idle', 'city', 'highway', 'aggressive'];
     const currentIndex = scenarios.indexOf(this.drivingScenario);
     const newScenarios = scenarios.filter((_, index) => index !== currentIndex);
-    this.drivingScenario = newScenarios[Math.floor(Math.random() * newScenarios.length)];
+    this.drivingScenario = newScenarios[Math.floor(Math.random() * newScenarios.length)] as DrivingScenario;
   }
 
   checkForFaults() {
@@ -183,7 +206,7 @@ class MockDataGenerator {
     }
   }
 
-  getCurrentReadings() {
+  getCurrentReadings(): {[key: string]: number} {
     return {
       ENGINE_RPM: Math.round(this.engineState.rpm),
       VEHICLE_SPEED: Math.round(this.engineState.speed),
@@ -199,7 +222,7 @@ class MockDataGenerator {
   }
 
   // Generate specific PID data
-  generatePIDData(pidName) {
+  generatePIDData(pidName: string): number {
     const readings = this.getCurrentReadings();
     return readings[pidName] || 0;
   }
@@ -254,7 +277,7 @@ class MockDataGenerator {
     this.engineState.mafRate = 0;
   }
 
-  setDrivingScenario(scenario) {
+  setDrivingScenario(scenario: DrivingScenario) {
     if (['idle', 'city', 'highway', 'aggressive'].includes(scenario)) {
       this.drivingScenario = scenario;
     }
@@ -266,7 +289,7 @@ class MockDataGenerator {
   }
 
   // Utility methods
-  randomVariation(range) {
+  randomVariation(range: number): number {
     return (Math.random() - 0.5) * 2 * range;
   }
 

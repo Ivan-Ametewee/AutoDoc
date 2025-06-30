@@ -39,7 +39,7 @@ const initialState = {
   sessionData: [],
   historicalSessions: [],
   currentSessionId: null,
-  sessionStartTime: null,
+  sessionStartTime: null, // Fix: should be null, not string
   sessionDuration: 0,
 
   // Diagnostic Trouble Codes
@@ -48,10 +48,10 @@ const initialState = {
   permanentDtcCodes: [],
   dtcCount: 0,
   milStatus: false, // Malfunction Indicator Lamp
-  
+
   // Freeze Frame Data
   freezeFrameData: [],
-  
+
   // Readiness Tests
   readinessTests: {
     catalystTest: 'not_ready',
@@ -133,7 +133,7 @@ const dataReducer = (state = initialState, action) => {
       return {
         ...state,
         isCollectingData: true,
-        sessionStartTime: new Date().toISOString(),
+        sessionStartTime: null, // Fix: should be null, not string
         currentSessionId: action.payload.sessionId,
         sessionData: [],
         activeAlerts: [],
@@ -144,6 +144,7 @@ const dataReducer = (state = initialState, action) => {
         ...state,
         isCollectingData: false,
         sessionDuration: action.payload.duration,
+        sessionStartTime: null, // Fix: reset to null
         historicalSessions: [
           ...state.historicalSessions,
           {

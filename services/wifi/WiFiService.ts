@@ -165,7 +165,7 @@ class WiFiService extends EventEmitter {
   async enableWiFi(): Promise<boolean> {
     try {
       if (Platform.OS === 'android') {
-        await WifiManager.setEnabled(true);
+        WifiManager.setEnabled(true);
         return true;
       }
       return false;
@@ -255,25 +255,66 @@ class WiFiService extends EventEmitter {
 
       await WifiManager.connectToProtectedSSID(ssid, password, false, false);
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Poll to confirm the connection is stable and the SSID matches.
+      const success = await this.pollForConnection(ssid);
 
-      const currentSSID: string | null = await WifiManager.getCurrentWifiSSID();
-      if (currentSSID) {
-        console.log('Connected to network:', currentSSID);
-        this.currentNetwork = { ssid: currentSSID, connected: true };
+      if (success) {
+        console.log('Successfully connected to network:', ssid);
+        this.currentNetwork = { ssid, connected: true };
         this.emit('networkConnected', this.currentNetwork);
         return true;
       } else {
-        throw new Error('Failed to get current SSID after connection');
+        throw new Error(`Connection to ${ssid} timed out or failed to confirm.`);
       }
+
+      // const currentSSID: string | null = await WifiManager.getCurrentWifiSSID();
+      // if (currentSSID) {
+      //   console.log('Connected to network:', currentSSID);
+      //   this.currentNetwork = { ssid: currentSSID, connected: true };
+      //   this.emit('networkConnected', this.currentNetwork);
+      //   return true;
+      // } else {
+      //   throw new Error('Failed to get current SSID after connection');
+      // }
 
     } catch (error: any) {
       console.error('Error connecting to network:', error);
-      this.emit('error', error);
+      this.emit('error', { message: `Failed to connect to ${ssid}`, details: error});
       return false;
     } finally {
       this.isConnecting = false;
     }
+  }
+
+  // --- NEW HELPER METHOD ---
+  /**
+   * Polls the device's current SSID to confirm a successful connection.
+   * @param {string} expectedSSID The SSID we expect to be connected to.
+   * @returns {Promise<boolean>} A promise that resolves to true if connected, false if timed out.
+   */
+  private async pollForConnection(expectedSSID: string): Promise<boolean> {
+    const timeout = 20000; // 20-second timeout
+    const interval = 1000; // Check every 1 second
+    const startTime = Date.now();
+
+    console.log(`Polling for connection to "${expectedSSID}"...`);
+
+    while (Date.now() - startTime < timeout) {
+      try {
+        const currentSSID = await WifiManager.getCurrentWifiSSID(); //
+        if (currentSSID === expectedSSID) {
+          console.log(`Connection to "${expectedSSID}" confirmed.`);
+          return true;
+        }
+      } catch (error) {
+        // Silently ignore errors during polling (e.g., if WiFi is temporarily unavailable)
+      }
+      // Wait for the next interval
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+
+    console.warn(`Polling timed out. Could not confirm connection to "${expectedSSID}".`);
+    return false;
   }
 
   async disconnectFromNetwork(): Promise<boolean> {
@@ -485,6 +526,20 @@ class WiFiService extends EventEmitter {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
+    }
+  }
+
+  public async disconnect(): Promise<boolean> {
+    console.log('Disconnecting from OBDII server and Wi-Fi network...');
+    try {
+      await this.closeSocket();
+      await this.disconnectFromNetwork();
+      return true;
+    } catch (error: any) {
+      console.error('An error occurred during Wi-Fi disconnection:', error);
+      // Even if one part fails, we should report it but not necessarily stop.
+      // The state will be cleared anyway.
+      return false;
     }
   }
 

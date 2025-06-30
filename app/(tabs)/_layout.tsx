@@ -1,20 +1,21 @@
-import React from 'react';
+//tabs/_layout.tsx
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { 
-  Gauge, 
-  Search, 
-  History, 
-  Settings,
+import {
   AlertTriangle,
-  Activity 
+  Gauge,
+  History,
+  Search,
+  Settings,
+  IceCream,
 } from 'lucide-react-native';
+import React from 'react';
+import { useColorScheme } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  
+
   const isDark = colorScheme === 'dark';
-  
+
   const tabBarStyle = {
     backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
     borderTopColor: isDark ? '#2a2a2a' : '#e5e5e5',
@@ -58,62 +59,61 @@ export default function TabLayout() {
           title: 'Dashboard',
           headerTitle: 'Vehicle Dashboard',
           tabBarIcon: ({ color, size, focused }) => (
-            <Gauge 
-              size={focused ? size + 2 : size} 
-              color={color} 
+            <Gauge
+              size={focused ? size + 2 : size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
           headerRight: () => (
-            <AlertTriangle 
-              size={24} 
-              color={activeColor} 
-              style={{ marginRight: 16 }} 
+            <AlertTriangle
+              size={24}
+              color={activeColor}
+              style={{ marginRight: 16 }}
             />
           ),
         }}
       />
-      
+
       <Tabs.Screen
         name="diagnostics"
         options={{
           title: 'Diagnostics',
           headerTitle: 'System Diagnostics',
           tabBarIcon: ({ color, size, focused }) => (
-            <Search 
-              size={focused ? size + 2 : size} 
-              color={color} 
+            <Search
+              size={focused ? size + 2 : size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
-          tabBarBadge: undefined, // Can be set dynamically for error count
         }}
       />
-      
+
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
           headerTitle: 'Diagnostic History',
           tabBarIcon: ({ color, size, focused }) => (
-            <History 
-              size={focused ? size + 2 : size} 
-              color={color} 
+            <History
+              size={focused ? size + 2 : size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
         }}
       />
-      
+
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
           headerTitle: 'App Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Settings 
-              size={focused ? size + 2 : size} 
-              color={color} 
+            <Settings
+              size={focused ? size + 2 : size}
+              color={color}
               strokeWidth={focused ? 2.5 : 2}
             />
           ),

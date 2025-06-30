@@ -1,20 +1,46 @@
-// src/services/alerts/AlertService.js
+//AlertService.ts
+// src/services/alerts/AlertService.ts
 import { EventEmitter } from 'events';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NotificationService } from './NotificationService';
-import { DatabaseService } from '../database/DatabaseService';
+import DatabaseService from '../database/DatabaseService';
+
+type Threshold = {
+  min: number;
+  max: number;
+  unit: string;
+  priority: 'high' | 'medium' | 'low';
+};
+
+type Alert = {
+  id: string;
+  parameter: string;
+  currentValue: number;
+  threshold: Threshold;
+  type: 'below_threshold' | 'above_threshold';
+  priority: 'high' | 'medium' | 'low';
+  message: string;
+  timestamp: string;
+  lastUpdated: string;
+  acknowledged: boolean;
+  acknowledgedAt?: string;
+  resolved: boolean;
+  resolvedAt?: string;
+};
 
 class AlertService extends EventEmitter {
+  private activeAlerts: Map<string, Alert> = new Map();
+  private thresholds: Map<string, Threshold> = new Map();
+  private alertHistory: Alert[] = [];
+  private isInitialized: boolean = false;
+  private notificationService: NotificationService;
+
   constructor() {
     super();
-    this.activeAlerts = new Map();
-    this.thresholds = new Map();
-    this.alertHistory = [];
-    this.isInitialized = false;
     this.notificationService = new NotificationService();
   }
 
-  async initialize() {
+  async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
@@ -29,15 +55,13 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Load saved thresholds from storage
-  async loadThresholds() {
+  private async loadThresholds(): Promise<void> {
     try {
       const saved = await AsyncStorage.getItem('alert_thresholds');
       if (saved) {
-        const thresholds = JSON.parse(saved);
+        const thresholds = JSON.parse(saved) as Record<string, Threshold>;
         this.thresholds = new Map(Object.entries(thresholds));
       } else {
-        // Set default thresholds
         this.setDefaultThresholds();
       }
     } catch (error) {
@@ -46,29 +70,17 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Set default alert thresholds
-  setDefaultThresholds() {
-    const defaults = {
-      // Engine parameters
+  private setDefaultThresholds(): void {
+    const defaults: Record<string, Threshold> = {
       engineTemp: { min: 70, max: 105, unit: '°C', priority: 'high' },
       oilTemp: { min: 60, max: 120, unit: '°C', priority: 'medium' },
       rpm: { min: 500, max: 6500, unit: 'RPM', priority: 'medium' },
-      
-      // Fuel system
       fuelPressure: { min: 30, max: 80, unit: 'psi', priority: 'high' },
       fuelLevel: { min: 10, max: 100, unit: '%', priority: 'low' },
-      
-      // Electrical system
       batteryVoltage: { min: 11.5, max: 14.8, unit: 'V', priority: 'high' },
-      
-      // Performance metrics
       speed: { min: 0, max: 120, unit: 'mph', priority: 'medium' },
       throttlePosition: { min: 0, max: 100, unit: '%', priority: 'low' },
-      
-      // Emissions
       o2Sensor: { min: 0.1, max: 0.9, unit: 'V', priority: 'medium' },
-      
-      // Pressure systems
       manifoldPressure: { min: 10, max: 25, unit: 'inHg', priority: 'medium' },
       barometricPressure: { min: 28, max: 32, unit: 'inHg', priority: 'low' }
     };
@@ -80,8 +92,7 @@ class AlertService extends EventEmitter {
     this.saveThresholds();
   }
 
-  // Save thresholds to storage
-  async saveThresholds() {
+  private async saveThresholds(): Promise<void> {
     try {
       const thresholdsObj = Object.fromEntries(this.thresholds);
       await AsyncStorage.setItem('alert_thresholds', JSON.stringify(thresholdsObj));
@@ -90,8 +101,7 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Load alert history
-  async loadAlertHistory() {
+  private async loadAlertHistory(): Promise<void> {
     try {
       const history = await DatabaseService.getAlertHistory();
       this.alertHistory = history || [];
@@ -100,8 +110,7 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Check data against thresholds
-  checkThresholds(data) {
+  checkThresholds(data: Record<string, number>): void {
     if (!this.isInitialized) return;
 
     Object.entries(data).forEach(([parameter, value]) => {
@@ -111,8 +120,7 @@ class AlertService extends EventEmitter {
     });
   }
 
-  // Evaluate individual threshold
-  evaluateThreshold(parameter, value) {
+  private evaluateThreshold(parameter: string, value: number): void {
     const threshold = this.thresholds.get(parameter);
     if (!threshold) return;
 
@@ -121,27 +129,21 @@ class AlertService extends EventEmitter {
     const existingAlert = this.activeAlerts.get(alertKey);
 
     if (isOutOfRange && !existingAlert) {
-      // Create new alert
       const alert = this.createAlert(parameter, value, threshold);
       this.activeAlerts.set(alertKey, alert);
       this.triggerAlert(alert);
-      
     } else if (!isOutOfRange && existingAlert) {
-      // Clear existing alert
       this.clearAlert(alertKey);
     } else if (isOutOfRange && existingAlert) {
-      // Update existing alert with new value
       existingAlert.currentValue = value;
       existingAlert.lastUpdated = new Date().toISOString();
       this.emit('alertUpdated', existingAlert);
     }
   }
 
-  // Create alert object
-  createAlert(parameter, value, threshold) {
+  private createAlert(parameter: string, value: number, threshold: Threshold): Alert {
     const isBelow = value < threshold.min;
-    const isAbove = value > threshold.max;
-    
+
     return {
       id: `${parameter}_${Date.now()}`,
       parameter,
@@ -157,19 +159,17 @@ class AlertService extends EventEmitter {
     };
   }
 
-  // Generate human-readable alert message
-  generateAlertMessage(parameter, value, threshold, isBelow) {
+  private generateAlertMessage(parameter: string, value: number, threshold: Threshold, isBelow: boolean): string {
     const paramName = this.formatParameterName(parameter);
     const formattedValue = `${value}${threshold.unit}`;
     const boundaryValue = isBelow ? `${threshold.min}${threshold.unit}` : `${threshold.max}${threshold.unit}`;
     const direction = isBelow ? 'below' : 'above';
-    
+
     return `${paramName} is ${direction} safe range: ${formattedValue} (limit: ${boundaryValue})`;
   }
 
-  // Format parameter names for display
-  formatParameterName(parameter) {
-    const nameMap = {
+  private formatParameterName(parameter: string): string {
+    const nameMap: Record<string, string> = {
       engineTemp: 'Engine Temperature',
       oilTemp: 'Oil Temperature',
       rpm: 'Engine RPM',
@@ -182,31 +182,23 @@ class AlertService extends EventEmitter {
       manifoldPressure: 'Manifold Pressure',
       barometricPressure: 'Barometric Pressure'
     };
-    
+
     return nameMap[parameter] || parameter;
   }
 
-  // Trigger alert actions
-  async triggerAlert(alert) {
+  private async triggerAlert(alert: Alert): Promise<void> {
     try {
-      // Add to history
       this.alertHistory.unshift(alert);
       await this.saveAlertToDatabase(alert);
-      
-      // Send notification
       await this.notificationService.sendAlert(alert);
-      
-      // Emit event
       this.emit('alertTriggered', alert);
-      
       console.log(`Alert triggered: ${alert.message}`);
     } catch (error) {
       console.error('Error triggering alert:', error);
     }
   }
 
-  // Clear alert
-  clearAlert(alertKey) {
+  private clearAlert(alertKey: string): void {
     const alert = this.activeAlerts.get(alertKey);
     if (alert) {
       alert.resolved = true;
@@ -217,9 +209,8 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Acknowledge alert
-  acknowledgeAlert(alertId) {
-    for (const [key, alert] of this.activeAlerts) {
+  acknowledgeAlert(alertId: string): void {
+    for (const [key, alert] of this.activeAlerts.entries()) {
       if (alert.id === alertId) {
         alert.acknowledged = true;
         alert.acknowledgedAt = new Date().toISOString();
@@ -229,8 +220,7 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Save alert to database
-  async saveAlertToDatabase(alert) {
+  private async saveAlertToDatabase(alert: Alert): Promise<void> {
     try {
       await DatabaseService.saveAlert(alert);
     } catch (error) {
@@ -238,62 +228,53 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Get active alerts
-  getActiveAlerts() {
+  getActiveAlerts(): Alert[] {
     return Array.from(this.activeAlerts.values());
   }
 
-  // Get alerts by priority
-  getAlertsByPriority(priority) {
+  getAlertsByPriority(priority: 'high' | 'medium' | 'low'): Alert[] {
     return this.getActiveAlerts().filter(alert => alert.priority === priority);
   }
 
-  // Get unacknowledged alerts
-  getUnacknowledgedAlerts() {
+  getUnacknowledgedAlerts(): Alert[] {
     return this.getActiveAlerts().filter(alert => !alert.acknowledged);
   }
 
-  // Update threshold
-  async updateThreshold(parameter, threshold) {
+  async updateThreshold(parameter: string, threshold: Threshold): Promise<void> {
     this.thresholds.set(parameter, threshold);
     await this.saveThresholds();
     this.emit('thresholdUpdated', { parameter, threshold });
   }
 
-  // Get threshold
-  getThreshold(parameter) {
+  getThreshold(parameter: string): Threshold | undefined {
     return this.thresholds.get(parameter);
   }
 
-  // Get all thresholds
-  getAllThresholds() {
+  getAllThresholds(): Record<string, Threshold> {
     return Object.fromEntries(this.thresholds);
   }
 
-  // Clear all alerts
-  clearAllAlerts() {
+  clearAllAlerts(): void {
     const clearedAlerts = Array.from(this.activeAlerts.values());
     clearedAlerts.forEach(alert => {
       alert.resolved = true;
       alert.resolvedAt = new Date().toISOString();
     });
-    
     this.activeAlerts.clear();
     this.emit('allAlertsCleared', clearedAlerts);
   }
 
-  // Get alert statistics
-  getAlertStatistics() {
+  getAlertStatistics(): Record<string, any> {
     const total = this.alertHistory.length;
     const active = this.activeAlerts.size;
     const acknowledged = this.getActiveAlerts().filter(a => a.acknowledged).length;
-    
+
     const byPriority = {
       high: this.getAlertsByPriority('high').length,
       medium: this.getAlertsByPriority('medium').length,
       low: this.getAlertsByPriority('low').length
     };
-    
+
     return {
       total,
       active,
@@ -303,16 +284,15 @@ class AlertService extends EventEmitter {
     };
   }
 
-  // Cleanup old history
-  async cleanupHistory(daysToKeep = 30) {
+  async cleanupHistory(daysToKeep = 30): Promise<void> {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-      
+
       this.alertHistory = this.alertHistory.filter(
         alert => new Date(alert.timestamp) > cutoffDate
       );
-      
+
       await DatabaseService.cleanupOldAlerts(cutoffDate);
       console.log(`Alert history cleaned up, kept last ${daysToKeep} days`);
     } catch (error) {
@@ -320,14 +300,13 @@ class AlertService extends EventEmitter {
     }
   }
 
-  // Dispose
-  dispose() {
+  dispose(): void {
     this.removeAllListeners();
     this.activeAlerts.clear();
     this.thresholds.clear();
     this.alertHistory = [];
     this.isInitialized = false;
-    
+
     if (this.notificationService) {
       this.notificationService.dispose();
     }
