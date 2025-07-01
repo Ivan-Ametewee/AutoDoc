@@ -33,6 +33,7 @@ class OBDIIService extends EventEmitter {
   private isProcessingQueue = false;
   private activePollingPIDs: Map<string, number> = new Map();
   private mockDataGenerator: typeof MockDataGenerator;
+  private supportedPIDs: Set<string> = new Set();
 
   // **REFACTORED**: Simplified state for handling command responses
   private responseBuffer = '';
@@ -73,6 +74,7 @@ class OBDIIService extends EventEmitter {
         this.commService.on('deviceDisconnected', this.handleDisconnection);
         this.updateConnectionInfo('connected', type, device);
         await this.initializeAdapter();
+        await this.discoverSupportedPIDs();
         return true;
       } else {
         throw new Error(`The ${type} service failed to establish a connection.`);
@@ -147,6 +149,41 @@ class OBDIIService extends EventEmitter {
     }
   }
 
+  public async discoverSupportedPIDs(): Promise<void> {
+    console.log('Discovering supported PIDs...');
+    this.supportedPIDs.clear();
+
+    try {
+        // Query for PIDs 01-20
+        const response = await this.sendCommand('0100');
+        if (response.startsWith('4100')) {
+            const hexData = response.substring(4).replace(/\s/g, '');
+            // Convert the 4 bytes of hex data to a 32-bit binary string
+            const binaryData = parseInt(hexData, 16).toString(2).padStart(32, '0');
+            const allPIDs = PIDDefinitions.getAllPIDs();
+
+            for (let i = 0; i < binaryData.length; i++) {
+                if (binaryData[i] === '1') {
+                    const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
+                    // Find the PID name from our definitions list
+                    const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+                    if (pidDef) {
+                        this.supportedPIDs.add(pidDef.name);
+                    }
+                }
+            }
+        }
+        console.log(`Discovered ${this.supportedPIDs.size} supported PIDs.`);
+        this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
+    } catch (error) {
+        console.error('Failed to discover supported PIDs:', error);
+    }
+  }
+
+  public isPIDSupported(pidName: string): boolean {
+    return this.supportedPIDs.has(pidName);
+  }
+
   public sendCommand(command: string): Promise<string> {
     if (this.connectionInfo.type === 'simulation') {
       return new Promise(resolve => setTimeout(() => resolve('OK'), 100));
@@ -196,20 +233,32 @@ class OBDIIService extends EventEmitter {
   
   private handleDataReceived = (data: string) => {
     this.responseBuffer += data;
-    const promptIndex = this.responseBuffer.indexOf('>');
-    if (promptIndex !== -1) {
-      const fullResponse = this.responseBuffer.substring(0, promptIndex).trim();
-      const cleanedResponse = fullResponse.replace(this.currentCommand?.command || '', '').trim();
-      
-      if (this.currentCommand) {
-        this.currentCommand.resolve(cleanedResponse);
-        this.currentCommand = null;
-      }
-      
-      this.responseBuffer = this.responseBuffer.substring(promptIndex + 1);
-      this.isProcessingQueue = false;
-      this.processQueue();
+    
+    // Split by any common terminator: carriage return, newline, or the '>' prompt.
+    const terminators = /[\r\n>]/;
+    let responses = this.responseBuffer.split(terminators);
+    
+    // If the buffer doesn't end with a terminator, the last element is an incomplete message.
+    if (!terminators.test(this.responseBuffer.slice(-1))) {
+        this.responseBuffer = responses.pop() || '';
+    } else {
+        this.responseBuffer = '';
     }
+    
+    responses.forEach(response => {
+        const cleanedResponse = response.trim();
+        if (cleanedResponse.length === 0 || cleanedResponse === this.currentCommand?.command) {
+            // Ignore empty lines or echoed commands
+            return;
+        }
+
+        if (this.currentCommand) {
+            this.currentCommand.resolve(cleanedResponse);
+            this.currentCommand = null;
+            this.isProcessingQueue = false;
+            this.processQueue(); // Process the next command immediately
+        }
+    });
   };
 
   public async queryPID(pidName: string): Promise<ParsedPIDData | null> {
@@ -228,6 +277,11 @@ class OBDIIService extends EventEmitter {
 
     try {
       const rawResponse = await this.sendCommand(pid.mode + pid.pid);
+      if (rawResponse.includes('NO DATA')) {
+        console.warn(`ECU does not support PID: ${pidName}`);
+        return null;
+      }
+
       const parsedData = OBDIIParser.parse(rawResponse);
       if (parsedData) {
         this.notifySubscribers('dataUpdate', parsedData);
@@ -277,26 +331,20 @@ class OBDIIService extends EventEmitter {
   };
 
   public startLiveData(): void {
-    if (this.connectionInfo.status !== 'connected') {
-      console.warn("Cannot start live data, not connected.");
-      return;
-    }
+    if (this.connectionInfo.status !== 'connected') return;
     
-    console.log("Starting live data stream...");
-
-    // Define the essential PIDs for the dashboard
     const dashboardPIDs = [
-      'ENGINE_RPM',
-      'VEHICLE_SPEED',
-      'ENGINE_COOLANT_TEMP',
-      'FUEL_LEVEL',
-      'ENGINE_LOAD',
-      // Add any other PIDs you want on the dashboard
+      'ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP',
+      'FUEL_LEVEL', 'ENGINE_LOAD',
     ];
 
-    dashboardPIDs.forEach(pidName => {
-      // The second argument is the polling interval in milliseconds
-      this.startPollingPID(pidName, 1000); 
+    // Filter the list to only include supported PIDs
+    const pidsToPoll = dashboardPIDs.filter(pidName => this.isPIDSupported(pidName));
+    
+    console.log(`Starting live data stream for ${pidsToPoll.length} supported PIDs...`);
+
+    pidsToPoll.forEach(pidName => {
+      this.startPollingPID(pidName, 1000);
     });
   }
 

@@ -517,7 +517,7 @@ class WiFiService extends EventEmitter {
     this.stopHeartbeat(); // Ensure only one heartbeat is active
     this.heartbeatInterval = setInterval(() => {
       if (this.isConnected) {
-        this.sendData('010C\r').catch(err => console.warn('Heartbeat send failed:', err));
+        this.sendData('0100\r').catch(err => console.warn('Heartbeat send failed:', err));
       }
     }, 30000);
   }
