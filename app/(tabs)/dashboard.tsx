@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useState, useCallback } from 'react';
 import {
   Dimensions,
   RefreshControl,
@@ -9,123 +9,160 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
+
+// Import the single source of truth for all OBD interactions
+import OBDIIService from '../../services/obdii/OBDIIService';
 
 const { width } = Dimensions.get('window');
 
-// Default values to prevent undefined errors
-const defaultLiveData = {
-  rpm: 0,
-  speed: 0,
-  coolantTemp: 0,
-  engineLoad: 0,
-  batteryVoltage: 12.0,
-  fuelLevel: 0,
-  throttlePosition: 0,
-  maf: 0,
-};
-
-const defaultConnectionState = {
-  isConnected: false,
-  isConnecting: false,
-  mode: null,
-  device: null,
-  protocol: null,
-};
+// Define an interface for our dashboard's live data state
+interface LiveDataState {
+  rpm: number;
+  speed: number;
+  coolantTemp: number;
+  engineLoad: number;
+  batteryVoltage: number; // Note: This requires a specific PID like 'CONTROL_MODULE_VOLTAGE'
+  fuelLevel: number;
+  throttlePosition: number;
+  maf: number;
+}
 
 export default function DashboardScreen() {
-  // Safe state access with defaults
-  const liveData = useSelector((state: RootState) => 
-    state.data?.liveData || defaultLiveData
-  );
-  const connectionState = useSelector((state: RootState) => 
-    state.connection || defaultConnectionState
-  );
-
+  // --- State Management ---
+  const [liveData, setLiveData] = useState<LiveDataState>({
+    rpm: 0, speed: 0, coolantTemp: 0, engineLoad: 0, batteryVoltage: 0,
+    fuelLevel: 0, throttlePosition: 0, maf: 0,
+  });
+  
+  const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const quickActions = [
-    {
-      id: 'diagnostics',
-      title: 'Diagnostics',
-      icon: 'medical-outline' as const,
-      route: '/(tabs)/diagnostics',
-      color: '#FF3B30',
-    },
-    {
-      id: 'history',
-      title: 'History',
-      icon: 'time-outline' as const,
-      route: '/(tabs)/history',
-      color: '#007AFF',
-    },
-    {
-      id: 'alerts',
-      title: 'Alerts',
-      icon: 'notifications-outline' as const,
-      route: '/alerts',
-      color: '#FF9500',
-    },
-    {
-      id: 'reports',
-      title: 'Reports',
-      icon: 'document-text-outline' as const,
-      route: '/reports',
-      color: '#34C759',
-    },
-  ];
+ {
+  id: 'diagnostics',
+  title: 'Diagnostics',
+  icon: 'medical-outline' as const,
+  route: '/(tabs)/diagnostics',
+  color: '#FF3B30',
+ },
+ {
+  id: 'history',
+  title: 'History',
+  icon: 'time-outline' as const,
+  route: '/(tabs)/history',
+  color: '#007AFF',
+ },
+ {
+  id: 'alerts',
+  title: 'Alerts',
+  icon: 'notifications-outline' as const,
+  route: '/alerts',
+  color: '#FF9500',
+ },
+ {
+  id: 'reports',
+  title: 'Reports',
+  icon: 'document-text-outline' as const,
+  route: '/reports',
+  color: '#34C759',
+ },
 
-  // Conditionally use the hook only if it exists
-  // const { } = useLiveOBDData?.() || {};
+ ];
 
-  const handleRefresh = async () => {
+
+  // --- Data Subscription and Live Polling ---
+  useFocusEffect(
+    useCallback(() => {
+      const onDataUpdate = (event: string, data: any) => {
+        if (event === 'connectionStatus') {
+          setConnectionStatus(data.status);
+          if (data.status !== 'connected') {
+            router.replace('/'); // Go back to home if connection is lost
+          }
+        } else if (event === 'dataUpdate') {
+          // Use a functional state update for better performance
+          setLiveData(prevData => {
+            // Create a mutable copy
+            const newData = { ...prevData };
+            // Update the copy based on the PID name from the service
+            switch (data.name) {
+              case 'ENGINE_RPM':
+                newData.rpm = data.value;
+                break;
+              case 'VEHICLE_SPEED':
+                newData.speed = data.value;
+                break;
+              case 'ENGINE_COOLANT_TEMP':
+                newData.coolantTemp = data.value;
+                break;
+              case 'ENGINE_LOAD':
+                newData.engineLoad = data.value;
+                break;
+              case 'FUEL_LEVEL':
+                newData.fuelLevel = data.value;
+                break;
+              case 'THROTTLE_POSITION':
+                  newData.throttlePosition = data.value;
+                  break;
+              case 'MAF_RATE':
+                  newData.maf = data.value;
+                  break;
+              // Note: A real PID for battery voltage would be needed here
+              case 'CONTROL_MODULE_VOLTAGE':
+                  newData.batteryVoltage = data.value;
+                  break;
+            }
+            return newData; // Return the updated state
+          });
+        }
+      };
+      
+      const unsubscribe = OBDIIService.subscribe(onDataUpdate);
+
+      // Start the live data stream when the screen is focused
+      if (OBDIIService.getConnectionStatus().status === 'connected') {
+        OBDIIService.startLiveData();
+      }
+
+      // Cleanup function runs when the screen goes out of focus
+      return () => {
+        OBDIIService.stopLiveData();
+        unsubscribe();
+      };
+    }, [])
+  );
+
+  // --- UI Handlers ---
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    } catch (error) {
-      console.error('Refresh error:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
+    // You can add logic to re-fetch static data like VIN here
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsRefreshing(false);
+  }, []);
+
+  const handleDisconnect = async () => {
+    await OBDIIService.disconnect();
+    router.replace('/');
   };
 
-  const handleQuickAction = (route: string) => {
-    try {
-      router.push(route as any);
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
+  const handleQuickAction = (route: string) => router.push(route as any);
+  
+  const formatValue = (value: number | undefined, decimals = 0): string => {
+    return (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '--';
   };
 
-  const handleDisconnect = () => {
-    try {
-      router.push('/');
-    } catch (error) {
-      console.error('Disconnect navigation error:', error);
-    }
-  };
-
-  const formatValue = (value: number | undefined, decimals: number = 0): string => {
-    if (typeof value !== 'number' || isNaN(value)) {
-      return '0';
-    }
-    return value.toFixed(decimals);
-  };
-
-  const getStatusColor = () => {
-    if (connectionState.isConnected) return '#34C759';
-    if (connectionState.isConnecting) return '#FF9500';
-    return '#FF3B30';
-  };
-
-  const getStatusText = () => {
-    if (connectionState.isConnected) return 'Connected';
-    if (connectionState.isConnecting) return 'Connecting...';
-    return 'Disconnected';
-  };
+  // --- Render Logic ---
+  if (connectionStatus !== 'connected') {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.statusText}>Connection lost. Reconnecting...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,10 +170,8 @@ export default function DashboardScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Dashboard</Text>
           <View style={styles.statusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor() }]} />
-            <Text style={[styles.statusText, { color: getStatusColor() }]}>
-              {getStatusText()}
-            </Text>
+            <View style={[styles.statusDot, { backgroundColor: '#34C759' }]} />
+            <Text style={[styles.statusText, { color: '#34C759' }]}>Connected</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
@@ -147,7 +182,7 @@ export default function DashboardScreen() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#8E8E93" />}
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Engine Status</Text>
@@ -160,7 +195,7 @@ export default function DashboardScreen() {
             <View style={styles.gaugeCard}>
               <Text style={styles.gaugeLabel}>Speed</Text>
               <Text style={styles.gaugeValue}>{formatValue(liveData.speed)}</Text>
-              <Text style={styles.gaugeUnit}>mph</Text>
+              <Text style={styles.gaugeUnit}>km/h</Text>
             </View>
           </View>
         </View>
@@ -176,7 +211,7 @@ export default function DashboardScreen() {
             <View style={styles.metricCard}>
               <Ionicons name="car" size={20} color="#007AFF" />
               <Text style={styles.metricLabel}>Engine Load</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.engineLoad)}%</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.engineLoad, 1)}%</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="battery-half" size={20} color="#34C759" />
@@ -186,12 +221,12 @@ export default function DashboardScreen() {
             <View style={styles.metricCard}>
               <Ionicons name="water" size={20} color="#5AC8FA" />
               <Text style={styles.metricLabel}>Fuel Level</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.fuelLevel)}%</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.fuelLevel, 1)}%</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="speedometer" size={20} color="#FF9500" />
               <Text style={styles.metricLabel}>Throttle</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.throttlePosition)}%</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.throttlePosition, 1)}%</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="logo-buffer" size={20} color="#AF52DE" />
@@ -200,50 +235,50 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
+          <View style={styles.section}>
+   <Text style={styles.sectionTitle}>Quick Actions</Text>
+   <View style={styles.quickActions}>
+   {quickActions.map((action, index) => (
+    <TouchableOpacity
+    key={`${action.id}-${index}`}
+    style={[styles.actionCard, { borderColor: action.color }]}
+    onPress={() => handleQuickAction(action.route)}
+    >
+    <View style={[styles.actionIcon, { backgroundColor: `${action.color}15` }]}>
+     <Ionicons name={action.icon} size={24} color={action.color} />
+    </View>
+    <Text style={styles.actionTitle}>{action.title}</Text>
+    </TouchableOpacity>
+   ))}
+   </View>
+  </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={`${action.id}-${index}`}
-                style={[styles.actionCard, { borderColor: action.color }]}
-                onPress={() => handleQuickAction(action.route)}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: `${action.color}15` }]}>
-                  <Ionicons name={action.icon} size={24} color={action.color} />
-                </View>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#34C759" />
-              <Text style={styles.activityText}>System scan completed - No issues found</Text>
-              <Text style={styles.activityTime}>2 min ago</Text>
-            </View>
-            <View style={styles.activityItem}>
-              <Ionicons name="information-circle" size={20} color="#007AFF" />
-              <Text style={styles.activityText}>Engine temperature within normal range</Text>
-              <Text style={styles.activityTime}>5 min ago</Text>
-            </View>
-            <View style={styles.activityItem}>
-              <Ionicons name="warning" size={20} color="#FF9500" />
-              <Text style={styles.activityText}>Low fuel level detected</Text>
-              <Text style={styles.activityTime}>1 hour ago</Text>
-            </View>
-          </View>
-        </View>
+  <View style={styles.section}>
+   <View style={styles.sectionHeader}>
+   <Text style={styles.sectionTitle}>Recent Activity</Text>
+   <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
+    <Text style={styles.seeAllText}>See All</Text>
+   </TouchableOpacity>
+   </View>
+   <View style={styles.activityCard}>
+   <View style={styles.activityItem}>
+    <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+    <Text style={styles.activityText}>System scan completed - No issues found</Text>
+    <Text style={styles.activityTime}>2 min ago</Text>
+   </View>
+   <View style={styles.activityItem}>
+    <Ionicons name="information-circle" size={20} color="#007AFF" />
+    <Text style={styles.activityText}>Engine temperature within normal range</Text>
+    <Text style={styles.activityTime}>5 min ago</Text>
+   </View>
+   <View style={styles.activityItem}>
+    <Ionicons name="warning" size={20} color="#FF9500" />
+    <Text style={styles.activityText}>Low fuel level detected</Text>
+    <Text style={styles.activityTime}>1 hour ago</Text>
+   </View>
+   </View>
+  </View>
+        
       </ScrollView>
     </SafeAreaView>
   );
@@ -253,6 +288,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -302,7 +341,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-  },
+},
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -313,7 +352,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '500',
-  },
+},
   primaryGauges: {
     flexDirection: 'row',
     gap: 12,
@@ -351,7 +390,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   metricCard: {
-    width: (width - 52) / 2,
+    width: (width - 52) / 2, // 20 padding on each side, 12 gap
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
@@ -373,61 +412,69 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   quickActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
-    width: (width - 52) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  activityCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
-  },
-  activityText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#000000',
-    marginLeft: 12,
-  },
-  activityTime: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 12,
+ },
+ actionCard: {
+  width: (width - 52) / 2,
+  backgroundColor: '#FFFFFF',
+  borderRadius: 12,
+  padding: 16,
+  alignItems: 'center',
+  borderWidth: 1,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+ },
+
+ actionIcon: {
+  width: 48,
+  height: 48,
+  borderRadius: 24,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 12,
+ },
+
+ actionTitle: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#000000',
+ },
+
+ activityCard: {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 12,
+  padding: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+ },
+
+ activityItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 12,
+  borderBottomWidth: 1,
+  borderBottomColor: '#F2F2F7',
+ },
+
+ activityText: {
+  flex: 1,
+  fontSize: 14,
+  color: '#000000',
+  marginLeft: 12,
+
+ },
+
+ activityTime: {
     fontSize: 12,
     color: '#8E8E93',
   },
+
 });

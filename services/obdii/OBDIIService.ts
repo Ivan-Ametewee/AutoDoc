@@ -124,6 +124,10 @@ class OBDIIService extends EventEmitter {
     return () => this.subscribers.delete(callback);
   }
 
+  public getConnectionStatus(): ConnectionInfo {
+    return this.connectionInfo;
+  }
+
   private notifySubscribers(event: string, data: any): void {
     this.subscribers.forEach(callback => callback(event, data));
   }
@@ -271,6 +275,38 @@ class OBDIIService extends EventEmitter {
       this.notifySubscribers('dataUpdate', data);
     }
   };
+
+  public startLiveData(): void {
+    if (this.connectionInfo.status !== 'connected') {
+      console.warn("Cannot start live data, not connected.");
+      return;
+    }
+    
+    console.log("Starting live data stream...");
+
+    // Define the essential PIDs for the dashboard
+    const dashboardPIDs = [
+      'ENGINE_RPM',
+      'VEHICLE_SPEED',
+      'ENGINE_COOLANT_TEMP',
+      'FUEL_LEVEL',
+      'ENGINE_LOAD',
+      // Add any other PIDs you want on the dashboard
+    ];
+
+    dashboardPIDs.forEach(pidName => {
+      // The second argument is the polling interval in milliseconds
+      this.startPollingPID(pidName, 1000); 
+    });
+  }
+
+  /**
+   * Stops all active PID polling.
+   */
+  public stopLiveData(): void {
+    console.log("Stopping live data stream...");
+    this.stopAllPolling();
+  }
 }
 
 export default new OBDIIService();

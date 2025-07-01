@@ -108,7 +108,7 @@ class SimulationService {
       // **FIXED**: Correctly assign to `this.currentScenario`
       this.currentScenario = scenario; 
       // Assuming `setScenario` exists on VehicleSimulator
-      // this.vehicleSimulator.setScenario(scenario);
+      this.vehicleSimulator.setScenario(scenario);
       
       this.notifyCallbacks('scenario_changed', { 
         scenario: scenario,
