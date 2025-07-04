@@ -139,7 +139,7 @@ class OBDIIService extends EventEmitter {
   public async initializeAdapter(): Promise<void> {
     try {
       await this.sendCommand('ATZ');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await this.sendCommand('ATE0');
       await this.sendCommand('ATSP0');
       console.log('OBD-II adapter initialized successfully.');
@@ -158,20 +158,23 @@ class OBDIIService extends EventEmitter {
         const response = await this.sendCommand('0100');
         if (response.startsWith('4100')) {
             const hexData = response.substring(4).replace(/\s/g, '');
+
+            if (hexData.length < 8) {
             // Convert the 4 bytes of hex data to a 32-bit binary string
-            const binaryData = parseInt(hexData, 16).toString(2).padStart(32, '0');
+            const binaryData = parseInt(hexData.substring(0, 8), 16).toString(2).padStart(32, '0');
             const allPIDs = PIDDefinitions.getAllPIDs();
 
             for (let i = 0; i < binaryData.length; i++) {
-                if (binaryData[i] === '1') {
-                    const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
-                    // Find the PID name from our definitions list
-                    const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
-                    if (pidDef) {
-                        this.supportedPIDs.add(pidDef.name);
-                    }
-                }
+              if (binaryData[i] === '1') {
+                  const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
+                  // Find the PID name from our definitions list
+                  const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+                  if (pidDef) {
+                      this.supportedPIDs.add(pidDef.name);
+                  }
+              }
             }
+          }
         }
         console.log(`Discovered ${this.supportedPIDs.size} supported PIDs.`);
         this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));

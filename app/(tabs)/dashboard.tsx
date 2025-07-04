@@ -77,6 +77,7 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       const onDataUpdate = (event: string, data: any) => {
+        console.log(`[Dashboard] Received Event: ${event}`, JSON.stringify(data)); 
         if (event === 'connectionStatus') {
           setConnectionStatus(data.status);
           if (data.status !== 'connected') {
