@@ -165,14 +165,14 @@ class OBDIIService extends EventEmitter {
             const allPIDs = PIDDefinitions.getAllPIDs();
 
             for (let i = 0; i < binaryData.length; i++) {
-              if (binaryData[i] === '1') {
-                  const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
-                  // Find the PID name from our definitions list
-                  const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
-                  if (pidDef) {
-                      this.supportedPIDs.add(pidDef.name);
-                  }
-              }
+                if (binaryData[i] === '1') {
+                    const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
+                    // Find the PID name from our definitions list
+                    const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+                    if (pidDef) {
+                        this.supportedPIDs.add(pidDef.name);
+                    }
+                }
             }
           }
         }

@@ -1,10 +1,5 @@
-// services/obdii/OBDIIParser.ts
-
 import { PIDDefinition, PIDDefinitions } from './PIDDefinitions';
 
-/**
- * Defines the structure for the data returned after parsing a PID response.
- */
 export interface ParsedPIDData {
   name: string;
   value: number | string;
@@ -15,47 +10,47 @@ export interface ParsedPIDData {
   pid: string;
 }
 
-/**
- * A static class with methods to parse raw OBD-II responses.
- */
 export class OBDIIParser {
-
   /**
-   * Parses a raw OBD-II response string into a structured data object.
-   * @param rawData The raw string from the adapter (e.g., '410C1A2B').
-   * @returns A ParsedPIDData object, or null if parsing fails.
+   * **REFACTORED**: This method now correctly parses raw OBD-II responses.
+   * @param rawData The raw string from the adapter (e.g., '410544').
    */
   public static parse(rawData: string): ParsedPIDData | null {
     if (!rawData || typeof rawData !== 'string') {
-      console.error('Invalid raw data for parsing:', rawData);
       return null;
     }
 
-    const cleanedData = rawData.replace(/[\s>]/g, ''); // Remove whitespace and the '>' prompt
+    const cleanedData = rawData.replace(/\s/g, '');
     if (cleanedData.length < 4) {
-      return null; // Not enough data
+      return null;
     }
 
-    const modeHex = cleanedData.substring(0, 2);
+    const responseModeHex = cleanedData.substring(0, 2);
     const pidHex = cleanedData.substring(2, 4);
 
-    // Find the corresponding PID definition based on the response
-    const pidDef = this.findPIDDefinition(modeHex, pidHex);
+    // Find the corresponding PID definition
+    const pidDef = this.findPIDDefinition(responseModeHex, pidHex);
 
     if (!pidDef) {
-      console.warn(`No PID definition found for response mode ${modeHex} and PID ${pidHex}`);
-      return null;
-    }
-    
-    const dataBytesHex = cleanedData.substring(4);
-    if (dataBytesHex.length % 2 !== 0) {
-      console.error('Invalid data byte length for PID', pidDef.name, ':', dataBytesHex);
+      console.warn(`No PID definition found for response: ${rawData}`);
       return null;
     }
 
-    const dataBytes = this.hexToBytes(dataBytesHex);
-    
+    // Extract the data bytes (the part of the string after the mode and PID)
+    const dataBytesHex = cleanedData.substring(4);
+    if (dataBytesHex.length !== pidDef.bytes * 2) {
+      // Check if the number of hex characters matches the expected byte count
+      return null;
+    }
+
     try {
+      // Convert the hex string to an array of numbers
+      const dataBytes: number[] = [];
+      for (let i = 0; i < dataBytesHex.length; i += 2) {
+        dataBytes.push(parseInt(dataBytesHex.substring(i, i + 2), 16));
+      }
+
+      // Use the 'parse' function from the PID definition to get the final value
       const parsedValue = pidDef.parse(dataBytes);
 
       return {
@@ -68,25 +63,22 @@ export class OBDIIParser {
         pid: pidDef.pid,
       };
     } catch (error) {
-      console.error(`Error during parsing logic for PID ${pidDef.name}:`, error);
+      console.error(`Error parsing PID ${pidDef.name}:`, error);
       return null;
     }
   }
 
-  private static hexToBytes(hex: string): number[] {
-    const bytes: number[] = [];
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes.push(parseInt(hex.substring(i, i + 2), 16));
-    }
-    return bytes;
-  }
-  
+  /**
+   * Finds the PID definition based on the response from the adapter.
+   * @param modeHex The hex for the response mode (e.g., '41').
+   * @param pidHex The hex for the PID (e.g., '0C').
+   */
   private static findPIDDefinition(modeHex: string, pidHex: string): PIDDefinition | undefined {
-    const allPIDs = PIDDefinitions.getAllPIDs();
-    // The response mode is always 0x40 greater than the request mode (e.g., req '01' -> res '41')
+    // A response mode ('41') is 0x40 greater than the request mode ('01').
     const requestMode = (parseInt(modeHex, 16) - 0x40).toString(16).padStart(2, '0').toUpperCase();
     
-    return allPIDs.find(p => 
+    // Find the definition that matches both the mode and PID.
+    return PIDDefinitions.getAllPIDs().find(p => 
       p.mode.toUpperCase() === requestMode && 
       p.pid.toUpperCase() === pidHex.toUpperCase()
     );
