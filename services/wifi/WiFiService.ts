@@ -473,6 +473,19 @@ class WiFiService extends EventEmitter {
         });
       }
     });
+
+    // Handle responses without line terminators (like "OK")
+    if (this.readBuffer.length > 0) {
+      const trimmedBuffer = this.readBuffer.trim();
+      // Check if buffer contains common ELM327 responses
+      if (trimmedBuffer === 'OK' || trimmedBuffer.includes('ELM327') || trimmedBuffer.includes('ERROR') || trimmedBuffer === '?') {
+        this.emit('dataReceived', {
+          data: trimmedBuffer,
+          timestamp: new Date().toISOString()
+        });
+        this.readBuffer = ''; // Clear the buffer
+      }
+    }
   }
 
   private handleDisconnection(): void {

@@ -79,13 +79,13 @@ class OBDIIService extends EventEmitter {
       if (isConnected && this.commService) {
         this.commService.on('dataReceived', this.handleDataReceived);
         this.commService.on('deviceDisconnected', this.handleDisconnection);
-        this.updateConnectionInfo('connected', type, device);
         
         // **CRITICAL**: Initialize the adapter with proper error handling
         await this.initializeAdapter();
         await this.discoverSupportedPIDs();
         
         this.isInitialized = true;
+        this.updateConnectionInfo('connected', type, device);
         console.log('OBD-II connection fully established and initialized');
         return true;
       } else {
@@ -172,29 +172,35 @@ class OBDIIService extends EventEmitter {
     console.log('Initializing OBD-II adapter...');
     
     try {
+      // For WiFi adapters, turn off echo first to avoid command/response confusion
+      // if (this.connectionInfo.type === 'wifi') {
+      //   await this.sendCommand('ATE0');
+      //   await this.delay(2000);
+      // }
+      
       // Reset the adapter
-      await this.sendCommand('ATZ');
-      await this.delay(1500); // Wait for reset
+      // await this.sendCommand('ATZ');
+      // await this.delay(2000); // Longer wait for reset, especially for WiFi adapters
 
-      // Turn off echo
-      await this.sendCommand('ATE0');
-      await this.delay(100);
+      // // Turn off echo (in case it wasn't off already)
+      // await this.sendCommand('ATE0');
+      // await this.delay(2000);
 
-      // Set automatic protocol detection
-      await this.sendCommand('ATSP0');
-      await this.delay(100);
+      // // Set automatic protocol detection
+      // await this.sendCommand('ATSP0');
+      // await this.delay(2000);
 
-      // Set line feeds off
-      await this.sendCommand('ATL0');
-      await this.delay(100);
+      // // Set line feeds off
+      // await this.sendCommand('ATL0');
+      // await this.delay(2000);
 
-      // Set headers off
-      await this.sendCommand('ATH0');
-      await this.delay(100);
+      // // Set headers off
+      // await this.sendCommand('ATH0');
+      // await this.delay(2000);
 
-      // Set spaces off for more compact responses
-      await this.sendCommand('ATS0');
-      await this.delay(100);
+      // // Set spaces off for more compact responses
+      // await this.sendCommand('ATS0');
+      // await this.delay(2000);
 
       console.log('OBD-II adapter initialized successfully');
     } catch (error) {
@@ -373,17 +379,21 @@ class OBDIIService extends EventEmitter {
     this.isProcessingQueue = false;
   }
 
-  private handleDataReceived = (data: string) => {
+  private handleDataReceived = (data: any) => {
     console.log('Raw data received:', JSON.stringify(data));
     
-    this.responseBuffer += data;
+    // Extract the actual data string from the event object
+    const dataString = typeof data === 'string' ? data : data.data || '';
+    
+    this.responseBuffer += dataString;
 
-    // Split by common terminators
-    const responses = this.responseBuffer.split(/[\r\n>]+/);
+    // Split by common terminators, but also handle responses without line endings
+    const responses = this.responseBuffer.split(/[\r\n]+/);
     
     // Keep the last incomplete response in buffer
     this.responseBuffer = responses.pop() || '';
 
+    // Process all complete responses
     for (const response of responses) {
       const trimmedResponse = response.trim();
       
@@ -395,6 +405,7 @@ class OBDIIService extends EventEmitter {
       if (this.currentCommand && this.isCommandResponse(trimmedResponse, this.currentCommand.command)) {
         console.log(`Command response for ${this.currentCommand.command}:`, trimmedResponse);
         this.currentCommand.resolve(trimmedResponse);
+        this.currentCommand = null; // Clear the current command
         continue;
       }
 
@@ -405,6 +416,17 @@ class OBDIIService extends EventEmitter {
           console.log('Parsed OBD data:', parsedData);
           this.notifySubscribers('dataUpdate', parsedData);
         }
+      }
+    }
+
+    // Check if buffer contains a complete response without line endings
+    if (this.responseBuffer.length > 0 && this.currentCommand) {
+      const trimmedBuffer = this.responseBuffer.trim();
+      if (this.isCommandResponse(trimmedBuffer, this.currentCommand.command)) {
+        console.log(`Command response for ${this.currentCommand.command}:`, trimmedBuffer);
+        this.currentCommand.resolve(trimmedBuffer);
+        this.currentCommand = null; // Clear the current command
+        this.responseBuffer = ''; // Clear the buffer
       }
     }
   };
@@ -424,8 +446,8 @@ class OBDIIService extends EventEmitter {
 
     // Check for specific command responses
     if (cleanCommand.startsWith('AT')) {
-      // Special handling for ATZ reset command - responds with ELM327 version
-      if (cleanCommand === 'ATZ' && cleanResponse.includes('ELM327')) {
+      // Special handling for ATZ reset command - responds with ELM327 version OR just OK
+      if (cleanCommand === 'ATZ' && (cleanResponse.includes('ELM327') || cleanResponse === 'OK')) {
         return true;
       }
       // Other AT commands typically return OK or error

@@ -1263,7 +1263,7 @@ export default function ConnectionScreen() {
         const { obd: obdNetworks } = await WiFiService.scanNetworks();
         foundDevices = obdNetworks.map((net, index) => ({
           name: net.SSID,
-          address: net.BSSID || `${net.SSID}_${index}`, // Use BSSID if available, otherwise SSID with index
+          address: net.SSID || `wifi_${index}`, // Use SSID as address for WiFi networks
           type: 'wifi',
           raw: net,
         }));

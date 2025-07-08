@@ -162,15 +162,41 @@ class BluetoothService extends EventEmitter {
 
       if (isConnected) {
         this.connectedDevice = device;
+        
         // **CRITICAL**: Attach the data listener right after a successful connection.
-        this.readSubscription = this.connectedDevice.onDataReceived(data => {
-          console.log('Bluetooth raw data received:', JSON.stringify(data));
-          // Handle both string and object formats for compatibility
-          const actualData = typeof data === 'object' ? data.data : data;
-          this.emit('dataReceived', actualData);
-        });
+        try {
+          this.readSubscription = this.connectedDevice.onDataReceived(data => {
+            console.log('Bluetooth raw data received:', JSON.stringify(data));
+            // Handle both string and object formats for compatibility
+            const actualData = typeof data === 'object' ? data.data : data;
+            this.emit('dataReceived', actualData);
+          });
+          console.log('Data listener attached successfully');
+        } catch (error) {
+          console.error('Error attaching data listener:', error);
+        }
+        
+        // Try to start reading if the device supports it
+        try {
+          if (this.connectedDevice.startReading) {
+            await this.connectedDevice.startReading();
+            console.log('Started reading from device');
+          }
+        } catch (error) {
+          console.log('Device does not support startReading or already reading:', error);
+        }
         
         console.log('Successfully connected to:', this.connectedDevice.name);
+        
+        // Test the connection with a simple command
+        try {
+          console.log('Testing connection with ATZ command...');
+          await this.connectedDevice.write('ATZ\r');
+          console.log('ATZ command sent successfully');
+        } catch (error) {
+          console.error('Error sending test command:', error);
+        }
+        
         this.emit('deviceConnected', this.connectedDevice);
         return true;
       } else {
