@@ -1,0 +1,375 @@
+# Error Logs for Analysis
+
+Please paste your error logs below this line:
+Android Bundled 8966ms node_modules\expo-router\entry.js (3166 modules)
+ LOG  All Bluetooth permissions granted
+ LOG  Bluetooth service is ready.
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  WiFi enabled: true
+ LOG  Scanning for WiFi networks...
+ LOG  Found 6 networks, 4 potential OBDII networks
+ LOG  Processed 6 networks, 4 OBDII networks
+ ERROR  Warning: Encountered two children with the same key, `.$KNUST-WIFI`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+Call Stack
+  Wrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RNSScreenStack (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  RNGestureHandlerRootView (<anonymous>)
+  RootLayout(./_layout.tsx) (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  App (<anonymous>)
+  ErrorOverlay (<anonymous>)
+ LOG  Simulation not running
+ LOG  Connecting to OBDII network and server: WiFi_OBDII
+ LOG  Connecting to WiFi network: WiFi_OBDII
+ LOG  Polling for connection to "WiFi_OBDII"...
+ LOG  Connection to "WiFi_OBDII" confirmed.
+ LOG  Successfully connected to network: WiFi_OBDII
+ LOG  Connecting to OBDII server at 192.168.0.10:35000
+ LOG  Connected to OBDII server
+ LOG  Successfully connected to OBDII network and server
+ LOG  Initializing OBD-II adapter...
+ LOG  Sending command: ATZ
+ LOG  Sending data to ELM327 via WiFi: "ATZ\r"
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"wifi","device":{"ssid":"WiFi_OBDII","password":""}}
+ LOG  Starting live data stream...
+ LOG  Skipping unsupported PID: ENGINE_RPM
+ LOG  Skipping unsupported PID: VEHICLE_SPEED
+ LOG  Skipping unsupported PID: ENGINE_COOLANT_TEMP
+ LOG  Skipping unsupported PID: ENGINE_LOAD
+ LOG  Skipping unsupported PID: THROTTLE_POSITION
+ LOG  Skipping unsupported PID: FUEL_LEVEL
+ LOG  Started live data for 0 PIDs
+ LOG  Command sent: ATZ
+ LOG  Received data: ATZ
+ LOG  Raw data received: {"data":"ATZ","timestamp":"2025-07-07T17:48:44.372Z"}
+>LM327 v1.5ved data: 
+ LOG  Raw data received: {"data":" ","timestamp":"2025-07-07T17:48:44.830Z"}
+ LOG  Raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-07T17:48:44.831Z"}
+ LOG  Command timeout: ATZ
+ ERROR  Failed to initialize adapter: [Error: Command timeout: ATZ]
+ ERROR  Error processing command: [Error: Command timeout: ATZ]
+ ERROR  Connection failed: [Error: Command timeout: ATZ]
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  Disconnecting from WiFi network and server...
+ LOG  Socket connection closed
+ LOG  Disconnecting from WiFi network
+ LOG  Socket connection closed
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"disconnected","type":null}
+ LOG  Stopping live data stream...
+ LOG  Stopping all PID polling
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  WiFi enabled: true
+ LOG  Scanning for WiFi networks...
+ LOG  Found 8 networks, 5 potential OBDII networks
+ LOG  Processed 8 networks, 5 OBDII networks
+ ERROR  Warning: Encountered two children with the same key, `.$KNUST-WIFI`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+Call Stack
+  Wrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RNSScreenStack (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  RNGestureHandlerRootView (<anonymous>)
+  RootLayout(./_layout.tsx) (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  App (<anonymous>)
+  ErrorOverlay (<anonymous>)
+ ERROR  Warning: Encountered two children with the same key, `.$KNUST-WIFI`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+Call Stack
+  Wrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RNSScreenStack (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  RNGestureHandlerRootView (<anonymous>)
+  RootLayout(./_layout.tsx) (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  App (<anonymous>)
+  ErrorOverlay (<anonymous>)
+ LOG  Simulation not running
+ LOG  Connecting to OBDII network and server: WiFi_OBDII
+ LOG  Connecting to WiFi network: WiFi_OBDII
+ LOG  Polling for connection to "WiFi_OBDII"...
+ LOG  Connection to "WiFi_OBDII" confirmed.
+ LOG  Successfully connected to network: WiFi_OBDII
+ LOG  Connecting to OBDII server at 192.168.0.10:35000
+ LOG  Connected to OBDII server
+ LOG  Successfully connected to OBDII network and server
+ LOG  Initializing OBD-II adapter...
+ LOG  Sending command: ATZ
+ LOG  Sending data to ELM327 via WiFi: "ATZ\r"
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"wifi","device":{"ssid":"WiFi_OBDII","password":""}}
+ LOG  Starting live data stream...
+ LOG  Skipping unsupported PID: ENGINE_RPM
+ LOG  Skipping unsupported PID: VEHICLE_SPEED
+ LOG  Skipping unsupported PID: ENGINE_COOLANT_TEMP
+ LOG  Skipping unsupported PID: ENGINE_LOAD
+ LOG  Skipping unsupported PID: THROTTLE_POSITION
+ LOG  Skipping unsupported PID: FUEL_LEVEL
+ LOG  Started live data for 0 PIDs
+ LOG  Command sent: ATZ
+ LOG  Received data: ATZ
+ LOG  Raw data received: {"data":">ATZ","timestamp":"2025-07-07T17:49:12.967Z"}
+>LM327 v1.5ved data: 
+ LOG  Raw data received: {"data":" ","timestamp":"2025-07-07T17:49:13.522Z"}
+ LOG  Raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-07T17:49:13.522Z"}
+ LOG  Command timeout: ATZ
+ ERROR  Failed to initialize adapter: [Error: Command timeout: ATZ]
+ ERROR  Error processing command: [Error: Command timeout: ATZ]
+ ERROR  Connection failed: [Error: Command timeout: ATZ]
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  Disconnecting from WiFi network and server...
+ LOG  Socket connection closed
+ LOG  Disconnecting from WiFi network
+ LOG  Socket connection closed
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"disconnected","type":null}
+ LOG  Stopping live data stream...
+ LOG  Stopping all PID polling
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  Platform Version: 35
+ LOG  Platform OS: android
+ LOG  Requesting permissions: ["android.permission.ACCESS_FINE_LOCATION", "android.permission.NEARBY_WIFI_DEVICES"]
+ LOG  Permission results: {"android.permission.ACCESS_FINE_LOCATION": "granted", "android.permission.NEARBY_WIFI_DEVICES": "never_ask_again"}
+ LOG  All permissions granted: false
+ WARN  Permission denied: android.permission.NEARBY_WIFI_DEVICES - never_ask_again
+ WARN  Some WiFi permissions were denied, but continuing anyway
+ LOG  WiFi enabled: true
+ LOG  Scanning for WiFi networks...
+ LOG  Found 9 networks, 5 potential OBDII networks
+ LOG  Processed 9 networks, 5 OBDII networks
+ ERROR  Warning: Encountered two children with the same key, `.$KNUST-WIFI`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+Call Stack
+  Wrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RNSScreenStack (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  RNGestureHandlerRootView (<anonymous>)
+  RootLayout(./_layout.tsx) (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  App (<anonymous>)
+  ErrorOverlay (<anonymous>)
+ ERROR  Warning: Encountered two children with the same key, `.$KNUST-WIFI`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+Call Stack
+  Wrapper (<anonymous>)
+  ScreenContentWrapper (<anonymous>)
+  RNSScreenStack (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  RNGestureHandlerRootView (<anonymous>)
+  RootLayout(./_layout.tsx) (<anonymous>)
+  RNCSafeAreaProvider (<anonymous>)
+  App (<anonymous>)
+  ErrorOverlay (<anonymous>)
+ LOG  Simulation not running
+ LOG  Connecting to OBDII network and server: WiFi_OBDII
+ LOG  Connecting to WiFi network: WiFi_OBDII
+ LOG  Polling for connection to "WiFi_OBDII"...
+ LOG  Connection to "WiFi_OBDII" confirmed.
+ LOG  Successfully connected to network: WiFi_OBDII
+ LOG  Connecting to OBDII server at 192.168.0.10:35000
+ LOG  Connected to OBDII server
+ LOG  Successfully connected to OBDII network and server
+ LOG  Initializing OBD-II adapter...
+ LOG  Sending command: ATZ
+ LOG  Sending data to ELM327 via WiFi: "ATZ\r"
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"wifi","device":{"ssid":"WiFi_OBDII","password":""}}
+ LOG  Starting live data stream...
+ LOG  Skipping unsupported PID: ENGINE_RPM
+ LOG  Skipping unsupported PID: VEHICLE_SPEED
+ LOG  Skipping unsupported PID: ENGINE_COOLANT_TEMP
+ LOG  Skipping unsupported PID: ENGINE_LOAD
+ LOG  Skipping unsupported PID: THROTTLE_POSITION
+ LOG  Skipping unsupported PID: FUEL_LEVEL
+ LOG  Started live data for 0 PIDs
+ LOG  Command sent: ATZ
+ LOG  Received data: ATZ
+ LOG  Raw data received: {"data":">ATZ","timestamp":"2025-07-07T17:49:51.736Z"}
+>LM327 v1.5ved data: 
+ LOG  Raw data received: {"data":" ","timestamp":"2025-07-07T17:49:52.291Z"}
+ LOG  Raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-07T17:49:52.291Z"}
+ LOG  Command timeout: ATZ
+ ERROR  Failed to initialize adapter: [Error: Command timeout: ATZ]
+ ERROR  Error processing command: [Error: Command timeout: ATZ]
+ ERROR  Connection failed: [Error: Command timeout: ATZ]
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  Disconnecting from WiFi network and server...
+ LOG  Socket connection closed
+ LOG  Disconnecting from WiFi network
+ LOG  Socket connection closed
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"disconnected","type":null}
+ LOG  Stopping live data stream...
+ LOG  Stopping all PID polling
+ LOG  Simulation not running
+ LOG  Bluetooth service is ready.
+ LOG  Attempting to connect to: OBDII
+ LOG  Successfully connected to: OBDII
+ LOG  Initializing OBD-II adapter...
+ LOG  Sending command: ATZ
+ LOG  Sending data to ELM327: "ATZ\r"
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"bluetooth","device":{"_bluetoothModule":{"_nativeModule":{},"_eventEmitter":{"_nativeModule":{}}},"_nativeDevice":{"extra":{},"bonded":true,"type":"CLASSIC","id":"00:1D:A5:06:4C:E4","deviceClass":{"majorClass":7936,"deviceClass":7936},"address":"00:1D:A5:06:4C:E4","name":"OBDII"},"name":"OBDII","address":"00:1D:A5:06:4C:E4","id":"00:1D:A5:06:4C:E4","bonded":true,"deviceClass":{"majorClass":7936,"deviceClass":7936},"type":"CLASSIC","extra":{}}}
+ LOG  Starting live data stream...
+ LOG  Skipping unsupported PID: ENGINE_RPM
+ LOG  Skipping unsupported PID: VEHICLE_SPEED
+ LOG  Skipping unsupported PID: ENGINE_COOLANT_TEMP
+ LOG  Skipping unsupported PID: ENGINE_LOAD
+ LOG  Skipping unsupported PID: THROTTLE_POSITION
+ LOG  Skipping unsupported PID: FUEL_LEVEL
+ LOG  Started live data for 0 PIDs
+ LOG  Command timeout: ATZ
+ ERROR  Failed to initialize adapter: [Error: Command timeout: ATZ]
+ ERROR  Error processing command: [Error: Command timeout: ATZ]
+ ERROR  Connection failed: [Error: Command timeout: ATZ]
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  Disconnecting from: OBDII
+ LOG  Connection lost, attempting to disconnect cleanly
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"disconnected","type":null}
+ LOG  Stopping live data stream...
+ LOG  Stopping all PID polling
+ LOG  Starting OBDII simulation...
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"simulation"}
+ LOG  Starting live data stream...
+ LOG  Starting to poll ENGINE_RPM every 1500ms
+ LOG  Starting to poll VEHICLE_SPEED every 1500ms
+ LOG  Starting to poll ENGINE_COOLANT_TEMP every 1500ms
+ LOG  Starting to poll ENGINE_LOAD every 1500ms
+ LOG  Starting to poll THROTTLE_POSITION every 1500ms
+ LOG  Starting to poll FUEL_LEVEL every 1500ms
+ LOG  Started live data for 6 PIDs
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":743,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":13,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.1,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":743,"unit":"rpm","timestamp":"2025-07-07T17:52:07.052Z","raw":"simulated:743","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:07.060Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:07.061Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":13,"unit":"%","timestamp":"2025-07-07T17:52:07.063Z","raw":"simulated:13","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":2,"unit":"%","timestamp":"2025-07-07T17:52:07.064Z","raw":"simulated:2","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:07.066Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":673,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":11,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.7,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":673,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":-1,"ENGINE_LOAD":14,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.9,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":-1,"unit":"%","timestamp":"2025-07-07T17:52:08.555Z","raw":"simulated:-1","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":14,"unit":"%","timestamp":"2025-07-07T17:52:08.557Z","raw":"simulated:14","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:08.558Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":673,"unit":"rpm","timestamp":"2025-07-07T17:52:08.559Z","raw":"simulated:673","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:08.560Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:08.561Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":686,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":-1,"ENGINE_LOAD":16,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.3,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:10.060Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:10.062Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":16,"unit":"%","timestamp":"2025-07-07T17:52:10.063Z","raw":"simulated:16","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":-1,"unit":"%","timestamp":"2025-07-07T17:52:10.064Z","raw":"simulated:-1","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":686,"unit":"rpm","timestamp":"2025-07-07T17:52:10.065Z","raw":"simulated:686","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:10.065Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":699,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":11,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.4,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":706,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":10,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.7,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":0,"unit":"%","timestamp":"2025-07-07T17:52:11.567Z","raw":"simulated:0","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":706,"unit":"rpm","timestamp":"2025-07-07T17:52:11.568Z","raw":"simulated:706","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:11.569Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:11.570Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:11.571Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":10,"unit":"%","timestamp":"2025-07-07T17:52:11.573Z","raw":"simulated:10","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":686,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":16,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.4,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":16,"unit":"%","timestamp":"2025-07-07T17:52:13.071Z","raw":"simulated:16","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:13.073Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":686,"unit":"rpm","timestamp":"2025-07-07T17:52:13.074Z","raw":"simulated:686","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":2,"unit":"%","timestamp":"2025-07-07T17:52:13.075Z","raw":"simulated:2","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:13.076Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:13.077Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":675,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":1,"ENGINE_LOAD":10,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.2,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":712,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":-1,"ENGINE_LOAD":14,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.6,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":-1,"unit":"%","timestamp":"2025-07-07T17:52:14.577Z","raw":"simulated:-1","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:14.579Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:14.580Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":14,"unit":"%","timestamp":"2025-07-07T17:52:14.581Z","raw":"simulated:14","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:14.582Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":712,"unit":"rpm","timestamp":"2025-07-07T17:52:14.583Z","raw":"simulated:712","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":699,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":18,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.9,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":699,"unit":"rpm","timestamp":"2025-07-07T17:52:16.083Z","raw":"simulated:699","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:16.085Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:16.086Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":0,"unit":"%","timestamp":"2025-07-07T17:52:16.086Z","raw":"simulated:0","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":18,"unit":"%","timestamp":"2025-07-07T17:52:16.087Z","raw":"simulated:18","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:16.088Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":669,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":17,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.3,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":666,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":0,"ENGINE_LOAD":13,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.4,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":0,"unit":"%","timestamp":"2025-07-07T17:52:17.588Z","raw":"simulated:0","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":13,"unit":"%","timestamp":"2025-07-07T17:52:17.589Z","raw":"simulated:13","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:17.590Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":666,"unit":"rpm","timestamp":"2025-07-07T17:52:17.591Z","raw":"simulated:666","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:17.592Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:17.593Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":697,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":19,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.1,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:19.094Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:19.096Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":19,"unit":"%","timestamp":"2025-07-07T17:52:19.098Z","raw":"simulated:19","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":2,"unit":"%","timestamp":"2025-07-07T17:52:19.100Z","raw":"simulated:2","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":697,"unit":"rpm","timestamp":"2025-07-07T17:52:19.101Z","raw":"simulated:697","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:19.101Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":679,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":18,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.3,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":666,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":11,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":2,"unit":"%","timestamp":"2025-07-07T17:52:20.601Z","raw":"simulated:2","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":666,"unit":"rpm","timestamp":"2025-07-07T17:52:20.603Z","raw":"simulated:666","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:20.604Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:20.605Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:20.606Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":11,"unit":"%","timestamp":"2025-07-07T17:52:20.607Z","raw":"simulated:11","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"ENGINE_RPM":709,"VEHICLE_SPEED":0,"ENGINE_COOLANT_TEMP":20,"THROTTLE_POSITION":2,"ENGINE_LOAD":20,"FUEL_LEVEL":75,"INTAKE_AIR_TEMP":25,"MAF_RATE":2.9,"TRIP_DISTANCE":0,"TOTAL_DISTANCE":45231}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_LOAD","value":20,"unit":"%","timestamp":"2025-07-07T17:52:22.102Z","raw":"simulated:20","mode":"01","pid":"04"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"FUEL_LEVEL","value":75,"unit":"%","timestamp":"2025-07-07T17:52:22.104Z","raw":"simulated:75","mode":"01","pid":"2F"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_RPM","value":709,"unit":"rpm","timestamp":"2025-07-07T17:52:22.105Z","raw":"simulated:709","mode":"01","pid":"0C"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"THROTTLE_POSITION","value":2,"unit":"%","timestamp":"2025-07-07T17:52:22.107Z","raw":"simulated:2","mode":"01","pid":"11"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"ENGINE_COOLANT_TEMP","value":20,"unit":"°C","timestamp":"2025-07-07T17:52:22.108Z","raw":"simulated:20","mode":"01","pid":"05"}
+ LOG  [Dashboard] Received Event: dataUpdate {"name":"VEHICLE_SPEED","value":0,"unit":"km/h","timestamp":"2025-07-07T17:52:22.109Z","raw":"simulated:0","mode":"01","pid":"0D"}
+ LOG  Disconnecting OBD-II service...
+ LOG  Stopping all PID polling
+ LOG  Stopped polling ENGINE_RPM
+ LOG  Stopped polling VEHICLE_SPEED
+ LOG  Stopped polling ENGINE_COOLANT_TEMP
+ LOG  Stopped polling ENGINE_LOAD
+ LOG  Stopped polling THROTTLE_POSITION
+ LOG  Stopped polling FUEL_LEVEL
+ LOG  Stopping OBDII simulation...
+ LOG  [Dashboard] Received Event: connectionStatus {"status":"disconnected","type":null}
+ LOG  Stopping live data stream...
+ LOG  Stopping all PID polling
+› Stopped server
+---

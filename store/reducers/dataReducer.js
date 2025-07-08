@@ -5,15 +5,16 @@ const initialState = {
   liveData: {
     rpm: 0,
     speed: 0,
+    engineTemp: 0, // Renamed from coolantTemp to match VehicleData interface
     engineLoad: 0,
-    coolantTemp: 0,
-    intakeTemp: 0,
+    intakeAirTemp: 0, // Renamed from intakeTemp
     maf: 0, // Mass Air Flow
     throttlePosition: 0,
     fuelPressure: 0,
     fuelLevel: 0,
-    oxygenSensor1: 0,
+    o2Voltage: 0, // Renamed from oxygenSensor1 to match VehicleData interface
     oxygenSensor2: 0,
+    timing: 0, // Added timing advance
     batteryVoltage: 12.0,
     calculatedEngineLoad: 0,
     absoluteThrottlePosition: 0,
@@ -26,7 +27,12 @@ const initialState = {
     barometricPressure: 0,
     catalystTemp: 0,
     evapSystemVaporPressure: 0,
+    lastUpdate: null,
   },
+
+  // PID-specific data storage
+  pidData: {},
+  rawPIDValues: {}, // Store raw PID responses for debugging
 
   // Data Collection
   isCollectingData: false,
@@ -158,8 +164,54 @@ const dataReducer = (state = initialState, action) => {
         ],
       };
 
-    case 'UPDATE_LIVE_DATA':
+    case 'data/updateRealTimeData':
       const newDataPoint = {
+        timestamp: new Date().toISOString(),
+        ...action.payload,
+      };
+
+      return {
+        ...state,
+        liveData: {
+          ...state.liveData,
+          ...action.payload,
+          lastUpdate: new Date(),
+        },
+        lastDataUpdate: new Date().toISOString(),
+        dataPoints: [
+          ...state.dataPoints.slice(-(state.maxDataPoints - 1)),
+          newDataPoint,
+        ],
+        sessionData: [
+          ...state.sessionData,
+          newDataPoint,
+        ],
+      };
+
+    case 'data/updatePIDData':
+      const { pidData, vehicleData } = action.payload;
+      
+      return {
+        ...state,
+        // Update PID-specific storage
+        pidData: {
+          ...state.pidData,
+          [pidData.name]: pidData,
+        },
+        rawPIDValues: {
+          ...state.rawPIDValues,
+          [pidData.name]: pidData.raw,
+        },
+        // Update live data with mapped vehicle data
+        liveData: {
+          ...state.liveData,
+          ...vehicleData,
+        },
+        lastDataUpdate: pidData.timestamp.toISOString(),
+      };
+
+    case 'UPDATE_LIVE_DATA':
+      const legacyDataPoint = {
         timestamp: new Date().toISOString(),
         ...action.payload.data,
       };
@@ -173,11 +225,11 @@ const dataReducer = (state = initialState, action) => {
         lastDataUpdate: new Date().toISOString(),
         dataPoints: [
           ...state.dataPoints.slice(-(state.maxDataPoints - 1)),
-          newDataPoint,
+          legacyDataPoint,
         ],
         sessionData: [
           ...state.sessionData,
-          newDataPoint,
+          legacyDataPoint,
         ],
       };
 

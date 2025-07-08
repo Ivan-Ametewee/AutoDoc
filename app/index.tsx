@@ -1261,9 +1261,9 @@ export default function ConnectionScreen() {
       if (type === 'wifi') {
         await WiFiService.requestPermissions();
         const { obd: obdNetworks } = await WiFiService.scanNetworks();
-        foundDevices = obdNetworks.map(net => ({
+        foundDevices = obdNetworks.map((net, index) => ({
           name: net.SSID,
-          address: net.SSID, // Use SSID as the unique identifier
+          address: net.BSSID || `${net.SSID}_${index}`, // Use BSSID if available, otherwise SSID with index
           type: 'wifi',
           raw: net,
         }));

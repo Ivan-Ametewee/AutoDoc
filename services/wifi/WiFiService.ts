@@ -427,15 +427,23 @@ class WiFiService extends EventEmitter {
         throw new Error('Not connected to OBDII server');
       }
 
-      console.log('Sending data:', data);
+      // Ensure data is properly formatted for ELM327
+      let formattedData = data.trim();
+      
+      // Add carriage return if not present (ELM327 expects \r termination)
+      if (!formattedData.endsWith('\r') && !formattedData.endsWith('\r\n')) {
+        formattedData += '\r';
+      }
+
+      console.log('Sending data to ELM327 via WiFi:', JSON.stringify(formattedData));
 
       return new Promise((resolve, reject) => {
-        this.socket?.write(data, 'utf8', (error?: Error) => { // error is optional
+        this.socket?.write(formattedData, 'utf8', (error?: Error) => { // error is optional
           if (error) {
             console.error('Error sending data:', error);
             reject(error);
           } else {
-            this.emit('dataSent', data);
+            this.emit('dataSent', formattedData);
             resolve(true);
           }
         });

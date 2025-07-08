@@ -245,7 +245,7 @@ export default function DiagnosticsScreen() {
       <ScrollView style={styles.codesList}>
         {dtcCodes.map((code, index) => (
           <TouchableOpacity
-            key={index}
+            key={`dtc-${code.code}-${index}`}
             style={styles.codeItem}
             onPress={() => {
               setSelectedDTC(code);
@@ -282,7 +282,7 @@ export default function DiagnosticsScreen() {
       <Text style={styles.sectionTitle}>System Readiness Status</Text>
       <ScrollView style={styles.systemsList}>
         {systemStatuses.map((system, index) => (
-          <View key={index} style={styles.systemItem}>
+          <View key={`system-${system.system}-${index}`} style={styles.systemItem}>
             <Ionicons
               name={system.icon}
               size={24}
@@ -310,7 +310,7 @@ export default function DiagnosticsScreen() {
       <Text style={styles.sectionTitle}>Live Data Stream</Text>
       <ScrollView style={styles.liveDataList}>
         {liveData.map((data, index) => (
-          <View key={index} style={styles.liveDataItem}>
+          <View key={`live-${data.parameter}-${index}`} style={styles.liveDataItem}>
             <Ionicons
               name={data.icon}
               size={24}

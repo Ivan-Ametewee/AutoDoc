@@ -163,9 +163,12 @@ class BluetoothService extends EventEmitter {
       if (isConnected) {
         this.connectedDevice = device;
         // **CRITICAL**: Attach the data listener right after a successful connection.
-        this.readSubscription = this.connectedDevice.onDataReceived(data => 
-          this.emit('dataReceived', data.data)
-        );
+        this.readSubscription = this.connectedDevice.onDataReceived(data => {
+          console.log('Bluetooth raw data received:', JSON.stringify(data));
+          // Handle both string and object formats for compatibility
+          const actualData = typeof data === 'object' ? data.data : data;
+          this.emit('dataReceived', actualData);
+        });
         
         console.log('Successfully connected to:', this.connectedDevice.name);
         this.emit('deviceConnected', this.connectedDevice);
@@ -233,9 +236,18 @@ class BluetoothService extends EventEmitter {
       console.error('Cannot send data. No device connected.');
       return false;
     }
+    
     try {
-      console.log('Sending data:', data);
-      await this.connectedDevice.write(data);
+      // Ensure data is properly formatted for ELM327
+      let formattedData = data.trim();
+      
+      // Add carriage return if not present (ELM327 expects \r termination)
+      if (!formattedData.endsWith('\r') && !formattedData.endsWith('\r\n')) {
+        formattedData += '\r';
+      }
+      
+      console.log('Sending data to ELM327:', JSON.stringify(formattedData));
+      await this.connectedDevice.write(formattedData);
       return true;
     } catch (error: any) {
       console.error('Failed to send data:', error.message);

@@ -274,7 +274,7 @@ export default function HistoryScreen() {
       notes: 'Check engine light came on during highway driving. Performance seems normal.',
     },
     {
-      id: '2',
+      id: '5',
       timestamp: new Date(Date.now() - 259200000), // 3 days ago
       vehicleInfo: {
         make: 'Toyota',
@@ -499,9 +499,9 @@ export default function HistoryScreen() {
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Date Range</Text>
             <View style={styles.filterOptions}>
-              {['all', 'week', 'month', 'quarter'].map(option => (
+              {['all', 'week', 'month', 'quarter'].map((option, index) => (
                 <TouchableOpacity
-                  key={option}
+                  key={`dateRange-${option}-${index}`}
                   style={[
                     styles.filterOption,
                     filters.dateRange === option && styles.activeFilterOption
@@ -522,9 +522,9 @@ export default function HistoryScreen() {
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Severity</Text>
             <View style={styles.filterOptions}>
-              {['all', 'critical', 'moderate', 'minor'].map(option => (
+              {['all', 'critical', 'moderate', 'minor'].map((option, index) => (
                 <TouchableOpacity
-                  key={option}
+                  key={`severity-${option}-${index}`}
                   style={[
                     styles.filterOption,
                     filters.severity === option && styles.activeFilterOption
@@ -545,9 +545,9 @@ export default function HistoryScreen() {
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Status</Text>
             <View style={styles.filterOptions}>
-              {['all', 'active', 'pending', 'cleared'].map(option => (
+              {['all', 'active', 'pending', 'cleared'].map((option, index) => (
                 <TouchableOpacity
-                  key={option}
+                  key={`status-${option}-${index}`}
                   style={[
                     styles.filterOption,
                     filters.status === option && styles.activeFilterOption
@@ -568,9 +568,9 @@ export default function HistoryScreen() {
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>System</Text>
             <View style={styles.filterOptions}>
-              {['all', 'engine', 'transmission', 'abs', 'airbag', 'emissions', 'electrical'].map(option => (
+              {['all', 'engine', 'transmission', 'abs', 'airbag', 'emissions', 'electrical'].map((option, index) => (
                 <TouchableOpacity
-                  key={option}
+                  key={`system-${option}-${index}`}
                   style={[
                     styles.filterOption,
                     filters.system === option && styles.activeFilterOption
@@ -686,7 +686,7 @@ export default function HistoryScreen() {
               <Text style={styles.sessionDetailSectionTitle}>Diagnostic Trouble Codes</Text>
               {selectedSession.dtcCodes.length > 0 ? (
                 selectedSession.dtcCodes.map((code, index) => (
-                  <View key={index} style={styles.dtcCodeItem}>
+                  <View key={`dtc-${code.code}-${index}`} style={styles.dtcCodeItem}>
                     <View style={styles.dtcCodeHeader}>
                       <Text style={styles.dtcCodeNumber}>{code.code}</Text>
                       <View style={styles.dtcCodeStatus}>

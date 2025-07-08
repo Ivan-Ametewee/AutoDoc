@@ -22,6 +22,7 @@ interface CommandQueueItem {
   command: string;
   resolve: (value: string) => void;
   reject: (reason?: any) => void;
+  timestamp: number;
 }
 
 // --- Central OBD-II Service ---
@@ -34,10 +35,13 @@ class OBDIIService extends EventEmitter {
   private activePollingPIDs: Map<string, number> = new Map();
   private mockDataGenerator: typeof MockDataGenerator;
   private supportedPIDs: Set<string> = new Set();
+  private isInitialized = false;
 
-  // **REFACTORED**: Simplified state for handling command responses
+  // **IMPROVED**: Better response handling
   private responseBuffer = '';
   private currentCommand: CommandQueueItem | null = null;
+  private commandTimeout = 5000; // 5 seconds
+  private maxRetries = 3;
 
   constructor() {
     super();
@@ -53,13 +57,16 @@ class OBDIIService extends EventEmitter {
 
   public async connect(device: any, type: 'bluetooth' | 'wifi'): Promise<boolean> {
     if (this.connectionInfo.status === 'connected' || this.connectionInfo.status === 'connecting') {
+      console.log('Already connected or connecting');
       return false;
     }
+    
     this.updateConnectionInfo('connecting', type, device);
 
     try {
       simulationService.stopSimulation();
       let isConnected = false;
+      
       if (type === 'bluetooth') {
         this.commService = BluetoothService;
         await this.commService.initialize();
@@ -73,13 +80,19 @@ class OBDIIService extends EventEmitter {
         this.commService.on('dataReceived', this.handleDataReceived);
         this.commService.on('deviceDisconnected', this.handleDisconnection);
         this.updateConnectionInfo('connected', type, device);
+        
+        // **CRITICAL**: Initialize the adapter with proper error handling
         await this.initializeAdapter();
         await this.discoverSupportedPIDs();
+        
+        this.isInitialized = true;
+        console.log('OBD-II connection fully established and initialized');
         return true;
       } else {
-        throw new Error(`The ${type} service failed to establish a connection.`);
+        throw new Error(`Failed to establish ${type} connection`);
       }
     } catch (error: any) {
+      console.error('Connection failed:', error);
       await this.disconnect();
       this.updateConnectionInfo('error', type, device, error.message);
       return false;
@@ -91,10 +104,15 @@ class OBDIIService extends EventEmitter {
     this.updateConnectionInfo('connected', 'simulation');
     simulationService.startSimulation();
     simulationService.registerCallback(this.handleSimulationData);
+    this.isInitialized = true;
   }
 
   public async disconnect(): Promise<void> {
+    console.log('Disconnecting OBD-II service...');
+    
     this.stopAllPolling();
+    this.isInitialized = false;
+    
     if (this.connectionInfo.type === 'simulation') {
       simulationService.stopSimulation();
     } else if (this.commService) {
@@ -102,18 +120,25 @@ class OBDIIService extends EventEmitter {
       this.commService.removeListener('dataReceived', this.handleDataReceived);
       this.commService.removeListener('deviceDisconnected', this.handleDisconnection);
     }
+    
+    // Clear command queue
     if (this.currentCommand) {
       this.currentCommand.reject(new Error("Disconnected"));
     }
+    this.commandQueue.forEach(cmd => cmd.reject(new Error("Disconnected")));
     this.commandQueue = [];
     this.currentCommand = null;
     this.isProcessingQueue = false;
     this.responseBuffer = '';
+    
     this.updateConnectionInfo('disconnected', null);
     this.commService = null;
   }
 
-  private handleDisconnection = () => this.disconnect();
+  private handleDisconnection = () => {
+    console.log('Connection lost, attempting to disconnect cleanly');
+    this.disconnect();
+  };
 
   private updateConnectionInfo(status: ConnectionStatus, type: ConnectionType | null, device?: any, error?: string) {
     this.connectionInfo = { status, type, device, error };
@@ -122,6 +147,7 @@ class OBDIIService extends EventEmitter {
 
   public subscribe(callback: SubscriberCallback): () => void {
     this.subscribers.add(callback);
+    // Immediately send current connection status
     callback('connectionStatus', this.connectionInfo);
     return () => this.subscribers.delete(callback);
   }
@@ -131,18 +157,46 @@ class OBDIIService extends EventEmitter {
   }
 
   private notifySubscribers(event: string, data: any): void {
-    this.subscribers.forEach(callback => callback(event, data));
+    this.subscribers.forEach(callback => {
+      try {
+        callback(event, data);
+      } catch (error) {
+        console.error('Error in subscriber callback:', error);
+      }
+    });
   }
 
   // --- Command & Data Processing ---
 
   public async initializeAdapter(): Promise<void> {
+    console.log('Initializing OBD-II adapter...');
+    
     try {
+      // Reset the adapter
       await this.sendCommand('ATZ');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await this.delay(1500); // Wait for reset
+
+      // Turn off echo
       await this.sendCommand('ATE0');
+      await this.delay(100);
+
+      // Set automatic protocol detection
       await this.sendCommand('ATSP0');
-      console.log('OBD-II adapter initialized successfully.');
+      await this.delay(100);
+
+      // Set line feeds off
+      await this.sendCommand('ATL0');
+      await this.delay(100);
+
+      // Set headers off
+      await this.sendCommand('ATH0');
+      await this.delay(100);
+
+      // Set spaces off for more compact responses
+      await this.sendCommand('ATS0');
+      await this.delay(100);
+
+      console.log('OBD-II adapter initialized successfully');
     } catch (error) {
       console.error('Failed to initialize adapter:', error);
       throw error;
@@ -154,33 +208,66 @@ class OBDIIService extends EventEmitter {
     this.supportedPIDs.clear();
 
     try {
-        // Query for PIDs 01-20
-        const response = await this.sendCommand('0100');
-        if (response.startsWith('4100')) {
-            const hexData = response.substring(4).replace(/\s/g, '');
-
-            if (hexData.length < 8) {
-            // Convert the 4 bytes of hex data to a 32-bit binary string
-            const binaryData = parseInt(hexData.substring(0, 8), 16).toString(2).padStart(32, '0');
-            const allPIDs = PIDDefinitions.getAllPIDs();
-
-            for (let i = 0; i < binaryData.length; i++) {
-                if (binaryData[i] === '1') {
-                    const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
-                    // Find the PID name from our definitions list
-                    const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
-                    if (pidDef) {
-                        this.supportedPIDs.add(pidDef.name);
-                    }
-                }
+      // Query for PIDs 01-20 (Mode 01, PID 00)
+      const response = await this.sendCommand('0100');
+      console.log('PID support response:', response);
+      
+      if (response && response.length >= 12) { // Should be at least "4100XXXXXXXX"
+        const cleanResponse = response.replace(/[\s>]/g, '');
+        
+        if (cleanResponse.startsWith('4100')) {
+          const hexData = cleanResponse.substring(4);
+          console.log('PID support hex data:', hexData);
+          
+          // Convert hex to binary to check which PIDs are supported
+          const supportBits = this.hexToBinary(hexData);
+          console.log('PID support bits:', supportBits);
+          
+          const allPIDs = PIDDefinitions.getAllPIDs();
+          
+          // Check each bit position
+          for (let i = 0; i < Math.min(supportBits.length, 32); i++) {
+            if (supportBits[i] === '1') {
+              const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
+              const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+              
+              if (pidDef) {
+                this.supportedPIDs.add(pidDef.name);
+                console.log(`Supported PID found: ${pidDef.name} (${pidNumber})`);
+              }
             }
           }
         }
-        console.log(`Discovered ${this.supportedPIDs.size} supported PIDs.`);
-        this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
+      }
+      
+      // Add some common PIDs that might not be reported but often work
+      const commonPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD'];
+      commonPIDs.forEach(pid => {
+        if (!this.supportedPIDs.has(pid)) {
+          this.supportedPIDs.add(pid);
+          console.log(`Added common PID: ${pid}`);
+        }
+      });
+
+      console.log(`Discovered ${this.supportedPIDs.size} supported PIDs:`, Array.from(this.supportedPIDs));
+      this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
     } catch (error) {
-        console.error('Failed to discover supported PIDs:', error);
+      console.error('Failed to discover supported PIDs:', error);
+      // Add fallback PIDs if discovery fails
+      const fallbackPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD', 'THROTTLE_POSITION'];
+      fallbackPIDs.forEach(pid => this.supportedPIDs.add(pid));
+      console.log('Using fallback PIDs:', Array.from(this.supportedPIDs));
     }
+  }
+
+  private hexToBinary(hex: string): string {
+    let binary = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      const hexByte = hex.substring(i, i + 2);
+      const byte = parseInt(hexByte, 16);
+      binary += byte.toString(2).padStart(8, '0');
+    }
+    return binary;
   }
 
   public isPIDSupported(pidName: string): boolean {
@@ -189,10 +276,19 @@ class OBDIIService extends EventEmitter {
 
   public sendCommand(command: string): Promise<string> {
     if (this.connectionInfo.type === 'simulation') {
-      return new Promise(resolve => setTimeout(() => resolve('OK'), 100));
+      return new Promise(resolve => setTimeout(() => resolve('SIMULATED_OK'), 100));
     }
+
     return new Promise((resolve, reject) => {
-      this.commandQueue.push({ command, resolve, reject });
+      const commandItem: CommandQueueItem = {
+        command,
+        resolve,
+        reject,
+        timestamp: Date.now()
+      };
+      
+      this.commandQueue.push(commandItem);
+      
       if (!this.isProcessingQueue) {
         this.processQueue();
       }
@@ -201,94 +297,202 @@ class OBDIIService extends EventEmitter {
 
   private async processQueue(): Promise<void> {
     if (this.isProcessingQueue || this.commandQueue.length === 0) {
-      this.isProcessingQueue = false;
       return;
     }
+
     this.isProcessingQueue = true;
-    this.currentCommand = this.commandQueue.shift()!;
-    try {
-      if (!this.commService) throw new Error('Communication service unavailable.');
 
-      const timeoutId = setTimeout(() => {
-        if (this.currentCommand) {
-          this.currentCommand.reject(new Error(`Timeout on command: ${this.currentCommand.command}`));
-          this.currentCommand = null;
-          this.processQueue();
+    while (this.commandQueue.length > 0) {
+      this.currentCommand = this.commandQueue.shift()!;
+      
+      try {
+        if (!this.commService) {
+          throw new Error('Communication service unavailable');
         }
-      }, 15000); // 15-second timeout
 
-      this.currentCommand.reject = (reason) => {
-          clearTimeout(timeoutId);
-          this.commandQueue.unshift(this.currentCommand!);
-          this.currentCommand = null;
-      };
-      
-      this.currentCommand.resolve = (value) => {
-          clearTimeout(timeoutId);
-      };
-      
-      await this.commService.sendData(this.currentCommand.command + '\r');
-    } catch (error: any) {
-      if (this.currentCommand) this.currentCommand.reject(error);
-      this.isProcessingQueue = false;
-    }
-  }
-  
-  private handleDataReceived = (data: string) => {
-    this.responseBuffer += data;
-    
-    // Split by any common terminator: carriage return, newline, or the '>' prompt.
-    const terminators = /[\r\n>]/;
-    let responses = this.responseBuffer.split(terminators);
-    
-    // If the buffer doesn't end with a terminator, the last element is an incomplete message.
-    if (!terminators.test(this.responseBuffer.slice(-1))) {
-        this.responseBuffer = responses.pop() || '';
-    } else {
+        console.log(`Sending command: ${this.currentCommand.command}`);
+
+        // Clear response buffer before sending command
         this.responseBuffer = '';
-    }
-    
-    responses.forEach(response => {
-        const cleanedResponse = response.trim();
-        if (cleanedResponse.length === 0 || cleanedResponse === this.currentCommand?.command) {
-            // Ignore empty lines or echoed commands
-            return;
+
+        // Set up timeout
+        const timeoutId = setTimeout(() => {
+          if (this.currentCommand) {
+            console.log(`Command timeout: ${this.currentCommand.command}`);
+            this.currentCommand.reject(new Error(`Command timeout: ${this.currentCommand.command}`));
+            this.currentCommand = null;
+          }
+        }, this.commandTimeout);
+
+        // Send the command
+        const success = await this.commService.sendData(this.currentCommand.command + '\r');
+        
+        if (!success) {
+          clearTimeout(timeoutId);
+          this.currentCommand.reject(new Error('Failed to send command'));
+          this.currentCommand = null;
+          continue;
         }
 
+        // Wait for response (the response will be handled in handleDataReceived)
+        // The timeout will handle cases where no response comes
+        await new Promise<void>((resolve, reject) => {
+          const originalResolve = this.currentCommand!.resolve;
+          const originalReject = this.currentCommand!.reject;
+
+          this.currentCommand!.resolve = (value: string) => {
+            clearTimeout(timeoutId);
+            originalResolve(value);
+            resolve();
+          };
+
+          this.currentCommand!.reject = (reason: any) => {
+            clearTimeout(timeoutId);
+            originalReject(reason);
+            reject(reason);
+          };
+        });
+
+        this.currentCommand = null;
+        
+        // Small delay between commands
+        await this.delay(50);
+
+      } catch (error: any) {
+        console.error('Error processing command:', error);
         if (this.currentCommand) {
-            this.currentCommand.resolve(cleanedResponse);
-            this.currentCommand = null;
-            this.isProcessingQueue = false;
-            this.processQueue(); // Process the next command immediately
+          this.currentCommand.reject(error);
+          this.currentCommand = null;
         }
-    });
+        
+        // Continue with next command even if this one failed
+        continue;
+      }
+    }
+
+    this.isProcessingQueue = false;
+  }
+
+  private handleDataReceived = (data: string) => {
+    console.log('Raw data received:', JSON.stringify(data));
+    
+    this.responseBuffer += data;
+
+    // Split by common terminators
+    const responses = this.responseBuffer.split(/[\r\n>]+/);
+    
+    // Keep the last incomplete response in buffer
+    this.responseBuffer = responses.pop() || '';
+
+    for (const response of responses) {
+      const trimmedResponse = response.trim();
+      
+      if (trimmedResponse.length === 0) continue;
+
+      console.log('Processing response:', trimmedResponse);
+
+      // Handle command responses
+      if (this.currentCommand && this.isCommandResponse(trimmedResponse, this.currentCommand.command)) {
+        console.log(`Command response for ${this.currentCommand.command}:`, trimmedResponse);
+        this.currentCommand.resolve(trimmedResponse);
+        continue;
+      }
+
+      // Try to parse as OBD data
+      if (OBDIIParser.isValidOBDResponse(trimmedResponse)) {
+        const parsedData = OBDIIParser.parse(trimmedResponse);
+        if (parsedData) {
+          console.log('Parsed OBD data:', parsedData);
+          this.notifySubscribers('dataUpdate', parsedData);
+        }
+      }
+    }
   };
 
+  private isCommandResponse(response: string, command: string): boolean {
+    const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
+    const cleanCommand = command.replace(/[\s\r\n]/g, '').toUpperCase();
+
+    // Check for direct command echo
+    if (cleanResponse === cleanCommand) return false;
+
+    // Check for OK response
+    if (cleanResponse === 'OK') return true;
+
+    // Check for error responses
+    if (cleanResponse.includes('ERROR') || cleanResponse.includes('?')) return true;
+
+    // Check for specific command responses
+    if (cleanCommand.startsWith('AT')) {
+      // Special handling for ATZ reset command - responds with ELM327 version
+      if (cleanCommand === 'ATZ' && cleanResponse.includes('ELM327')) {
+        return true;
+      }
+      // Other AT commands typically return OK or error
+      if (cleanResponse === 'OK' || cleanResponse.includes('ERROR')) {
+        return true;
+      }
+      return false; // Don't assume all AT responses are complete
+    }
+
+    // Check for OBD response pattern (mode + 0x40)
+    if (cleanCommand.length >= 4) {
+      const commandMode = cleanCommand.substring(0, 2);
+      const responseMode = (parseInt(commandMode, 16) + 0x40).toString(16).toUpperCase().padStart(2, '0');
+      
+      if (cleanResponse.startsWith(responseMode)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public async queryPID(pidName: string): Promise<ParsedPIDData | null> {
+    if (!this.isInitialized) {
+      console.warn('OBD-II service not initialized');
+      return null;
+    }
+
     const pid = PIDDefinitions.getPID(pidName);
-    if (!pid) throw new Error(`PID not found: ${pidName}`);
+    if (!pid) {
+      console.error(`PID not found: ${pidName}`);
+      return null;
+    }
 
     if (this.connectionInfo.type === 'simulation') {
       const simulatedValue = this.mockDataGenerator.generatePIDData(pid.name);
       const parsedData: ParsedPIDData = {
-        name: pid.name, value: simulatedValue, unit: pid.unit, timestamp: new Date(),
-        raw: `simulated:${simulatedValue}`, mode: pid.mode, pid: pid.pid,
+        name: pid.name,
+        value: simulatedValue,
+        unit: pid.unit,
+        timestamp: new Date(),
+        raw: `simulated:${simulatedValue}`,
+        mode: pid.mode,
+        pid: pid.pid,
       };
       this.notifySubscribers('dataUpdate', parsedData);
       return parsedData;
     }
 
     try {
-      const rawResponse = await this.sendCommand(pid.mode + pid.pid);
-      if (rawResponse.includes('NO DATA')) {
-        console.warn(`ECU does not support PID: ${pidName}`);
+      const command = pid.mode + pid.pid;
+      console.log(`Querying PID ${pidName} with command: ${command}`);
+      
+      const rawResponse = await this.sendCommand(command);
+      console.log(`Response for ${pidName}:`, rawResponse);
+      
+      if (!rawResponse || rawResponse.includes('NO DATA') || rawResponse.includes('ERROR')) {
+        console.warn(`No data or error for PID: ${pidName}`);
         return null;
       }
 
       const parsedData = OBDIIParser.parse(rawResponse);
       if (parsedData) {
+        console.log(`Successfully parsed ${pidName}:`, parsedData);
         this.notifySubscribers('dataUpdate', parsedData);
       }
+      
       return parsedData;
     } catch (error) {
       console.error(`Error querying PID ${pidName}:`, error);
@@ -299,18 +503,28 @@ class OBDIIService extends EventEmitter {
   // --- Polling Methods ---
 
   public startPollingPID(pidName: string, interval = 1000): void {
-    if (this.activePollingPIDs.has(pidName)) return;
+    if (this.activePollingPIDs.has(pidName)) {
+      console.log(`Already polling ${pidName}`);
+      return;
+    }
+
+    console.log(`Starting to poll ${pidName} every ${interval}ms`);
+
     const pollingId = setInterval(async () => {
       if (this.connectionInfo.status !== 'connected') {
+        console.log(`Stopping poll for ${pidName} - not connected`);
         this.stopPollingPID(pidName);
         return;
       }
+
       try {
         await this.queryPID(pidName);
       } catch (error) {
         console.error(`Error during polling of ${pidName}:`, error);
+        // Don't stop polling for single errors, just log them
       }
     }, interval);
+
     this.activePollingPIDs.set(pidName, pollingId as unknown as number);
   }
 
@@ -319,11 +533,16 @@ class OBDIIService extends EventEmitter {
     if (pollingId) {
       clearInterval(pollingId);
       this.activePollingPIDs.delete(pidName);
+      console.log(`Stopped polling ${pidName}`);
     }
   }
 
   public stopAllPolling(): void {
-    this.activePollingPIDs.forEach(intervalId => clearInterval(intervalId));
+    console.log('Stopping all PID polling');
+    this.activePollingPIDs.forEach((intervalId, pidName) => {
+      clearInterval(intervalId);
+      console.log(`Stopped polling ${pidName}`);
+    });
     this.activePollingPIDs.clear();
   }
 
@@ -334,29 +553,63 @@ class OBDIIService extends EventEmitter {
   };
 
   public startLiveData(): void {
-    if (this.connectionInfo.status !== 'connected') return;
-    
+    if (this.connectionInfo.status !== 'connected') {
+      console.warn('Cannot start live data - not connected');
+      return;
+    }
+
+    console.log('Starting live data stream...');
+
     const dashboardPIDs = [
-      'ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP',
-      'FUEL_LEVEL', 'ENGINE_LOAD',
+      'ENGINE_RPM',
+      'VEHICLE_SPEED', 
+      'ENGINE_COOLANT_TEMP',
+      'ENGINE_LOAD',
+      'THROTTLE_POSITION',
+      'FUEL_LEVEL'
     ];
 
-    // Filter the list to only include supported PIDs
-    const pidsToPoll = dashboardPIDs.filter(pidName => this.isPIDSupported(pidName));
-    
-    console.log(`Starting live data stream for ${pidsToPoll.length} supported PIDs...`);
-
-    pidsToPoll.forEach(pidName => {
-      this.startPollingPID(pidName, 1000);
+    // Start polling each supported PID
+    dashboardPIDs.forEach(pidName => {
+      const isSimulation = this.connectionInfo.type === 'simulation';
+      const pidSupported = this.isPIDSupported(pidName);
+      const noDiscoveredPIDs = this.supportedPIDs.size === 0;
+      
+      if (pidSupported || isSimulation) {
+        this.startPollingPID(pidName, 1500); // Slightly longer interval to avoid overwhelming
+      } else if (!isSimulation && noDiscoveredPIDs) {
+        // If no PIDs discovered yet (discovery failed), try polling common PIDs anyway
+        console.log(`PID discovery failed, attempting to poll common PID: ${pidName}`);
+        this.startPollingPID(pidName, 1500);
+      } else {
+        console.log(`Skipping unsupported PID: ${pidName}`);
+      }
     });
+
+    console.log(`Started live data for ${this.activePollingPIDs.size} PIDs`);
   }
 
-  /**
-   * Stops all active PID polling.
-   */
   public stopLiveData(): void {
     console.log("Stopping live data stream...");
     this.stopAllPolling();
+  }
+
+  // --- Utility Methods ---
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  public getActivePollingPIDs(): string[] {
+    return Array.from(this.activePollingPIDs.keys());
+  }
+
+  public getSupportedPIDs(): string[] {
+    return Array.from(this.supportedPIDs);
+  }
+
+  public isThisInitialized(): boolean {
+    return this.isInitialized;
   }
 }
 
