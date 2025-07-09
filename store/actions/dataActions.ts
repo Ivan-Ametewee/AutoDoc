@@ -13,6 +13,9 @@ export interface VehicleData {
     timing: number;
     intakeAirTemp: number;
     intakeManifoldPressure: number;
+    odometer?: number;
+    tripOdometer?: number;
+    engineHours?: number;
     lastUpdate: Date;
 }
 
@@ -64,6 +67,26 @@ export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData
             break;
         case 'INTAKE_MANIFOLD_PRESSURE':
             result.intakeManifoldPressure = typeof pidData.value === 'number' ? pidData.value : 0;
+            break;
+        case 'ODOMETER':
+        case 'odometer':
+            result.odometer = typeof pidData.value === 'number' ? pidData.value : 0;
+            break;
+        case 'TRIP_ODOMETER':
+        case 'tripOdometer':
+            result.tripOdometer = typeof pidData.value === 'number' ? pidData.value : 0;
+            break;
+        case 'ENGINE_HOURS':
+        case 'engineHours':
+            result.engineHours = typeof pidData.value === 'number' ? pidData.value : 0;
+            break;
+        case 'TOTAL_DISTANCE':
+        case 'totalDistance':
+            result.odometer = typeof pidData.value === 'number' ? pidData.value : 0;
+            break;
+        case 'TRIP_DISTANCE':
+        case 'tripDistance':
+            result.tripOdometer = typeof pidData.value === 'number' ? pidData.value : 0;
             break;
         default:
             console.log(`Unmapped PID: ${pidData.name} = ${pidData.value}`);

@@ -54,6 +54,7 @@ class MockDataGenerator {
 
     this.updateEngineState(deltaTime);
     this.simulateDrivingScenario(deltaTime);
+    this.updateDistance(deltaTime);
     this.checkForFaults();
 
     return this.getCurrentReadings();

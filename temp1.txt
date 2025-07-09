@@ -1,0 +1,172 @@
+// Add to your vehicleReducer.ts initial state
+
+interface FraudAnomaly {
+  id: string;
+  type: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: string;
+  data: Record<string, any>;
+}
+
+interface FraudAlert {
+  id: string;
+  type: 'warning' | 'error' | 'critical';
+  message: string;
+  timestamp: string;
+  checkType: string;
+  riskLevel: number;
+}
+
+interface FraudDetectionState {
+  isEnabled: boolean;
+  checks: {
+    odometerRollback: {
+      enabled: boolean;
+      threshold: number; // Miles/km that trigger suspicion
+      lastKnownMileage: number | null;
+      anomalies: FraudAnomaly[];
+    };
+    inconsistentReporting: {
+      enabled: boolean;
+      threshold: number; // Daily mileage threshold
+      timeWindow: number; // Hours
+      anomalies: FraudAnomaly[];
+    };
+    digitalTampering: {
+      enabled: boolean;
+      ecu_checks: boolean;
+      anomalies: FraudAnomaly[];
+    };
+    dataIntegrity: {
+      enabled: boolean;
+      checksumValidation: boolean;
+      anomalies: FraudAnomaly[];
+    };
+  };
+  riskScore: number; // 0-100 scale
+  lastCheck: string | null;
+  overallStatus: 'clean' | 'suspicious' | 'high_risk';
+  alerts: FraudAlert[];
+}
+
+const fraudDetectionState: FraudDetectionState = {
+  isEnabled: true,
+  checks: {
+    odometerRollback: {
+      enabled: true,
+      threshold: -100,
+      lastKnownMileage: null,
+      anomalies: [],
+    },
+    inconsistentReporting: {
+      enabled: true,
+      threshold: 500,
+      timeWindow: 24,
+      anomalies: [],
+    },
+    digitalTampering: {
+      enabled: true,
+      ecu_checks: true,
+      anomalies: [],
+    },
+    dataIntegrity: {
+      enabled: true,
+      checksumValidation: true,
+      anomalies: [],
+    }
+  },
+  riskScore: 0,
+  lastCheck: null,
+  overallStatus: 'clean',
+  alerts: [],
+};
+
+// Add these action types to your VEHICLE_TYPES
+export enum FRAUD_DETECTION_TYPES {
+  RUN_FRAUD_CHECK = 'RUN_FRAUD_CHECK',
+  FRAUD_CHECK_COMPLETE = 'FRAUD_CHECK_COMPLETE',
+  ADD_FRAUD_ALERT = 'ADD_FRAUD_ALERT',
+  CLEAR_FRAUD_ALERTS = 'CLEAR_FRAUD_ALERTS',
+  UPDATE_FRAUD_SETTINGS = 'UPDATE_FRAUD_SETTINGS',
+  ODOMETER_ANOMALY_DETECTED = 'ODOMETER_ANOMALY_DETECTED',
+}
+
+interface FraudCheckCompleteAction {
+  type: FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE;
+  payload: {
+    riskScore: number;
+    status: 'clean' | 'suspicious' | 'high_risk';
+    checkResults: Partial<FraudDetectionState['checks']>;
+  };
+}
+
+interface AddFraudAlertAction {
+  type: FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT;
+  payload: {
+    alert: FraudAlert;
+  };
+}
+
+interface OdometerAnomalyDetectedAction {
+  type: FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED;
+  payload: {
+    checkType: keyof FraudDetectionState['checks'];
+    anomaly: FraudAnomaly;
+  };
+}
+
+// Add these cases to your vehicleReducer switch statement
+case FRAUD_DETECTION_TYPES.RUN_FRAUD_CHECK:
+  return {
+    ...state,
+    fraudDetection: {
+      ...state.fraudDetection,
+      lastCheck: new Date().toISOString(),
+    },
+  };
+
+case FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE:
+  const fraudAction = action as FraudCheckCompleteAction;
+  return {
+    ...state,
+    fraudDetection: {
+      ...state.fraudDetection,
+      riskScore: fraudAction.payload.riskScore,
+      overallStatus: fraudAction.payload.status,
+      checks: {
+        ...state.fraudDetection.checks,
+        ...fraudAction.payload.checkResults,
+      },
+    },
+  };
+
+case FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT:
+  const alertAction = action as AddFraudAlertAction;
+  return {
+    ...state,
+    fraudDetection: {
+      ...state.fraudDetection,
+      alerts: [...state.fraudDetection.alerts, alertAction.payload.alert],
+    },
+  };
+
+case FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED:
+  const anomalyAction = action as OdometerAnomalyDetectedAction;
+  const checkType = anomalyAction.payload.checkType;
+  return {
+    ...state,
+    fraudDetection: {
+      ...state.fraudDetection,
+      checks: {
+        ...state.fraudDetection.checks,
+        [checkType]: {
+          ...state.fraudDetection.checks[checkType],
+          anomalies: [
+            ...state.fraudDetection.checks[checkType].anomalies,
+            anomalyAction.payload.anomaly,
+          ],
+        },
+      },
+    },
+  };

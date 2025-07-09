@@ -71,6 +71,15 @@ export default function RootLayout() {
                   headerShown: false,
                 }}
               />
+
+              <Stack.Screen
+                name="fraud-detection"
+                options={{
+                  title: 'Fraud Detection',
+                  presentation: 'modal',
+                  headerShown: false,
+                }}
+              />
             </Stack>
           </PersistGate>
         </Provider>

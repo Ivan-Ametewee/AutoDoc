@@ -1,0 +1,577 @@
+/**
+ * OdometerFraudDetection.ts
+ * Service for detecting potential odometer tampering and fraud
+ */
+
+interface OdometerReading {
+  odometer?: number;
+  mileage?: number;
+  timestamp: string;
+  source: 'obd' | 'manual' | 'service_record';
+  vehicleSpeed?: number;
+  engineHours?: number;
+  fuelLevel?: number;
+  engineRPM?: number;
+  [key: string]: any;
+}
+
+interface VehicleProfile {
+  id: string;
+  vin?: string;
+  year: number;
+  make: string;
+  model: string;
+  odometer: number;
+  lastServiceDate?: string;
+  createdAt: string;
+  [key: string]: any;
+}
+
+interface FraudAnomaly {
+  id: string;
+  type: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: string;
+  data: Record<string, any>;
+}
+
+interface FraudAlert {
+  id: string;
+  type: 'warning' | 'error' | 'critical';
+  message: string;
+  timestamp: string;
+  checkType: string;
+  riskLevel: number;
+}
+
+interface CheckResult {
+  enabled: boolean;
+  anomalies: FraudAnomaly[];
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  confidence: number;
+  details?: Record<string, any>;
+}
+
+interface FraudDetectionResult {
+  riskScore: number;
+  status: 'clean' | 'suspicious' | 'high_risk';
+  checkResults: {
+    odometerRollback: CheckResult;
+    inconsistentReporting: CheckResult;
+    digitalTampering: CheckResult;
+    dataIntegrity: CheckResult;
+  };
+  alerts: FraudAlert[];
+  timestamp: string;
+}
+
+type DetectionAlgorithm = (
+  currentReading: OdometerReading,
+  historicalData: OdometerReading[],
+  vehicleProfile?: VehicleProfile
+) => Promise<CheckResult>;
+
+class OdometerFraudDetectionService {
+  private algorithms: Record<string, DetectionAlgorithm>;
+
+  constructor() {
+    this.algorithms = {
+      rollbackDetection: this.detectRollback.bind(this),
+      inconsistencyDetection: this.detectInconsistencies.bind(this),
+      digitalTamperingDetection: this.detectDigitalTampering.bind(this),
+      dataIntegrityCheck: this.checkDataIntegrity.bind(this),
+    };
+  }
+
+  /**
+   * Main fraud detection method
+   */
+  async runFraudDetection(
+    currentReading: OdometerReading,
+    historicalData: OdometerReading[],
+    vehicleProfile: VehicleProfile
+  ): Promise<FraudDetectionResult> {
+    const results: FraudDetectionResult = {
+      riskScore: 0,
+      status: 'clean',
+      checkResults: {
+        odometerRollback: this.getEmptyCheckResult(),
+        inconsistentReporting: this.getEmptyCheckResult(),
+        digitalTampering: this.getEmptyCheckResult(),
+        dataIntegrity: this.getEmptyCheckResult(),
+      },
+      alerts: [],
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      // Run all detection algorithms
+      const [rollbackResult, inconsistencyResult, tamperingResult, integrityResult] = await Promise.all([
+        this.detectRollback(currentReading, historicalData, vehicleProfile),
+        this.detectInconsistencies(currentReading, historicalData, vehicleProfile),
+        this.detectDigitalTampering(currentReading, historicalData, vehicleProfile),
+        this.checkDataIntegrity(currentReading, historicalData, vehicleProfile),
+      ]);
+
+      // Assign results
+      results.checkResults = {
+        odometerRollback: rollbackResult,
+        inconsistentReporting: inconsistencyResult,
+        digitalTampering: tamperingResult,
+        dataIntegrity: integrityResult,
+      };
+
+      // Calculate overall risk score
+      results.riskScore = this.calculateRiskScore(results.checkResults);
+      results.status = this.determineOverallStatus(results.riskScore);
+
+      // Generate alerts for significant findings
+      results.alerts = this.generateAlerts(results.checkResults);
+
+    } catch (error) {
+      console.error('Fraud detection error:', error);
+      results.alerts.push({
+        id: this.generateId(),
+        type: 'error',
+        message: 'Fraud detection system encountered an error',
+        timestamp: new Date().toISOString(),
+        checkType: 'system',
+        riskLevel: 0,
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * Detect odometer rollback
+   */
+  private async detectRollback(
+    currentReading: OdometerReading,
+    historicalData: OdometerReading[],
+    vehicleProfile?: VehicleProfile
+  ): Promise<CheckResult> {
+    const result: CheckResult = {
+      enabled: true,
+      anomalies: [],
+      riskLevel: 'low',
+      confidence: 0,
+      details: {},
+    };
+
+    if (!historicalData || historicalData.length === 0) {
+      return result;
+    }
+
+    const lastReading = historicalData[historicalData.length - 1];
+    const currentMileage = currentReading.odometer || currentReading.mileage || 0;
+    const lastMileage = lastReading.odometer || lastReading.mileage || 0;
+
+    // Check for rollback (current < previous)
+    if (currentMileage < lastMileage) {
+      const difference = lastMileage - currentMileage;
+      const timeDiff = this.calculateTimeDifference(lastReading.timestamp, currentReading.timestamp);
+
+      const anomaly: FraudAnomaly = {
+        id: this.generateId(),
+        type: 'odometer_rollback',
+        description: `Odometer decreased by ${difference} units`,
+        severity: difference > 1000 ? 'critical' : difference > 100 ? 'high' : 'medium',
+        timestamp: new Date().toISOString(),
+        data: {
+          previousReading: lastMileage,
+          currentReading: currentMileage,
+          difference: difference,
+          timeBetweenReadings: timeDiff,
+        },
+      };
+
+      result.anomalies.push(anomaly);
+      result.riskLevel = anomaly.severity;
+      result.confidence = Math.min(95, (difference / 1000) * 100);
+    }
+
+    // Check for suspicious patterns over time
+    if (historicalData.length >= 3) {
+      const patterns = this.analyzeOdometerPatterns(historicalData);
+      if (patterns.suspiciousResets > 0) {
+        result.anomalies.push({
+          id: this.generateId(),
+          type: 'pattern_analysis',
+          description: `${patterns.suspiciousResets} suspicious odometer resets detected`,
+          severity: patterns.suspiciousResets > 2 ? 'high' : 'medium',
+          timestamp: new Date().toISOString(),
+          data: patterns,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Detect inconsistent reporting patterns
+   */
+  private async detectInconsistencies(
+    currentReading: OdometerReading,
+    historicalData: OdometerReading[],
+    vehicleProfile?: VehicleProfile
+  ): Promise<CheckResult> {
+    const result: CheckResult = {
+      enabled: true,
+      anomalies: [],
+      riskLevel: 'low',
+      confidence: 0,
+    };
+
+    if (historicalData.length < 2) {
+      return result;
+    }
+
+    // Calculate daily mileage patterns
+    const dailyMileages = this.calculateDailyMileages(historicalData);
+    const avgDailyMileage = dailyMileages.reduce((a, b) => a + b, 0) / dailyMileages.length;
+    const maxDailyMileage = Math.max(...dailyMileages);
+
+    // Check for unrealistic daily mileage
+    if (maxDailyMileage > 1000) { // > 1000 miles/day is suspicious
+      result.anomalies.push({
+        id: this.generateId(),
+        type: 'unrealistic_daily_mileage',
+        description: `Unusually high daily mileage detected: ${maxDailyMileage} miles`,
+        severity: maxDailyMileage > 2000 ? 'critical' : 'high',
+        timestamp: new Date().toISOString(),
+        data: {
+          maxDailyMileage,
+          avgDailyMileage,
+          threshold: 1000,
+        },
+      });
+    }
+
+    // Check for inconsistent speed vs mileage correlation
+    const speedMileageCorrelation = this.analyzeSpeedMileageCorrelation(historicalData);
+    if (speedMileageCorrelation.correlation < 0.3) {
+      result.anomalies.push({
+        id: this.generateId(),
+        type: 'speed_mileage_inconsistency',
+        description: 'Poor correlation between vehicle speed and odometer changes',
+        severity: 'medium',
+        timestamp: new Date().toISOString(),
+        data: speedMileageCorrelation,
+      });
+    }
+
+    result.confidence = result.anomalies.length > 0 ? 75 : 0;
+    result.riskLevel = this.calculateRiskLevelFromAnomalies(result.anomalies);
+
+    return result;
+  }
+
+  /**
+   * Detect digital tampering signs
+   */
+  private async detectDigitalTampering(
+    currentReading: OdometerReading,
+    historicalData: OdometerReading[],
+    vehicleProfile?: VehicleProfile
+  ): Promise<CheckResult> {
+    const result: CheckResult = {
+      enabled: true,
+      anomalies: [],
+      riskLevel: 'low',
+      confidence: 0,
+    };
+
+    // Check for ECU data inconsistencies
+    if (currentReading.source === 'obd') {
+      // Analyze engine hours vs odometer relationship
+      if (currentReading.engineHours && vehicleProfile) {
+        const expectedMileage = this.calculateExpectedMileageFromEngineHours(
+          currentReading.engineHours,
+          vehicleProfile
+        );
+        const actualMileage = currentReading.odometer || currentReading.mileage || 0;
+        const discrepancy = Math.abs(expectedMileage - actualMileage);
+
+        if (discrepancy > actualMileage * 0.2) { // >20% discrepancy
+          result.anomalies.push({
+            id: this.generateId(),
+            type: 'engine_hours_mileage_mismatch',
+            description: `Mismatch between engine hours and odometer reading`,
+            severity: 'medium',
+            timestamp: new Date().toISOString(),
+            data: {
+              expectedMileage,
+              actualMileage,
+              discrepancy,
+              engineHours: currentReading.engineHours,
+            },
+          });
+        }
+      }
+
+      // Check for suspicious data source changes
+      const sourceChanges = this.analyzeDataSourceChanges(historicalData);
+      if (sourceChanges.frequentChanges) {
+        result.anomalies.push({
+          id: this.generateId(),
+          type: 'frequent_source_changes',
+          description: 'Frequent changes between data sources detected',
+          severity: 'medium',
+          timestamp: new Date().toISOString(),
+          data: sourceChanges,
+        });
+      }
+    }
+
+    result.confidence = result.anomalies.length > 0 ? 60 : 0;
+    result.riskLevel = this.calculateRiskLevelFromAnomalies(result.anomalies);
+
+    return result;
+  }
+
+  /**
+   * Check data integrity
+   */
+  private async checkDataIntegrity(
+    currentReading: OdometerReading,
+    historicalData: OdometerReading[],
+    vehicleProfile?: VehicleProfile
+  ): Promise<CheckResult> {
+    const result: CheckResult = {
+      enabled: true,
+      anomalies: [],
+      riskLevel: 'low',
+      confidence: 0,
+    };
+
+    // Check for missing timestamps
+    if (!currentReading.timestamp) {
+      result.anomalies.push({
+        id: this.generateId(),
+        type: 'missing_timestamp',
+        description: 'Timestamp missing from odometer reading',
+        severity: 'medium',
+        timestamp: new Date().toISOString(),
+        data: { reading: currentReading },
+      });
+    }
+
+    // Check for future timestamps
+    const readingTime = new Date(currentReading.timestamp);
+    const now = new Date();
+    if (readingTime > now) {
+      result.anomalies.push({
+        id: this.generateId(),
+        type: 'future_timestamp',
+        description: 'Timestamp is in the future',
+        severity: 'high',
+        timestamp: new Date().toISOString(),
+        data: { readingTime: readingTime.toISOString(), currentTime: now.toISOString() },
+      });
+    }
+
+    // Check for data completeness
+    const requiredFields = ['odometer', 'timestamp', 'source'];
+    const missingFields = requiredFields.filter(field => !currentReading[field]);
+    if (missingFields.length > 0) {
+      result.anomalies.push({
+        id: this.generateId(),
+        type: 'incomplete_data',
+        description: `Missing required fields: ${missingFields.join(', ')}`,
+        severity: 'low',
+        timestamp: new Date().toISOString(),
+        data: { missingFields },
+      });
+    }
+
+    result.confidence = result.anomalies.length === 0 ? 95 : 50;
+    result.riskLevel = this.calculateRiskLevelFromAnomalies(result.anomalies);
+
+    return result;
+  }
+
+  // Helper methods
+  private getEmptyCheckResult(): CheckResult {
+    return {
+      enabled: true,
+      anomalies: [],
+      riskLevel: 'low',
+      confidence: 0,
+    };
+  }
+
+  private generateId(): string {
+    return `fraud_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private calculateTimeDifference(timestamp1: string, timestamp2: string): number {
+    const date1 = new Date(timestamp1);
+    const date2 = new Date(timestamp2);
+    return Math.abs(date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24); // Days
+  }
+
+  private analyzeOdometerPatterns(historicalData: OdometerReading[]): any {
+    let suspiciousResets = 0;
+    let totalJumps = 0;
+
+    for (let i = 1; i < historicalData.length; i++) {
+      const prev = historicalData[i - 1];
+      const curr = historicalData[i];
+      const prevMileage = prev.odometer || prev.mileage || 0;
+      const currMileage = curr.odometer || curr.mileage || 0;
+
+      if (currMileage < prevMileage) {
+        suspiciousResets++;
+      }
+
+      const timeDiff = this.calculateTimeDifference(prev.timestamp, curr.timestamp);
+      const mileageDiff = Math.abs(currMileage - prevMileage);
+      
+      if (timeDiff > 0 && (mileageDiff / timeDiff) > 500) { // > 500 miles/day
+        totalJumps++;
+      }
+    }
+
+    return { suspiciousResets, totalJumps };
+  }
+
+  private calculateDailyMileages(historicalData: OdometerReading[]): number[] {
+    const dailyMileages: number[] = [];
+
+    for (let i = 1; i < historicalData.length; i++) {
+      const prev = historicalData[i - 1];
+      const curr = historicalData[i];
+      const prevMileage = prev.odometer || prev.mileage || 0;
+      const currMileage = curr.odometer || curr.mileage || 0;
+      const timeDiff = this.calculateTimeDifference(prev.timestamp, curr.timestamp);
+      
+      if (timeDiff > 0 && currMileage >= prevMileage) {
+        dailyMileages.push((currMileage - prevMileage) / timeDiff);
+      }
+    }
+
+    return dailyMileages;
+  }
+
+  private analyzeSpeedMileageCorrelation(historicalData: OdometerReading[]): any {
+    // Simplified correlation analysis
+    const speedMileagePairs = historicalData.filter(reading => 
+      reading.vehicleSpeed !== undefined && (reading.odometer || reading.mileage)
+    );
+
+    if (speedMileagePairs.length < 3) {
+      return { correlation: 1, insufficient_data: true };
+    }
+
+    // Calculate basic correlation (simplified)
+    const avgSpeed = speedMileagePairs.reduce((sum, r) => sum + (r.vehicleSpeed || 0), 0) / speedMileagePairs.length;
+    const avgMileage = speedMileagePairs.reduce((sum, r) => sum + (r.odometer || r.mileage || 0), 0) / speedMileagePairs.length;
+
+    return {
+      correlation: 0.8, // Placeholder - would implement proper correlation calculation
+      avgSpeed,
+      avgMileage,
+      dataPoints: speedMileagePairs.length,
+    };
+  }
+
+  private calculateExpectedMileageFromEngineHours(engineHours: number, vehicleProfile: VehicleProfile): number {
+    // Typical average speed varies by vehicle type
+    // Commercial vehicles: ~30-40 mph average
+    // Passenger cars: ~25-35 mph average
+    const estimatedAvgSpeed = 30; // mph
+    return engineHours * estimatedAvgSpeed;
+  }
+
+  private analyzeDataSourceChanges(historicalData: OdometerReading[]): any {
+    const sourceChanges = [];
+    let changeCount = 0;
+
+    for (let i = 1; i < historicalData.length; i++) {
+      if (historicalData[i].source !== historicalData[i - 1].source) {
+        changeCount++;
+        sourceChanges.push({
+          from: historicalData[i - 1].source,
+          to: historicalData[i].source,
+          timestamp: historicalData[i].timestamp,
+        });
+      }
+    }
+
+    return {
+      frequentChanges: changeCount > historicalData.length * 0.3, // >30% of readings are source changes
+      changeCount,
+      changes: sourceChanges,
+    };
+  }
+
+  private calculateRiskLevelFromAnomalies(anomalies: FraudAnomaly[]): 'low' | 'medium' | 'high' | 'critical' {
+    if (anomalies.some(a => a.severity === 'critical')) return 'critical';
+    if (anomalies.some(a => a.severity === 'high')) return 'high';
+    if (anomalies.some(a => a.severity === 'medium')) return 'medium';
+    return 'low';
+  }
+
+  private calculateRiskScore(checkResults: FraudDetectionResult['checkResults']): number {
+    const weights = {
+      odometerRollback: 40,
+      inconsistentReporting: 25,
+      digitalTampering: 25,
+      dataIntegrity: 10,
+    };
+
+    let totalScore = 0;
+
+    Object.entries(checkResults).forEach(([checkType, result]) => {
+      const weight = weights[checkType as keyof typeof weights];
+      const severityScore = this.getSeverityScore(result.riskLevel);
+      const confidenceMultiplier = result.confidence / 100;
+      
+      totalScore += (severityScore * weight * confidenceMultiplier) / 100;
+    });
+
+    return Math.min(100, Math.round(totalScore));
+  }
+
+  private getSeverityScore(severity: string): number {
+    switch (severity) {
+      case 'critical': return 100;
+      case 'high': return 75;
+      case 'medium': return 50;
+      case 'low': return 25;
+      default: return 0;
+    }
+  }
+
+  private determineOverallStatus(riskScore: number): 'clean' | 'suspicious' | 'high_risk' {
+    if (riskScore >= 70) return 'high_risk';
+    if (riskScore >= 30) return 'suspicious';
+    return 'clean';
+  }
+
+  private generateAlerts(checkResults: FraudDetectionResult['checkResults']): FraudAlert[] {
+    const alerts: FraudAlert[] = [];
+
+    Object.entries(checkResults).forEach(([checkType, result]) => {
+      result.anomalies.forEach(anomaly => {
+        if (anomaly.severity === 'high' || anomaly.severity === 'critical') {
+          alerts.push({
+            id: this.generateId(),
+            type: anomaly.severity === 'critical' ? 'critical' : 'warning',
+            message: `${checkType}: ${anomaly.description}`,
+            timestamp: anomaly.timestamp,
+            checkType,
+            riskLevel: this.getSeverityScore(anomaly.severity),
+          });
+        }
+      });
+    });
+
+    return alerts;
+  }
+}
+
+export default OdometerFraudDetectionService

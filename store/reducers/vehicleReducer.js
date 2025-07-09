@@ -1,4 +1,5 @@
 // src/store/reducers/vehicleReducer.js
+import { FRAUD_DETECTION_TYPES } from '../types/fraudTypes';
 
 const initialState = {
   // Current Active Vehicle
@@ -182,6 +183,39 @@ const initialState = {
     vehicleInfo: false,
     detection: false,
     database: false,
+  },
+
+  // Fraud Detection State
+  fraudDetection: {
+    isEnabled: true,
+    checks: {
+      odometerRollback: {
+        enabled: true,
+        threshold: -100,
+        lastKnownMileage: null,
+        anomalies: [],
+      },
+      inconsistentReporting: {
+        enabled: true,
+        threshold: 500,
+        timeWindow: 24,
+        anomalies: [],
+      },
+      digitalTampering: {
+        enabled: true,
+        ecu_checks: true,
+        anomalies: [],
+      },
+      dataIntegrity: {
+        enabled: true,
+        checksumValidation: true,
+        anomalies: [],
+      }
+    },
+    riskScore: 0,
+    lastCheck: null,
+    overallStatus: 'clean',
+    alerts: [],
   },
 };
 
@@ -898,6 +932,119 @@ const vehicleReducer = (state = initialState, action) => {
           ? (remainingVehiclesAfterBulk.length > 0 ? remainingVehiclesAfterBulk[0].id : null)
           : state.activeVehicle,
       };
+
+    // Fraud Detection Actions
+    case FRAUD_DETECTION_TYPES.RUN_FRAUD_CHECK:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          lastCheck: new Date().toISOString(),
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          riskScore: action.payload.riskScore,
+          overallStatus: action.payload.status,
+          checks: {
+            ...state.fraudDetection.checks,
+            ...action.payload.checkResults,
+          },
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          alerts: [...state.fraudDetection.alerts, action.payload.alert],
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.CLEAR_FRAUD_ALERTS:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          alerts: [],
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED:
+      const checkType = action.payload.checkType;
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          checks: {
+            ...state.fraudDetection.checks,
+            [checkType]: {
+              ...state.fraudDetection.checks[checkType],
+              anomalies: [
+                ...state.fraudDetection.checks[checkType].anomalies,
+                action.payload.anomaly,
+              ],
+            },
+          },
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.UPDATE_FRAUD_SETTINGS:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          ...action.payload.settings,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.TOGGLE_FRAUD_DETECTION:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          isEnabled: action.payload.enabled,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.CLEAR_FRAUD_ANOMALIES:
+      if (action.payload.checkType) {
+        // Clear anomalies for specific check type
+        return {
+          ...state,
+          fraudDetection: {
+            ...state.fraudDetection,
+            checks: {
+              ...state.fraudDetection.checks,
+              [action.payload.checkType]: {
+                ...state.fraudDetection.checks[action.payload.checkType],
+                anomalies: [],
+              },
+            },
+          },
+        };
+      } else {
+        // Clear all anomalies
+        const clearedChecks = {};
+        Object.keys(state.fraudDetection.checks).forEach(checkType => {
+          clearedChecks[checkType] = {
+            ...state.fraudDetection.checks[checkType],
+            anomalies: [],
+          };
+        });
+        return {
+          ...state,
+          fraudDetection: {
+            ...state.fraudDetection,
+            checks: clearedChecks,
+          },
+        };
+      }
 
     // Reset
     case 'RESET_VEHICLE_STATE':

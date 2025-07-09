@@ -197,6 +197,14 @@ const SettingsScreen: React.FC = () => {
         title: 'Advanced',
         items: [
           {
+            id: 'fraud_detection',
+            title: 'Fraud Detection',
+            subtitle: 'Odometer fraud monitoring and analysis',
+            type: 'navigation',
+            icon: 'shield-checkmark',
+            action: () => router.push('/fraud-detection' as any),
+          },
+          {
             id: 'diagnostic_mode',
             title: 'Advanced Diagnostic Mode',
             subtitle: 'Enable professional diagnostic features',

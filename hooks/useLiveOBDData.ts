@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { updatePIDData, mapPIDToVehicleData, VehicleData } from '../store/actions/dataActions';
+import { validateOdometerReading } from '../store/actions/fraudDetectionActions';
 import OBDIIService from '../services/obdii/OBDIIService';
 import { ParsedPIDData } from '../services/obdii/OBDIIParser';
 import store from '../store';
@@ -42,6 +43,25 @@ export function useLiveOBDData() {
           pidData,
           vehicleData
         }));
+        
+        // Trigger fraud detection if odometer data is received
+        if (vehicleData.odometer !== undefined || vehicleData.tripOdometer !== undefined) {
+          const odometerReading = {
+            odometer: vehicleData.odometer,
+            mileage: vehicleData.odometer, // Use odometer as mileage for compatibility
+            timestamp: new Date().toISOString(),
+            source: 'obd' as const,
+            vehicleSpeed: vehicleData.speed,
+            engineHours: vehicleData.engineHours,
+            fuelLevel: vehicleData.fuelLevel,
+            engineRPM: vehicleData.rpm,
+          };
+          
+          // Only dispatch if we have valid odometer data
+          if (odometerReading.odometer && odometerReading.odometer > 0) {
+            dispatch(validateOdometerReading(odometerReading) as any);
+          }
+        }
         
         console.log('Processed PID data:', pidData.name, '=', pidData.value, vehicleData);
       } else if (eventType === 'connectionStatus') {
