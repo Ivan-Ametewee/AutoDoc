@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Share,
+  Dimensions,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -71,40 +72,82 @@ interface FraudDetectionState {
 
 const FraudDetectionDashboard: React.FC = () => {
   const dispatch = useDispatch();
-  const fraudData = useSelector((state: any) => state.vehicle?.fraudDetection || {
-    isEnabled: true,
-    riskScore: 0,
-    overallStatus: 'clean',
-    lastCheck: null,
-    alerts: [],
-    checks: {
-      odometerRollback: {
-        enabled: true,
-        anomalies: [],
-        riskLevel: 'low',
+  
+  // Memoized selectors to prevent unnecessary re-renders
+  const fraudDataFromStore = useSelector((state: any) => state.vehicle?.fraudDetection);
+  const historicalDataFromStore = useSelector((state: any) => state.data?.historicalData);
+  
+  // Use useMemo to create stable default values
+  const fraudData = useMemo(() => {
+    return fraudDataFromStore || {
+      isEnabled: true,
+      riskScore: 0,
+      overallStatus: 'clean',
+      lastCheck: null,
+      alerts: [],
+      checks: {
+        odometerRollback: {
+          enabled: true,
+          anomalies: [],
+          riskLevel: 'low',
+        },
+        inconsistentReporting: {
+          enabled: true,
+          anomalies: [],
+          riskLevel: 'low',
+        },
+        digitalTampering: {
+          enabled: true,
+          anomalies: [],
+          riskLevel: 'low',
+        },
+        dataIntegrity: {
+          enabled: true,
+          anomalies: [],
+          riskLevel: 'low',
+        },
       },
-      inconsistentReporting: {
-        enabled: true,
-        anomalies: [],
-        riskLevel: 'low',
-      },
-      digitalTampering: {
-        enabled: true,
-        anomalies: [],
-        riskLevel: 'low',
-      },
-      dataIntegrity: {
-        enabled: true,
-        anomalies: [],
-        riskLevel: 'low',
-      },
-    },
-  }) as FraudDetectionState;
-  const historicalData = useSelector((state: any) => state.data?.historicalData || []);
+    };
+  }, [fraudDataFromStore]) as FraudDetectionState;
+  
+  const historicalData = useMemo(() => {
+    return historicalDataFromStore || [];
+  }, [historicalDataFromStore]);
   
   const [isRunningCheck, setIsRunningCheck] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'alerts' | 'settings'>('overview');
   const [refreshing, setRefreshing] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+    return () => subscription?.remove();
+  }, []);
+
+  // Responsive helpers - memoized to prevent unnecessary recalculations
+  const isTablet = useMemo(() => screenWidth >= 768, [screenWidth]);
+  const isSmallScreen = useMemo(() => screenWidth < 375, [screenWidth]);
+  
+  const getResponsiveValue = useMemo(() => {
+    return (small: number, normal: number, large: number) => {
+      if (isSmallScreen) return small;
+      if (isTablet) return large;
+      return normal;
+    };
+  }, [isSmallScreen, isTablet]);
+
+  const statusCardLayout = useMemo(() => {
+    if (isTablet) return { flexDirection: 'row' as const, gap: 16 };
+    if (isSmallScreen) return { flexDirection: 'column' as const, gap: 8 };
+    return { flexDirection: 'row' as const, gap: 12 };
+  }, [isTablet, isSmallScreen]);
+
+  const checkCardColumns = useMemo(() => {
+    if (isTablet) return 2;
+    return 1;
+  }, [isTablet]);
 
   // Mock function to run fraud check
   const handleRunFraudCheck = async () => {
@@ -146,61 +189,96 @@ const FraudDetectionDashboard: React.FC = () => {
     }
   };
 
-  const getRiskColor = (riskLevel: string | number): string => {
-    if (typeof riskLevel === 'number') {
-      if (riskLevel >= 70) return '#dc2626';
-      if (riskLevel >= 40) return '#d97706';
-      return '#059669';
-    }
+  const getRiskColor = useMemo(() => {
+    return (riskLevel: string | number): string => {
+      if (typeof riskLevel === 'number') {
+        if (riskLevel >= 70) return '#dc2626';
+        if (riskLevel >= 40) return '#d97706';
+        return '#059669';
+      }
+      
+      switch (riskLevel) {
+        case 'critical': return '#dc2626';
+        case 'high': return '#ef4444';
+        case 'medium': return '#f59e0b';
+        case 'low': return '#10b981';
+        default: return '#6b7280';
+      }
+    };
+  }, []);
+
+  const getRiskBgColor = useMemo(() => {
+    return (riskLevel: string | number): string => {
+      if (typeof riskLevel === 'number') {
+        if (riskLevel >= 70) return '#fef2f2';
+        if (riskLevel >= 40) return '#fffbeb';
+        return '#f0fdf4';
+      }
+      
+      switch (riskLevel) {
+        case 'critical': return '#fef2f2';
+        case 'high': return '#fef5f5';
+        case 'medium': return '#fffbeb';
+        case 'low': return '#f0fdf4';
+        default: return '#f9fafb';
+      }
+    };
+  }, []);
+
+  const formatTimestamp = useMemo(() => {
+    return (timestamp: string): string => {
+      return new Date(timestamp).toLocaleString();
+    };
+  }, []);
+
+  const formatCheckName = useMemo(() => {
+    return (checkType: string): string => {
+      return checkType
+        .charAt(0).toUpperCase() + 
+        checkType.slice(1).replace(/([A-Z])/g, ' $1');
+    };
+  }, []);
+
+  const StatusCard = ({ title, value, icon, color, bgColor, screenWidth }: any) => {
+    const isSmall = screenWidth < 375;
+    const isTablet = screenWidth >= 768;
     
-    switch (riskLevel) {
-      case 'critical': return '#dc2626';
-      case 'high': return '#ef4444';
-      case 'medium': return '#f59e0b';
-      case 'low': return '#10b981';
-      default: return '#6b7280';
-    }
-  };
-
-  const getRiskBgColor = (riskLevel: string | number): string => {
-    if (typeof riskLevel === 'number') {
-      if (riskLevel >= 70) return '#fef2f2';
-      if (riskLevel >= 40) return '#fffbeb';
-      return '#f0fdf4';
-    }
-    
-    switch (riskLevel) {
-      case 'critical': return '#fef2f2';
-      case 'high': return '#fef5f5';
-      case 'medium': return '#fffbeb';
-      case 'low': return '#f0fdf4';
-      default: return '#f9fafb';
-    }
-  };
-
-  const formatTimestamp = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const formatCheckName = (checkType: string): string => {
-    return checkType
-      .charAt(0).toUpperCase() + 
-      checkType.slice(1).replace(/([A-Z])/g, ' $1');
-  };
-
-  const StatusCard = ({ title, value, icon, color, bgColor }: any) => (
-    <View style={[styles.statusCard, { backgroundColor: bgColor }]}>
-      <View style={styles.statusCardContent}>
-        <View style={[styles.statusIcon, { backgroundColor: color + '20' }]}>
-          <MaterialIcons name={icon} size={24} color={color} />
-        </View>
-        <View style={styles.statusText}>
-          <Text style={styles.statusTitle}>{title}</Text>
-          <Text style={[styles.statusValue, { color }]}>{value}</Text>
+    return (
+      <View style={[
+        styles.statusCard, 
+        { backgroundColor: bgColor },
+        isSmall && styles.statusCardSmall,
+        isTablet && styles.statusCardTablet
+      ]}>
+        <View style={styles.statusCardContent}>
+          <View style={[styles.statusIcon, { backgroundColor: color + '20' }]}>
+            <MaterialIcons 
+              name={icon} 
+              size={isSmall ? 20 : isTablet ? 32 : 28} 
+              color={color} 
+            />
+          </View>
+          <View style={styles.statusText}>
+            <Text style={[
+              styles.statusTitle,
+              isSmall && styles.statusTitleSmall,
+              isTablet && styles.statusTitleTablet
+            ]}>
+              {title}
+            </Text>
+            <Text style={[
+              styles.statusValue, 
+              { color },
+              isSmall && styles.statusValueSmall,
+              isTablet && styles.statusValueTablet
+            ]}>
+              {value}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const TabButton = ({ title, isActive, onPress, icon }: any) => (
     <TouchableOpacity
@@ -235,35 +313,50 @@ const FraudDetectionDashboard: React.FC = () => {
               <Text style={styles.subtitle}>Real-time monitoring and analysis</Text>
             </View>
           </View>
-          <View style={styles.headerActions}>
+          <View style={[
+            styles.headerActions,
+            isSmallScreen && styles.headerActionsSmall
+          ]}>
             <TouchableOpacity
-              style={[styles.actionButton, { marginRight: 8 }]}
+              style={[
+                styles.actionButton, 
+                { marginRight: 8 },
+                isSmallScreen && styles.actionButtonSmall
+              ]}
               onPress={handleRunFraudCheck}
               disabled={isRunningCheck}
             >
               <MaterialIcons 
                 name="refresh" 
-                size={20} 
+                size={isSmallScreen ? 16 : 20} 
                 color="white" 
                 style={isRunningCheck ? styles.spinning : undefined}
               />
-              <Text style={styles.actionButtonText}>
-                {isRunningCheck ? 'Scanning...' : 'Run Check'}
-              </Text>
+              {!isSmallScreen && (
+                <Text style={styles.actionButtonText}>
+                  {isRunningCheck ? 'Scanning...' : 'Run Check'}
+                </Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.actionButton, styles.secondaryButton]}
+              style={[
+                styles.actionButton, 
+                styles.secondaryButton,
+                isSmallScreen && styles.actionButtonSmall
+              ]}
               onPress={handleExportReport}
             >
-              <MaterialIcons name="file-download" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Export</Text>
+              <MaterialIcons name="file-download" size={isSmallScreen ? 16 : 20} color="white" />
+              {!isSmallScreen && (
+                <Text style={styles.actionButtonText}>Export</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
       {/* Status Overview */}
-      <View style={styles.statusGrid}>
+      <View style={[styles.statusGrid, statusCardLayout]}>
         <StatusCard
           title="Overall Status"
           value={(fraudData.overallStatus || 'clean').charAt(0).toUpperCase() + 
@@ -271,6 +364,7 @@ const FraudDetectionDashboard: React.FC = () => {
           icon="shield"
           color={getRiskColor(fraudData.overallStatus || 'clean')}
           bgColor={getRiskBgColor(fraudData.overallStatus || 'clean')}
+          screenWidth={screenWidth}
         />
         <StatusCard
           title="Risk Score"
@@ -278,6 +372,7 @@ const FraudDetectionDashboard: React.FC = () => {
           icon="visibility"
           color={getRiskColor(fraudData.riskScore || 0)}
           bgColor={getRiskBgColor(fraudData.riskScore || 0)}
+          screenWidth={screenWidth}
         />
         <StatusCard
           title="Active Alerts"
@@ -285,29 +380,37 @@ const FraudDetectionDashboard: React.FC = () => {
           icon="warning"
           color="#8b5cf6"
           bgColor="#f5f3ff"
+          screenWidth={screenWidth}
         />
       </View>
 
       {/* Navigation Tabs */}
       <View style={styles.tabContainer}>
-        <TabButton
-          title="Overview"
-          icon="visibility"
-          isActive={selectedTab === 'overview'}
-          onPress={() => setSelectedTab('overview')}
-        />
-        <TabButton
-          title="Alerts"
-          icon="warning"
-          isActive={selectedTab === 'alerts'}
-          onPress={() => setSelectedTab('alerts')}
-        />
-        <TabButton
-          title="Settings"
-          icon="settings"
-          isActive={selectedTab === 'settings'}
-          onPress={() => setSelectedTab('settings')}
-        />
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+          style={styles.tabScrollView}
+        >
+          <TabButton
+            title="Overview"
+            icon="visibility"
+            isActive={selectedTab === 'overview'}
+            onPress={() => setSelectedTab('overview')}
+          />
+          <TabButton
+            title="Alerts"
+            icon="warning"
+            isActive={selectedTab === 'alerts'}
+            onPress={() => setSelectedTab('alerts')}
+          />
+          <TabButton
+            title="Settings"
+            icon="settings"
+            isActive={selectedTab === 'settings'}
+            onPress={() => setSelectedTab('settings')}
+          />
+        </ScrollView>
       </View>
 
       {/* Tab Content */}
@@ -321,13 +424,19 @@ const FraudDetectionDashboard: React.FC = () => {
               </Text>
             </View>
             <View style={styles.cardContent}>
-              <View style={styles.checksGrid}>
+              <View style={[
+                styles.checksGrid,
+                isTablet && styles.checksGridTablet,
+                isSmallScreen && styles.checksGridSmall
+              ]}>
                 {Object.entries(fraudData.checks || {}).map(([checkType, result]) => (
                   <View
                     key={checkType}
                     style={[
                       styles.checkCard,
-                      { backgroundColor: getRiskBgColor(result?.riskLevel || 'low') }
+                      { backgroundColor: getRiskBgColor(result?.riskLevel || 'low') },
+                      isTablet && styles.checkCardTablet,
+                      isSmallScreen && styles.checkCardSmall
                     ]}
                   >
                     <View style={styles.checkHeader}>
@@ -482,19 +591,25 @@ const FraudDetectionDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
   },
   header: {
     backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
+    paddingVertical: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerContent: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 16,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -502,214 +617,324 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerText: {
-    marginLeft: 12,
+    marginLeft: 16,
+    flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: 15,
+    color: '#64748b',
+    marginTop: 4,
+    lineHeight: 20,
   },
   headerActions: {
     flexDirection: 'row',
+    gap: 8,
+  },
+  headerActionsSmall: {
+    gap: 4,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonSmall: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
   },
   secondaryButton: {
-    backgroundColor: '#6b7280',
+    backgroundColor: '#64748b',
+    shadowColor: '#64748b',
   },
   actionButtonText: {
     color: 'white',
-    fontWeight: '500',
-    marginLeft: 4,
+    fontWeight: '600',
+    marginLeft: 6,
     fontSize: 14,
   },
   spinning: {
     // Add rotation animation if needed
   },
   statusGrid: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
+    paddingHorizontal: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
+    paddingVertical: 20,
   },
   statusCard: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  statusCardSmall: {
     padding: 16,
-    borderWidth: 2,
+    borderRadius: 8,
+  },
+  statusCardTablet: {
+    padding: 24,
+    borderRadius: 16,
   },
   statusCardContent: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   statusIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 12,
   },
   statusText: {
-    flex: 1,
+    alignItems: 'center',
   },
   statusTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusTitleSmall: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  statusTitleTablet: {
+    fontSize: 15,
+    marginBottom: 6,
   },
   statusValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  statusValueSmall: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 2,
+    lineHeight: 22,
+  },
+  statusValueTablet: {
+    fontSize: 28,
+    lineHeight: 32,
   },
   tabContainer: {
-    flexDirection: 'row',
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingHorizontal: 16,
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabScrollView: {
+    flex: 1,
+  },
+  tabScrollContent: {
+    paddingHorizontal: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 2,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
     marginRight: 24,
+    minWidth: 120,
   },
   activeTab: {
     borderBottomColor: '#3b82f6',
   },
   tabText: {
     marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#64748b',
   },
   activeTabText: {
     color: '#3b82f6',
   },
   tabContent: {
-    padding: 16,
+    padding: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#e2e8f0',
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.3,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: 15,
+    color: '#64748b',
+    marginTop: 4,
+    lineHeight: 20,
   },
   cardContent: {
-    padding: 16,
+    padding: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
   },
   checksGrid: {
+    gap: 16,
+  },
+  checksGridSmall: {
     gap: 12,
   },
+  checksGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+  },
   checkCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  checkCardSmall: {
     padding: 16,
     borderRadius: 8,
-    borderWidth: 2,
+  },
+  checkCardTablet: {
+    flex: 1,
+    minWidth: 300,
+    padding: 24,
+    borderRadius: 16,
   },
   checkHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   checkTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1e293b',
     flex: 1,
+    letterSpacing: -0.2,
   },
   riskBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    minWidth: 60,
+    alignItems: 'center',
   },
   riskBadgeText: {
     color: 'white',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   checkDescription: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 15,
+    color: '#64748b',
+    lineHeight: 20,
   },
   anomaliesList: {
-    marginTop: 8,
+    marginTop: 12,
   },
   anomalyItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#f59e0b',
   },
   anomalyText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#374151',
+    lineHeight: 18,
   },
   moreAnomalies: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
     fontStyle: 'italic',
+    marginTop: 4,
   },
   alertsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   clearButton: {
     color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyStateText: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 12,
+    fontSize: 17,
+    color: '#64748b',
+    marginTop: 16,
+    textAlign: 'center',
   },
   alertsList: {
-    gap: 12,
+    gap: 16,
   },
   alertCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
     borderLeftWidth: 4,
-    padding: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   alertContent: {
     flex: 1,
@@ -717,54 +942,60 @@ const styles = StyleSheet.create({
   alertHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   alertType: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '700',
     marginLeft: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   alertCheckType: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
     marginLeft: 8,
+    fontWeight: '500',
   },
   alertMessage: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#374151',
-    marginBottom: 4,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   alertTimestamp: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#f1f5f9',
   },
   settingInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 20,
   },
   settingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   settingDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
+    fontSize: 15,
+    color: '#64748b',
+    lineHeight: 20,
   },
   toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#d1d5db',
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#cbd5e1',
     justifyContent: 'center',
     paddingHorizontal: 2,
   },
@@ -772,11 +1003,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b82f6',
   },
   toggleThumb: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: 'white',
     alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
