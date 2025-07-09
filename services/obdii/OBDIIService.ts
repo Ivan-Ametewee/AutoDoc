@@ -23,6 +23,7 @@ interface CommandQueueItem {
   resolve: (value: string) => void;
   reject: (reason?: any) => void;
   timestamp: number;
+  retries?: number;
 }
 
 // --- Central OBD-II Service ---
@@ -172,35 +173,36 @@ class OBDIIService extends EventEmitter {
     console.log('Initializing OBD-II adapter...');
     
     try {
-      // For WiFi adapters, turn off echo first to avoid command/response confusion
-      // if (this.connectionInfo.type === 'wifi') {
-      //   await this.sendCommand('ATE0');
-      //   await this.delay(2000);
-      // }
-      
-      // Reset the adapter
-      // await this.sendCommand('ATZ');
-      // await this.delay(2000); // Longer wait for reset, especially for WiFi adapters
+      // Reset the adapter first
+      await this.sendCommand('ATZ');
+      await this.delay(2000); // Wait for reset to complete
 
-      // // Turn off echo (in case it wasn't off already)
-      // await this.sendCommand('ATE0');
-      // await this.delay(2000);
+      // Turn off echo to avoid command/response confusion
+      await this.sendCommand('ATE0');
+      await this.delay(1000);
 
-      // // Set automatic protocol detection
-      // await this.sendCommand('ATSP0');
-      // await this.delay(2000);
+      // Set automatic protocol detection
+      await this.sendCommand('ATSP0');
+      await this.delay(1000);
 
-      // // Set line feeds off
-      // await this.sendCommand('ATL0');
-      // await this.delay(2000);
+      // Set line feeds off for cleaner responses
+      await this.sendCommand('ATL0');
+      await this.delay(1000);
 
-      // // Set headers off
-      // await this.sendCommand('ATH0');
-      // await this.delay(2000);
+      // Set headers off to get raw data only
+      await this.sendCommand('ATH0');
+      await this.delay(1000);
 
-      // // Set spaces off for more compact responses
-      // await this.sendCommand('ATS0');
-      // await this.delay(2000);
+      // Set spaces off for more compact responses
+      await this.sendCommand('ATS0');
+      await this.delay(1000);
+
+      // Additional WiFi-specific configuration
+      if (this.connectionInfo.type === 'wifi') {
+        // Set timeout for WiFi adapters
+        await this.sendCommand('ATST32');
+        await this.delay(1000);
+      }
 
       console.log('OBD-II adapter initialized successfully');
     } catch (error) {
@@ -280,7 +282,7 @@ class OBDIIService extends EventEmitter {
     return this.supportedPIDs.has(pidName);
   }
 
-  public sendCommand(command: string): Promise<string> {
+  public sendCommand(command: string, retries: number = 3): Promise<string> {
     if (this.connectionInfo.type === 'simulation') {
       return new Promise(resolve => setTimeout(() => resolve('SIMULATED_OK'), 100));
     }
@@ -290,7 +292,8 @@ class OBDIIService extends EventEmitter {
         command,
         resolve,
         reject,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        retries
       };
       
       this.commandQueue.push(commandItem);
@@ -325,13 +328,31 @@ class OBDIIService extends EventEmitter {
         const timeoutId = setTimeout(() => {
           if (this.currentCommand) {
             console.log(`Command timeout: ${this.currentCommand.command}`);
-            this.currentCommand.reject(new Error(`Command timeout: ${this.currentCommand.command}`));
-            this.currentCommand = null;
+            
+            // Check if retries are available
+            if (this.currentCommand.retries && this.currentCommand.retries > 0) {
+              console.log(`Retrying command: ${this.currentCommand.command}, retries left: ${this.currentCommand.retries - 1}`);
+              
+              // Retry the command with decremented retry count
+              const retryCommand = {
+                ...this.currentCommand,
+                retries: this.currentCommand.retries - 1,
+                timestamp: Date.now()
+              };
+              
+              this.commandQueue.unshift(retryCommand); // Add to front of queue
+              this.currentCommand = null;
+            } else {
+              this.currentCommand.reject(new Error(`Command timeout: ${this.currentCommand.command}`));
+              this.currentCommand = null;
+            }
           }
         }, this.commandTimeout);
 
-        // Send the command
-        const success = await this.commService.sendData(this.currentCommand.command + '\r');
+        // Send the command (don't add \r if already present)
+        const commandToSend = this.currentCommand.command.endsWith('\r') ? 
+          this.currentCommand.command : this.currentCommand.command + '\r';
+        const success = await this.commService.sendData(commandToSend);
         
         if (!success) {
           clearTimeout(timeoutId);
