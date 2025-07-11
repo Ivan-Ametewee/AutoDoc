@@ -1,54 +1,23 @@
- WARN  Selector unknown returned a different result when called with the same parameters. This can lead to unnecessary rerenders.
-Selectors that return a new reference (such as an object or an array) should be memoized: https://redux.js.org/usage/deriving-data-selectors#optimizing-selectors-with-memoization
-{"selected": {"alerts": [], "checks": {"dataIntegrity": [Object], "digitalTampering": [Object], "inconsistentReporting": [Object], "odometerRollback": [Object]}, "isEnabled": true, "lastCheck": null, "overallStatus": "clean", "riskScore": 0}, "selected2": {"alerts": [], "checks": {"dataIntegrity": [Object], "digitalTampering": [Object], "inconsistentReporting": [Object], "odometerRollback": [Object]}, "isEnabled": true, "lastCheck": null, "overallStatus": "clean", "riskScore": 0}, "stack": "Error
-
-Call Stack
-  selector.name (node_modules\react-redux\dist\react-redux.legacy-esm.js)
-  memoizedSelector (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  <anonymous> (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  mountSyncExternalStore (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  HooksDispatcherOnMountInDEV.useSyncExternalStore (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  exports.useSyncExternalStore (node_modules\react\cjs\react.development.js)
-  exports.useSyncExternalStoreWithSelector (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  useSelector2 (node_modules\react-redux\dist\react-redux.legacy-esm.js)
-  FraudDetectionDashboard (components\fraud\FraudDetectionDashboard.tsx)
-  callComponent.reactStackBottomFrame (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  renderWithHooks (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  updateFunctionComponent (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  beginWork (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  runWithFiberInDEV (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performUnitOfWork (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  workLoopSync (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  renderRootSync (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performWorkOnRoot (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performSyncWorkOnRoot (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  flushSyncWorkAcrossRoots_impl (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  processRootScheduleInMicrotask (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  anonymous (http:\192.168.4.45:8081\node_modules\expo-router\entry.bundle)
- WARN  Selector unknown returned a different result when called with the same parameters. This can lead to unnecessary rerenders.
-Selectors that return a new reference (such as an object or an array) should be memoized: https://redux.js.org/usage/deriving-data-selectors#optimizing-selectors-with-memoization
-{"selected": [], "selected2": [], "stack": "Error
-
-Call Stack
-  selector.name (node_modules\react-redux\dist\react-redux.legacy-esm.js)
-  memoizedSelector (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  <anonymous> (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  mountSyncExternalStore (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  HooksDispatcherOnMountInDEV.useSyncExternalStore (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  exports.useSyncExternalStore (node_modules\react\cjs\react.development.js)
-  exports.useSyncExternalStoreWithSelector (node_modules\use-sync-external-store\cjs\use-sync-external-store-with-selector.development.js)
-  useSelector2 (node_modules\react-redux\dist\react-redux.legacy-esm.js)
-  FraudDetectionDashboard (components\fraud\FraudDetectionDashboard.tsx)
-  callComponent.reactStackBottomFrame (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  renderWithHooks (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  updateFunctionComponent (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  beginWork (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  runWithFiberInDEV (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performUnitOfWork (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  workLoopSync (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  renderRootSync (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performWorkOnRoot (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  performSyncWorkOnRoot (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  flushSyncWorkAcrossRoots_impl (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  processRootScheduleInMicrotask (node_modules\react-native\Libraries\Renderer\implementations\ReactFabric-dev.js)
-  anonymous (http:\192.168.4.45:8081\node_modules\expo-router\entry.bundle)
+[{
+	"resource": "/c:/Users/hp/VscodeProjects/ReactNativeProjects/simulate/components/fraud/FraudDetectionDashboard.tsx",
+	"owner": "typescript",
+	"code": "2339",
+	"severity": 8,
+	"message": "Property 'realTimeMonitoring' does not exist on type 'FraudDetectionState'.",
+	"source": "ts",
+	"startLineNumber": 165,
+	"startColumn": 45,
+	"endLineNumber": 165,
+	"endColumn": 63
+},{
+	"resource": "/c:/Users/hp/VscodeProjects/ReactNativeProjects/simulate/components/fraud/FraudDetectionDashboard.tsx",
+	"owner": "typescript",
+	"code": "2339",
+	"severity": 8,
+	"message": "Property 'realTimeMonitoring' does not exist on type 'FraudDetectionState'.",
+	"source": "ts",
+	"startLineNumber": 167,
+	"startColumn": 18,
+	"endLineNumber": 167,
+	"endColumn": 36
+}]

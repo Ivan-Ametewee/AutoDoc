@@ -1,14 +1,46 @@
 //root layout
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { persistor, store } from '../store/index';
+import DatabaseService from '../services/database/DatabaseService';
 
 export default function RootLayout() {
+  useEffect(() => {
+    const initializeDatabase = async () => {
+      try {
+        await DatabaseService.initialize();
+        console.log('✅ Database initialized successfully');
+        
+        // Create default vehicle profile if none exists
+        const activeVehicle = await DatabaseService.getActiveVehicle();
+        if (!activeVehicle) {
+          console.log('Creating default vehicle profile...');
+          const defaultProfileId = await DatabaseService.createVehicleProfile({
+            name: 'Default Vehicle',
+            make: 'Unknown',
+            model: 'Unknown',
+            year: 2020,
+            vin: 'DEMO-VIN-12345',
+            engine_type: 'Unknown',
+            transmission: 'Unknown',
+            fuel_type: 'Unknown'
+          });
+          await DatabaseService.setActiveVehicle(defaultProfileId);
+          console.log('✅ Default vehicle profile created and activated');
+        }
+      } catch (error) {
+        console.error('❌ Database initialization failed:', error);
+      }
+    };
+
+    initializeDatabase();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -72,14 +104,6 @@ export default function RootLayout() {
                 }}
               />
 
-              <Stack.Screen
-                name="fraud-detection"
-                options={{
-                  title: 'Fraud Detection',
-                  presentation: 'modal',
-                  headerShown: false,
-                }}
-              />
             </Stack>
           </PersistGate>
         </Provider>

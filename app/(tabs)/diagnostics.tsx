@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,11 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
+// Import the same OBD service used by dashboard
+import OBDIIService from '../../services/obdii/OBDIIService';
 
 interface DiagnosticTroubleCode {
   code: string;
@@ -88,60 +91,131 @@ export default function DiagnosticsScreen() {
     { system: 'EGR System Monitor', status: 'ready', icon: 'repeat' },
   ]);
 
+  // Initialize live data with default values - will be updated from OBD service
   const [liveData, setLiveData] = useState<LiveData[]>([
-    { parameter: 'Engine RPM', value: '850', unit: 'rpm', status: 'normal', icon: 'speedometer' },
+    { parameter: 'Engine RPM', value: '0', unit: 'rpm', status: 'normal', icon: 'speedometer' },
     { parameter: 'Vehicle Speed', value: '0', unit: 'mph', status: 'normal', icon: 'car' },
-    { parameter: 'Engine Load', value: '15', unit: '%', status: 'normal', icon: 'bar-chart' },
-    { parameter: 'Coolant Temperature', value: '89', unit: '°C', status: 'normal', icon: 'thermometer' },
-    { parameter: 'Intake Air Temperature', value: '23', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
+    { parameter: 'Engine Load', value: '0', unit: '%', status: 'normal', icon: 'bar-chart' },
+    { parameter: 'Coolant Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer' },
+    { parameter: 'Intake Air Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
     { parameter: 'Throttle Position', value: '0', unit: '%', status: 'normal', icon: 'options' },
-    { parameter: 'Fuel Pressure', value: '3.2', unit: 'bar', status: 'normal', icon: 'water' },
-    { parameter: 'Manifold Pressure', value: '1.0', unit: 'bar', status: 'normal', icon: 'resize' },
+    { parameter: 'Fuel Level', value: '0', unit: '%', status: 'normal', icon: 'battery-charging' },
+    { parameter: 'Total Distance', value: '0', unit: 'km', status: 'normal', icon: 'speedometer-outline' },
   ]);
 
   const [selectedTab, setSelectedTab] = useState<'dtc' | 'systems' | 'live'>('dtc');
   const [isScanning, setIsScanning] = useState(false);
   const [selectedDTC, setSelectedDTC] = useState<DiagnosticTroubleCode | null>(null);
   const [showDTCModal, setShowDTCModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionInfo().status);
 
-  // Simulate live data updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveData(prev =>
-        prev.map(item => {
-          let newValue = parseFloat(item.value);
+  // Helper function to determine status based on parameter and value
+  const getParameterStatus = (parameter: string, value: number): 'normal' | 'warning' | 'critical' => {
+    switch (parameter) {
+      case 'Coolant Temperature':
+        if (value > 105) return 'critical';
+        if (value > 95) return 'warning';
+        return 'normal';
+      case 'Engine Load':
+        if (value > 85) return 'warning';
+        if (value > 95) return 'critical';
+        return 'normal';
+      case 'Fuel Level':
+        if (value < 10) return 'critical';
+        if (value < 25) return 'warning';
+        return 'normal';
+      default:
+        return 'normal';
+    }
+  };
+
+  // Subscribe to OBD data updates (same as dashboard)
+  const onDataUpdate = useCallback((event: string, data: any) => {
+    if (event === 'dataUpdate') {
+      setLiveData(prevData => {
+        return prevData.map(item => {
+          let newValue = item.value;
           let newStatus = item.status;
 
-          switch (item.parameter) {
-            case 'Engine RPM':
-              newValue = Math.max(700, newValue + (Math.random() - 0.5) * 50);
+          // Map OBD data to diagnostic parameters
+          switch (data.name) {
+            case 'ENGINE_RPM':
+              if (item.parameter === 'Engine RPM') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
               break;
-            case 'Engine Load':
-              newValue = Math.max(0, Math.min(100, newValue + (Math.random() - 0.5) * 10));
+            case 'VEHICLE_SPEED':
+              if (item.parameter === 'Vehicle Speed') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
               break;
-            case 'Coolant Temperature':
-              newValue = Math.max(70, Math.min(110, newValue + (Math.random() - 0.5) * 2));
-              newStatus = newValue > 95 ? 'warning' : newValue > 105 ? 'critical' : 'normal';
+            case 'ENGINE_LOAD':
+              if (item.parameter === 'Engine Load') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
               break;
-            case 'Fuel Pressure':
-              newValue = Math.max(2.5, Math.min(4.0, newValue + (Math.random() - 0.5) * 0.2));
-              newStatus = newValue < 2.8 ? 'warning' : newValue < 2.5 ? 'critical' : 'normal';
+            case 'ENGINE_COOLANT_TEMP':
+              if (item.parameter === 'Coolant Temperature') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'INTAKE_AIR_TEMP':
+              if (item.parameter === 'Intake Air Temperature') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'THROTTLE_POSITION':
+              if (item.parameter === 'Throttle Position') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'FUEL_LEVEL':
+              if (item.parameter === 'Fuel Level') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'TOTAL_DISTANCE':
+              if (item.parameter === 'Total Distance') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
               break;
             default:
               return item;
           }
 
-          return {
-            ...item,
-            value: newValue.toFixed(item.parameter === 'Engine RPM' ? 0 : 1),
-            status: newStatus,
-          };
-        })
-      );
-    }, 2000);
-
-    return () => clearInterval(interval);
+          return { ...item, value: newValue, status: newStatus };
+        });
+      });
+    } else if (event === 'connectionStatusChanged') {
+      setConnectionStatus(data.status);
+    }
   }, []);
+
+  // Subscribe to OBD service when screen becomes focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Diagnostics screen focused, subscribing to OBD service');
+      const unsubscribe = OBDIIService.subscribe(onDataUpdate);
+
+      // Update connection status
+      setConnectionStatus(OBDIIService.getConnectionInfo().status);
+
+      return () => {
+        console.log('Diagnostics screen unfocused, unsubscribing from OBD service');
+        if (unsubscribe && typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    }, [onDataUpdate])
+  );
 
   const handleScanDTC = async () => {
     setIsScanning(true);

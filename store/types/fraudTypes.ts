@@ -22,6 +22,9 @@ export interface FraudAlert {
 
 export interface FraudDetectionState {
   isEnabled: boolean;
+  realTimeMonitoring: boolean;
+  lastInitialized?: string;
+  lastStopped?: string;
   checks: {
     odometerRollback: {
       enabled: boolean;
@@ -54,6 +57,7 @@ export interface FraudDetectionState {
 
 export const initialFraudDetectionState: FraudDetectionState = {
   isEnabled: true,
+  realTimeMonitoring: false,
   checks: {
     odometerRollback: {
       enabled: true,
@@ -94,6 +98,8 @@ export enum FRAUD_DETECTION_TYPES {
   ODOMETER_ANOMALY_DETECTED = 'ODOMETER_ANOMALY_DETECTED',
   TOGGLE_FRAUD_DETECTION = 'TOGGLE_FRAUD_DETECTION',
   CLEAR_FRAUD_ANOMALIES = 'CLEAR_FRAUD_ANOMALIES',
+  INITIALIZE_REAL_TIME_FRAUD_DETECTION = 'INITIALIZE_REAL_TIME_FRAUD_DETECTION',
+  STOP_REAL_TIME_FRAUD_DETECTION = 'STOP_REAL_TIME_FRAUD_DETECTION',
 }
 
 // Action Interfaces
@@ -103,6 +109,9 @@ export interface FraudCheckCompleteAction {
     riskScore: number;
     status: 'clean' | 'suspicious' | 'high_risk';
     checkResults: Partial<FraudDetectionState['checks']>;
+    lastCheck?: string;
+    source?: string;
+    timestamp?: string;
   };
   [key: string]: any;
 }
@@ -158,6 +167,19 @@ export interface ClearFraudAnomaliesAction {
   [key: string]: any;
 }
 
+export interface InitializeRealTimeFraudDetectionAction {
+  type: FRAUD_DETECTION_TYPES.INITIALIZE_REAL_TIME_FRAUD_DETECTION;
+  payload: {
+    obdService: any;
+  };
+  [key: string]: any;
+}
+
+export interface StopRealTimeFraudDetectionAction {
+  type: FRAUD_DETECTION_TYPES.STOP_REAL_TIME_FRAUD_DETECTION;
+  [key: string]: any;
+}
+
 // Union type for all fraud detection actions
 export type FraudDetectionAction =
   | RunFraudCheckAction
@@ -167,7 +189,9 @@ export type FraudDetectionAction =
   | UpdateFraudSettingsAction
   | ToggleFraudDetectionAction
   | ClearFraudAlertsAction
-  | ClearFraudAnomaliesAction;
+  | ClearFraudAnomaliesAction
+  | InitializeRealTimeFraudDetectionAction
+  | StopRealTimeFraudDetectionAction;
 
 // OBD Reading Interface (for fraud detection)
 export interface OdometerReading {

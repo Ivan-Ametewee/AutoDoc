@@ -52,6 +52,9 @@ const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
+      // Disable immutable state check in development to improve performance
+      // with large fraud detection state objects
+      immutableCheck: false,
     }),
   devTools: __DEV__, // Enable Redux DevTools in development
 });

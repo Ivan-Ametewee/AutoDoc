@@ -1,172 +1,104 @@
-// Add to your vehicleReducer.ts initial state
+How do I get odometer readings for toyota vehicles? Which command do I need to send?
 
-interface FraudAnomaly {
-  id: string;
-  type: string;
+Of course. Getting odometer readings is a common goal, but it's more complex than reading standard data like RPM or speed. Here’s a detailed explanation and the code you need.
+
+There is **no universal, standard command** to get the odometer reading from all vehicles. The standard OBD-II specification did not originally require it. While a standard PID for odometer (`01A6`) was added later, very few vehicles, especially older ones, support it.
+
+For most vehicles, and especially for Toyota, you need to use a **manufacturer-specific or non-standard command**.
+
+### The Command You Need to Send
+
+For many modern Toyota vehicles, the odometer reading can be accessed using a **Mode 22** command. This is a special diagnostic mode that goes beyond the standard real-time data.
+
+The most common command for Toyota is:
+
+  * **Command**: `2225AE`
+  * **Mode**: `22` (Enhanced Diagnostic Data)
+  * **PID**: `25AE` (Toyota's proprietary PID for Odometer)
+
+### How to Parse the Response
+
+When you send `2225AE`, the adapter will return a multi-byte response. The important part of the response will look something like this:
+
+`62 25 AE 00 07 A1 2B`
+
+  * **`62 25 AE`**: This is the response header, confirming it's a reply to your `2225AE` request.
+  * **`00 07 A1 2B`**: These are the four data bytes (A, B, C, and D) that hold the odometer value in kilometers.
+
+To get the final value, you need to combine these four bytes using a standard formula:
+
+  * **Formula**: `(A * 16777216) + (B * 65536) + (C * 256) + D`
+  * **Your Data**:
+      * `A` = `00` (hex) = 0 (decimal)
+      * `B` = `07` (hex) = 7 (decimal)
+      * `C` = `A1` (hex) = 161 (decimal)
+      * `D` = `2B` (hex) = 43 (decimal)
+  * **Calculation**:
+      * `(0 * 16777216) + (7 * 65536) + (161 * 256) + 43`
+      * `0 + 458752 + 41216 + 43` = `500011`
+  * **Result**: The odometer reading is **500,011 km**.
+
+### Updating Your Code
+
+To use this new command, you need to add its definition to your `PIDDefinitions.ts` file. This will allow your `OBDIIService` to request and parse the odometer reading just like any other PID.
+
+#### `ivan-ametewee/simulate/simulate-49518065f50e3124dcf0920fdb34286600f703ab/services/obdii/PIDDefinitions.ts` (Updated)
+
+```typescript
+// services/obdii/PIDDefinitions.ts
+
+export interface PIDDefinition {
+  name: string;
+  pid: string;
+  mode: string;
+  bytes: number;
   description: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  timestamp: string;
-  data: Record<string, any>;
+  unit?: string;
+  parse: (bytes: number[]) => number | string;
+  // ... other properties
 }
 
-interface FraudAlert {
-  id: string;
-  type: 'warning' | 'error' | 'critical';
-  message: string;
-  timestamp: string;
-  checkType: string;
-  riskLevel: number;
-}
+export class PIDDefinitions {
+  private static pids: Map<string, PIDDefinition> = new Map([
+    // --- (Keep all your existing PID definitions) ---
+    ['ENGINE_RPM', {
+      name: 'ENGINE_RPM',
+      pid: '0C',
+      mode: '01',
+      bytes: 2,
+      description: 'Engine RPM',
+      unit: 'rpm',
+      parse: (bytes) => ((bytes[0] * 256) + bytes[1]) / 4,
+    }],
+    // ... other standard PIDs
 
-interface FraudDetectionState {
-  isEnabled: boolean;
-  checks: {
-    odometerRollback: {
-      enabled: boolean;
-      threshold: number; // Miles/km that trigger suspicion
-      lastKnownMileage: number | null;
-      anomalies: FraudAnomaly[];
-    };
-    inconsistentReporting: {
-      enabled: boolean;
-      threshold: number; // Daily mileage threshold
-      timeWindow: number; // Hours
-      anomalies: FraudAnomaly[];
-    };
-    digitalTampering: {
-      enabled: boolean;
-      ecu_checks: boolean;
-      anomalies: FraudAnomaly[];
-    };
-    dataIntegrity: {
-      enabled: boolean;
-      checksumValidation: boolean;
-      anomalies: FraudAnomaly[];
-    };
-  };
-  riskScore: number; // 0-100 scale
-  lastCheck: string | null;
-  overallStatus: 'clean' | 'suspicious' | 'high_risk';
-  alerts: FraudAlert[];
-}
-
-const fraudDetectionState: FraudDetectionState = {
-  isEnabled: true,
-  checks: {
-    odometerRollback: {
-      enabled: true,
-      threshold: -100,
-      lastKnownMileage: null,
-      anomalies: [],
-    },
-    inconsistentReporting: {
-      enabled: true,
-      threshold: 500,
-      timeWindow: 24,
-      anomalies: [],
-    },
-    digitalTampering: {
-      enabled: true,
-      ecu_checks: true,
-      anomalies: [],
-    },
-    dataIntegrity: {
-      enabled: true,
-      checksumValidation: true,
-      anomalies: [],
-    }
-  },
-  riskScore: 0,
-  lastCheck: null,
-  overallStatus: 'clean',
-  alerts: [],
-};
-
-// Add these action types to your VEHICLE_TYPES
-export enum FRAUD_DETECTION_TYPES {
-  RUN_FRAUD_CHECK = 'RUN_FRAUD_CHECK',
-  FRAUD_CHECK_COMPLETE = 'FRAUD_CHECK_COMPLETE',
-  ADD_FRAUD_ALERT = 'ADD_FRAUD_ALERT',
-  CLEAR_FRAUD_ALERTS = 'CLEAR_FRAUD_ALERTS',
-  UPDATE_FRAUD_SETTINGS = 'UPDATE_FRAUD_SETTINGS',
-  ODOMETER_ANOMALY_DETECTED = 'ODOMETER_ANOMALY_DETECTED',
-}
-
-interface FraudCheckCompleteAction {
-  type: FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE;
-  payload: {
-    riskScore: number;
-    status: 'clean' | 'suspicious' | 'high_risk';
-    checkResults: Partial<FraudDetectionState['checks']>;
-  };
-}
-
-interface AddFraudAlertAction {
-  type: FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT;
-  payload: {
-    alert: FraudAlert;
-  };
-}
-
-interface OdometerAnomalyDetectedAction {
-  type: FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED;
-  payload: {
-    checkType: keyof FraudDetectionState['checks'];
-    anomaly: FraudAnomaly;
-  };
-}
-
-// Add these cases to your vehicleReducer switch statement
-case FRAUD_DETECTION_TYPES.RUN_FRAUD_CHECK:
-  return {
-    ...state,
-    fraudDetection: {
-      ...state.fraudDetection,
-      lastCheck: new Date().toISOString(),
-    },
-  };
-
-case FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE:
-  const fraudAction = action as FraudCheckCompleteAction;
-  return {
-    ...state,
-    fraudDetection: {
-      ...state.fraudDetection,
-      riskScore: fraudAction.payload.riskScore,
-      overallStatus: fraudAction.payload.status,
-      checks: {
-        ...state.fraudDetection.checks,
-        ...fraudAction.payload.checkResults,
+    /**
+     * **NEW**: Added the proprietary PID for Toyota Odometer.
+     * This uses Mode 22 instead of the standard Mode 01.
+     */
+    ['ODOMETER_TOYOTA', {
+      name: 'ODOMETER_TOYOTA',
+      pid: '25AE', // The proprietary PID
+      mode: '22',    // The special diagnostic mode
+      bytes: 4,      // The response has 4 data bytes
+      description: 'Odometer Reading (Toyota)',
+      unit: 'km',
+      parse: (bytes) => {
+        // Formula: (A * 2^24) + (B * 2^16) + (C * 2^8) + D
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
       },
-    },
-  };
+    }],
+  ]);
 
-case FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT:
-  const alertAction = action as AddFraudAlertAction;
-  return {
-    ...state,
-    fraudDetection: {
-      ...state.fraudDetection,
-      alerts: [...state.fraudDetection.alerts, alertAction.payload.alert],
-    },
-  };
+  public static getPID(name: string): PIDDefinition | undefined {
+    return this.pids.get(name);
+  }
 
-case FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED:
-  const anomalyAction = action as OdometerAnomalyDetectedAction;
-  const checkType = anomalyAction.payload.checkType;
-  return {
-    ...state,
-    fraudDetection: {
-      ...state.fraudDetection,
-      checks: {
-        ...state.fraudDetection.checks,
-        [checkType]: {
-          ...state.fraudDetection.checks[checkType],
-          anomalies: [
-            ...state.fraudDetection.checks[checkType].anomalies,
-            anomalyAction.payload.anomaly,
-          ],
-        },
-      },
-    },
-  };
+  public static getAllPIDs(): PIDDefinition[] {
+    return Array.from(this.pids.values());
+  }
+}
+```
+
+With this change, you can now get the odometer reading by simply calling `OBDIIService.queryPID('ODOMETER_TOYOTA')`. Your service will handle sending the correct Mode `22` command and parsing the multi-byte response automatically.

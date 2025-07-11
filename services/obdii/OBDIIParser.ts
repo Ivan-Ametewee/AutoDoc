@@ -1,217 +1,291 @@
 // services/obdii/OBDIIParser.ts
 
-import { PIDDefinition, PIDDefinitions } from './PIDDefinitions';
+import { PIDDefinitions } from './PIDDefinitions';
 
-/**
- * Defines the structure for the data returned after parsing a PID response.
- */
 export interface ParsedPIDData {
   name: string;
   value: number | string;
-  unit?: string;
+  unit: string;
   timestamp: Date;
   raw: string;
-  mode: string;
-  pid: string;
+  mode?: string; // NEW: Track which mode was used
+  manufacturer?: string; // NEW: Track manufacturer for Mode 22 PIDs
 }
 
-/**
- * A static class with methods to parse raw OBD-II responses.
- */
 export class OBDIIParser {
+  /**
+   * Parse raw OBD-II response data
+   */
+  static parse(rawResponse: string): ParsedPIDData | null {
+    try {
+      const cleanResponse = rawResponse.replace(/\s+/g, '').toUpperCase().trim();
+      
+      if (!cleanResponse || cleanResponse.includes('NODATA') || cleanResponse.includes('ERROR')) {
+        return null;
+      }
+
+      // Determine if this is a Mode 22 response or standard OBD-II
+      if (cleanResponse.startsWith('62')) {
+        return this.parseMode22Response(cleanResponse, rawResponse);
+      } else if (cleanResponse.startsWith('41')) {
+        return this.parseStandardResponse(cleanResponse, rawResponse);
+      } else {
+        console.warn('Unknown response format:', rawResponse);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error parsing OBD response:', error, rawResponse);
+      return null;
+    }
+  }
 
   /**
-   * Parses a raw OBD-II response string into a structured data object.
-   * @param rawData The raw string from the adapter (e.g., '410C1A2B').
-   * @returns A ParsedPIDData object, or null if parsing fails.
+   * Parse standard OBD-II Mode 01 responses (starts with '41')
    */
-  public static parse(rawData: string): ParsedPIDData | null {
-    if (!rawData || typeof rawData !== 'string') {
-      console.error('Invalid raw data for parsing:', rawData);
-      return null;
-    }
-
-    // Clean the data - remove whitespace, '>', and other common ELM327 responses
-    let cleanedData = rawData.replace(/[\s>]/g, '').toUpperCase();
-    
-    // Handle common ELM327 responses that aren't actual data
-    if (cleanedData.includes('NODATA') || 
-        cleanedData.includes('ERROR') || 
-        cleanedData.includes('UNABLETOCONNECT') ||
-        cleanedData.includes('SEARCHING') ||
-        cleanedData.includes('OK') ||
-        cleanedData === 'ATZ' ||
-        cleanedData === 'ATE0' ||
-        cleanedData === 'ATSP0') {
-      console.log('Ignoring ELM327 status response:', rawData);
-      return null;
-    }
-
-    // Remove common prefixes that might be present
-    cleanedData = cleanedData.replace(/^(ATZ|ATE0|ATSP0|OK)+/, '');
-    
-    if (cleanedData.length < 4) {
-      console.log('Insufficient data length after cleaning:', cleanedData);
-      return null;
-    }
-
-    // Extract mode and PID from response
-    const modeHex = cleanedData.substring(0, 2);
-    const pidHex = cleanedData.substring(2, 4);
-
-    console.log(`Parsing response - Mode: ${modeHex}, PID: ${pidHex}, Full: ${cleanedData}`);
-
-    // Find the corresponding PID definition
-    const pidDef = this.findPIDDefinition(modeHex, pidHex);
-
-    if (!pidDef) {
-      console.warn(`No PID definition found for mode ${modeHex} and PID ${pidHex}`);
-      return null;
-    }
-    
-    const dataBytesHex = cleanedData.substring(4);
-    if (dataBytesHex.length === 0) {
-      console.error('No data bytes found for PID', pidDef.name);
-      return null;
-    }
-
-    // Ensure we have an even number of hex characters
-    if (dataBytesHex.length % 2 !== 0) {
-      console.error('Invalid data byte length for PID', pidDef.name, ':', dataBytesHex);
-      return null;
-    }
-
-    const dataBytes = this.hexToBytes(dataBytesHex);
-    
-    // Verify we have enough bytes for this PID
-    if (dataBytes.length < pidDef.bytes) {
-      console.error(`Insufficient data bytes. Expected ${pidDef.bytes}, got ${dataBytes.length} for PID ${pidDef.name}`);
-      return null;
-    }
-
+  private static parseStandardResponse(cleanResponse: string, rawResponse: string): ParsedPIDData | null {
     try {
-      // Only pass the required number of bytes to the parser
-      const relevantBytes = dataBytes.slice(0, pidDef.bytes);
-      const parsedValue = pidDef.parse(relevantBytes);
+      // Standard format: 41 [PID] [DATA...]
+      const responseCode = cleanResponse.substring(0, 2); // Should be '41'
+      const pidCode = cleanResponse.substring(2, 4);
+      const dataHex = cleanResponse.substring(4);
 
-      console.log(`Successfully parsed ${pidDef.name}: ${parsedValue} ${pidDef.unit || ''}`);
+      // Find the PID definition
+      const pidDefinition = this.findPIDByCode(pidCode, '01');
+      
+      if (!pidDefinition) {
+        console.warn(`Unknown PID code: ${pidCode}`);
+        return {
+          name: `UNKNOWN_PID_${pidCode}`,
+          value: dataHex,
+          unit: '',
+          timestamp: new Date(),
+          raw: rawResponse,
+          mode: '01'
+        };
+      }
+
+      // Convert hex data to byte array
+      const dataBytes = this.hexStringToBytes(dataHex);
+      
+      // Parse using the PID's parse function
+      const parsedValue = pidDefinition.parse(dataBytes);
 
       return {
-        name: pidDef.name,
+        name: pidDefinition.name,
         value: parsedValue,
-        unit: pidDef.unit,
+        unit: pidDefinition.unit || '',
         timestamp: new Date(),
-        raw: rawData,
-        mode: pidDef.mode,
-        pid: pidDef.pid,
+        raw: rawResponse,
+        mode: '01'
       };
     } catch (error) {
-      console.error(`Error during parsing logic for PID ${pidDef.name}:`, error);
-      console.error(`Data bytes:`, dataBytes);
+      console.error('Error parsing standard response:', error);
       return null;
     }
   }
 
-  private static hexToBytes(hex: string): number[] {
-    const bytes: number[] = [];
-    for (let i = 0; i < hex.length; i += 2) {
-      const byteString = hex.substring(i, i + 2);
-      const byteValue = parseInt(byteString, 16);
-      if (isNaN(byteValue)) {
-        console.error(`Invalid hex byte: ${byteString}`);
-        continue;
+  /**
+   * Parse Mode 22 responses (starts with '62')
+   */
+  private static parseMode22Response(cleanResponse: string, rawResponse: string): ParsedPIDData | null {
+    try {
+      // Mode 22 format: 62 [PID] [DATA...]
+      // PID can be variable length (e.g., 25AE, 00C0, DD01)
+      
+      const responseCode = cleanResponse.substring(0, 2); // Should be '62'
+      
+      // Try to find matching PID definition by checking different PID lengths
+      let pidDefinition = null;
+      let pidLength = 0;
+      let dataStartIndex = 2;
+
+      // Try common PID lengths (2, 4, 6 characters)
+      for (const testLength of [4, 2, 6]) {
+        const testPid = cleanResponse.substring(2, 2 + testLength);
+        pidDefinition = this.findPIDByCode(testPid, '22');
+        
+        if (pidDefinition) {
+          pidLength = testLength;
+          dataStartIndex = 2 + testLength;
+          break;
+        }
       }
-      bytes.push(byteValue);
+
+      if (!pidDefinition) {
+        // Try to extract PID from known patterns
+        const possiblePid = cleanResponse.substring(2, 6); // Assume 4-char PID
+        console.warn(`Unknown Mode 22 PID: ${possiblePid}`);
+        
+        return {
+          name: `UNKNOWN_MODE22_PID_${possiblePid}`,
+          value: cleanResponse.substring(6),
+          unit: '',
+          timestamp: new Date(),
+          raw: rawResponse,
+          mode: '22'
+        };
+      }
+
+      // Extract data portion
+      const dataHex = cleanResponse.substring(dataStartIndex);
+      const dataBytes = this.hexStringToBytes(dataHex);
+
+      // Validate we have enough bytes
+      if (dataBytes.length < pidDefinition.bytes) {
+        console.warn(`Insufficient data bytes for PID ${pidDefinition.name}: expected ${pidDefinition.bytes}, got ${dataBytes.length}`);
+        return null;
+      }
+
+      // Parse using the PID's parse function
+      const parsedValue = pidDefinition.parse(dataBytes);
+
+      return {
+        name: pidDefinition.name,
+        value: parsedValue,
+        unit: pidDefinition.unit || '',
+        timestamp: new Date(),
+        raw: rawResponse,
+        mode: '22',
+        manufacturer: pidDefinition.manufacturer
+      };
+    } catch (error) {
+      console.error('Error parsing Mode 22 response:', error);
+      return null;
     }
-    return bytes;
   }
-  
-  private static findPIDDefinition(modeHex: string, pidHex: string): PIDDefinition | undefined {
+
+  /**
+   * Find PID definition by PID code and mode
+   */
+  private static findPIDByCode(pidCode: string, mode: string) {
     const allPIDs = PIDDefinitions.getAllPIDs();
     
-    // The response mode is always 0x40 greater than the request mode (e.g., req '01' -> res '41')
-    let requestModeNum = parseInt(modeHex, 16) - 0x40;
-    
-    // Handle potential negative values or invalid modes
-    if (requestModeNum < 0 || requestModeNum > 255) {
-      console.error(`Invalid response mode: ${modeHex}`);
-      return undefined;
-    }
-    
-    const requestMode = requestModeNum.toString(16).padStart(2, '0').toUpperCase();
-    
-    const foundPID = allPIDs.find(p => 
-      p.mode.toUpperCase() === requestMode && 
-      p.pid.toUpperCase() === pidHex.toUpperCase()
+    return allPIDs.find(pid => 
+      pid.pid.toUpperCase() === pidCode.toUpperCase() && 
+      pid.mode === mode
     );
-
-    if (foundPID) {
-      console.log(`Found PID definition: ${foundPID.name} (${foundPID.mode}${foundPID.pid})`);
-    }
-
-    return foundPID;
   }
 
   /**
-   * Validate if a raw response looks like valid OBD-II data
+   * Convert hex string to array of bytes
    */
-  public static isValidOBDResponse(rawData: string): boolean {
-    if (!rawData || typeof rawData !== 'string') {
-      return false;
-    }
-
-    const cleaned = rawData.replace(/[\s>]/g, '').toUpperCase();
+  private static hexStringToBytes(hexString: string): number[] {
+    const bytes: number[] = [];
     
-    // Check for error responses
-    const errorResponses = ['NODATA', 'ERROR', 'UNABLETOCONNECT', 'SEARCHING', '?'];
-    if (errorResponses.some(error => cleaned.includes(error))) {
-      return false;
-    }
-
-    // Check for AT commands responses
-    if (cleaned.includes('OK') || cleaned.startsWith('AT')) {
-      return false;
-    }
-
-    // Must be at least 4 characters (mode + PID)
-    if (cleaned.length < 4) {
-      return false;
-    }
-
-    // Must be valid hex
-    const hexPattern = /^[0-9A-F]+$/;
-    if (!hexPattern.test(cleaned)) {
-      return false;
-    }
-
-    // First byte should be a valid response mode (0x41, 0x42, etc.)
-    const firstByte = parseInt(cleaned.substring(0, 2), 16);
-    if (firstByte < 0x41 || firstByte > 0x4F) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Extract multiple PID responses from a single response string
-   * Some adapters may return multiple PIDs in one response
-   */
-  public static parseMultiplePIDs(rawData: string): ParsedPIDData[] {
-    const results: ParsedPIDData[] = [];
-    
-    // Split by common delimiters
-    const responses = rawData.split(/[\r\n]+/).filter(response => response.trim().length > 0);
-    
-    for (const response of responses) {
-      if (this.isValidOBDResponse(response)) {
-        const parsed = this.parse(response);
-        if (parsed) {
-          results.push(parsed);
+    for (let i = 0; i < hexString.length; i += 2) {
+      const byteHex = hexString.substring(i, i + 2);
+      if (byteHex.length === 2) {
+        const byteValue = parseInt(byteHex, 16);
+        if (!isNaN(byteValue)) {
+          bytes.push(byteValue);
         }
       }
     }
     
+    return bytes;
+  }
+
+  /**
+   * Parse multiple PID responses (for cases where multiple PIDs are returned)
+   */
+  static parseMultipleResponses(rawResponse: string): ParsedPIDData[] {
+    const results: ParsedPIDData[] = [];
+    
+    // Split response by common delimiters
+    const responses = rawResponse.split(/[\r\n>]+/).filter(r => r.trim());
+    
+    for (const response of responses) {
+      const parsed = this.parse(response);
+      if (parsed) {
+        results.push(parsed);
+      }
+    }
+    
     return results;
+  }
+
+  /**
+   * Validate response format
+   */
+  static isValidResponse(response: string): boolean {
+    const clean = response.replace(/\s+/g, '').toUpperCase();
+    
+    // Check for error responses
+    if (clean.includes('NODATA') || 
+        clean.includes('ERROR') || 
+        clean.includes('UNABLE') ||
+        clean.includes('TIMEOUT')) {
+      return false;
+    }
+
+    // Check for valid response patterns
+    return clean.startsWith('41') || // Standard OBD-II
+           clean.startsWith('62') || // Mode 22
+           clean.startsWith('43') || // DTCs
+           clean.startsWith('49');   // Vehicle info
+  }
+
+  /**
+   * Extract error information from response
+   */
+  static parseError(response: string): string | null {
+    const upperResponse = response.toUpperCase();
+    
+    if (upperResponse.includes('NO DATA')) {
+      return 'No data available';
+    }
+    if (upperResponse.includes('ERROR')) {
+      return 'Communication error';
+    }
+    if (upperResponse.includes('UNABLE TO CONNECT')) {
+      return 'Unable to connect to vehicle';
+    }
+    if (upperResponse.includes('TIMEOUT')) {
+      return 'Command timeout';
+    }
+    if (upperResponse.includes('BUS INIT')) {
+      return 'Bus initialization error';
+    }
+    
+    return null;
+  }
+
+  /**
+   * Format parsed data for display
+   */
+  static formatForDisplay(parsedData: ParsedPIDData): string {
+    let value = parsedData.value;
+    
+    // Format numeric values
+    if (typeof value === 'number') {
+      if (parsedData.unit === '%') {
+        value = value.toFixed(1);
+      } else if (parsedData.unit === 'rpm') {
+        value = Math.round(value);
+      } else if (parsedData.unit === 'km' || parsedData.unit === 'km/h') {
+        value = Math.round(value);
+      } else {
+        value = value.toFixed(2);
+      }
+    }
+    
+    return `${value}${parsedData.unit ? ' ' + parsedData.unit : ''}`;
+  }
+
+  /**
+   * Check if parsed data represents an odometer reading
+   */
+  static isOdometerReading(parsedData: ParsedPIDData): boolean {
+    return parsedData.name.toLowerCase().includes('odometer') ||
+           parsedData.name.toLowerCase().includes('distance') ||
+           parsedData.name.toLowerCase().includes('mileage');
+  }
+
+  /**
+   * Check if parsed data is from a manufacturer-specific PID
+   */
+  static isManufacturerSpecific(parsedData: ParsedPIDData): boolean {
+    return parsedData.mode === '22' || 
+           parsedData.manufacturer !== undefined;
   }
 }

@@ -27,6 +27,13 @@ const initialState = {
     barometricPressure: 0,
     catalystTemp: 0,
     evapSystemVaporPressure: 0,
+    // Odometer and related fields for fraud detection
+    odometer: 45231, // Total distance in km (default simulation value)
+    tripOdometer: 0, // Trip distance in km  
+    engineHours: 150, // Engine runtime in hours (reasonable default)
+    distanceSinceCodesCleared: 0, // Distance since codes cleared
+    distanceWithMILOn: 0, // Distance with MIL on
+    runtimeSinceEngineStart: 0, // Runtime since engine start
     lastUpdate: null,
   },
 

@@ -1,4 +1,4 @@
-import SQLite, { SQLiteDatabase, ResultSet } from 'react-native-sqlite-storage';
+import * as SQLite from 'expo-sqlite';
 
 // Interfaces for our data models
 export interface DataPoint {
@@ -57,20 +57,14 @@ export interface Alert {
   vehicle_id?: number;
 }
 
-// Enable promise-based API
-SQLite.enablePromise(true);
-
 class DatabaseService {
-  private database: SQLiteDatabase | null = null;
+  private database: SQLite.SQLiteDatabase | null = null;
   public isInitialized = false;
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     try {
-      this.database = await SQLite.openDatabase({
-        name: 'OBDIIApp.db',
-        location: 'default',
-      });
+      this.database = await SQLite.openDatabaseAsync('OBDIIApp.db');
       await this.createTables();
       this.isInitialized = true;
       console.log('Database initialized successfully');
@@ -120,6 +114,19 @@ class DatabaseService {
         FOREIGN KEY (vehicle_id) REFERENCES vehicle_profiles (id)
       )`,
       `
+    CREATE TABLE IF NOT EXISTS fraud_detection_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      odometer_reading REAL NOT NULL,
+      risk_score INTEGER NOT NULL,
+      overall_status TEXT NOT NULL,
+      check_results TEXT NOT NULL,
+      anomalies_count INTEGER DEFAULT 0,
+      data_source TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      vehicle_id INTEGER,
+      FOREIGN KEY (vehicle_id) REFERENCES vehicle_profiles (id)
+    )`,
+      `
     CREATE TABLE IF NOT EXISTS alerts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       alert_id TEXT NOT NULL UNIQUE,
@@ -139,47 +146,43 @@ class DatabaseService {
       FOREIGN KEY (vehicle_id) REFERENCES vehicle_profiles (id)
     )`
     ];
-    await this.database!.transaction(tx => {
-        queries.forEach(query => {
-            tx.executeSql(query);
-        });
-    });
+    for (const query of queries) {
+      await this.database!.execAsync(query);
+    }
   }
   
   // --- Data Point Operations ---
   async addDataPoint(dataPoint: DataPoint): Promise<void> {
     const { pid, value, unit, raw_data, session_id } = dataPoint;
     const query = `INSERT INTO data_points (pid, value, unit, raw_data, session_id) VALUES (?, ?, ?, ?, ?)`;
-    await this.database!.executeSql(query, [pid, value, unit, raw_data, session_id]);
+    await this.database!.runAsync(query, [pid, value, unit, raw_data, session_id]);
   }
 
   // --- Vehicle Profile Operations ---
   async createVehicleProfile(profile: VehicleProfile): Promise<number> {
     const query = `INSERT INTO vehicle_profiles (name, make, model, year, vin, engine_type, transmission, fuel_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    const [result] = await this.database!.executeSql(query, [
+    const result = await this.database!.runAsync(query, [
       profile.name, profile.make, profile.model, profile.year,
       profile.vin, profile.engine_type, profile.transmission, profile.fuel_type,
     ]);
-    return result.insertId;
+    return result.lastInsertRowId;
   }
 
   async getVehicleProfiles(): Promise<VehicleProfile[]> {
     const query = 'SELECT * FROM vehicle_profiles ORDER BY is_active DESC, created_at DESC';
-    const [results] = await this.database!.executeSql(query);
-    return results.rows.raw();
+    const results = await this.database!.getAllAsync(query);
+    return results as VehicleProfile[];
   }
   
   async setActiveVehicle(vehicleId: number): Promise<void> {
-     await this.database!.transaction(tx => {
-        tx.executeSql('UPDATE vehicle_profiles SET is_active = 0');
-        tx.executeSql('UPDATE vehicle_profiles SET is_active = 1 WHERE id = ?', [vehicleId]);
-    });
+    await this.database!.runAsync('UPDATE vehicle_profiles SET is_active = 0');
+    await this.database!.runAsync('UPDATE vehicle_profiles SET is_active = 1 WHERE id = ?', [vehicleId]);
   }
 
   async getActiveVehicle(): Promise<VehicleProfile | null> {
     const query = 'SELECT * FROM vehicle_profiles WHERE is_active = 1 LIMIT 1';
-    const [results] = await this.database!.executeSql(query);
-    return results.rows.length > 0 ? results.rows.item(0) : null;
+    const result = await this.database!.getFirstAsync(query);
+    return result as VehicleProfile | null;
   }
   
    async updateVehicleProfile(vehicleId: number, updates: Partial<VehicleProfile>): Promise<void> {
@@ -188,7 +191,7 @@ class DatabaseService {
     const setClause = fields.map(field => `${field} = ?`).join(', ');
     
     const query = `UPDATE vehicle_profiles SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    await this.database!.executeSql(query, [...values, vehicleId]);
+    await this.database!.runAsync(query, [...values, vehicleId]);
   }
 
   async saveAlert(alert: any): Promise<void> {
@@ -203,7 +206,7 @@ class DatabaseService {
     const activeVehicle = await this.getActiveVehicle();
     const vehicleId = activeVehicle?.id || null;
     
-    await this.database!.executeSql(query, [
+    await this.database!.runAsync(query, [
       alert.id,
       alert.parameter,
       alert.currentValue,
@@ -248,8 +251,7 @@ class DatabaseService {
     query += ' ORDER BY timestamp DESC LIMIT ?';
     params.push(limit);
 
-    const [results] = await this.database!.executeSql(query, params);
-    const alerts = results.rows.raw();
+    const alerts = await this.database!.getAllAsync(query, params) as any[];
 
     // Parse threshold_data back to object
     return alerts.map(alert => ({
@@ -304,7 +306,7 @@ class DatabaseService {
     const query = `UPDATE alerts SET ${fields.join(', ')} WHERE alert_id = ?`;
     values.push(alertId);
 
-    await this.database!.executeSql(query, values);
+    await this.database!.runAsync(query, values);
   }
 
   /**
@@ -314,8 +316,8 @@ class DatabaseService {
     const query = 'DELETE FROM alerts WHERE timestamp < ?';
     const isoDate = cutoffDate.toISOString();
     
-    const [result] = await this.database!.executeSql(query, [isoDate]);
-    console.log(`Cleaned up ${result.rowsAffected} old alerts`);
+    const result = await this.database!.runAsync(query, [isoDate]);
+    console.log(`Cleaned up ${result.changes} old alerts`);
   }
 
   /**
@@ -336,22 +338,22 @@ class DatabaseService {
     }
 
     // Total alerts
-    const [totalResult] = await this.database!.executeSql(baseQuery, params);
-    const total = totalResult.rows.item(0).count;
+    const totalResult = await this.database!.getFirstAsync(baseQuery, params) as any;
+    const total = totalResult.count;
 
     // Active alerts
-    const [activeResult] = await this.database!.executeSql(
+    const activeResult = await this.database!.getFirstAsync(
       baseQuery + ' AND resolved = 0',
       params
-    );
-    const active = activeResult.rows.item(0).count;
+    ) as any;
+    const active = activeResult.count;
 
     // Acknowledged alerts
-    const [acknowledgedResult] = await this.database!.executeSql(
+    const acknowledgedResult = await this.database!.getFirstAsync(
       baseQuery + ' AND acknowledged = 1 AND resolved = 0',
       params
-    );
-    const acknowledged = acknowledgedResult.rows.item(0).count;
+    ) as any;
+    const acknowledged = acknowledgedResult.count;
 
     // By priority
     const priorities = ['high', 'medium', 'low'];
@@ -362,11 +364,11 @@ class DatabaseService {
     };
 
     for (const priority of priorities) {
-      const [priorityResult] = await this.database!.executeSql(
+      const priorityResult = await this.database!.getFirstAsync(
         baseQuery + ' AND priority = ? AND resolved = 0',
         [...params, priority]
-      );
-      byPriority[priority as keyof typeof byPriority] = priorityResult.rows.item(0).count;
+      ) as any;
+      byPriority[priority as keyof typeof byPriority] = priorityResult.count;
     }
 
     return {
@@ -382,7 +384,163 @@ class DatabaseService {
    */
   async deleteVehicleAlerts(vehicleId: number): Promise<void> {
     const query = 'DELETE FROM alerts WHERE vehicle_id = ?';
-    await this.database!.executeSql(query, [vehicleId]);
+    await this.database!.runAsync(query, [vehicleId]);
+  }
+
+  // === FRAUD DETECTION METHODS ===
+
+  /**
+   * Save fraud detection result to database
+   */
+  async saveFraudDetectionResult(result: {
+    odometerReading: number;
+    riskScore: number;
+    overallStatus: string;
+    checkResults: any;
+    dataSource: string;
+    vehicleId?: number;
+  }): Promise<void> {
+    const query = `
+      INSERT INTO fraud_detection_results (
+        odometer_reading,
+        risk_score,
+        overall_status,
+        check_results,
+        anomalies_count,
+        data_source,
+        vehicle_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    const activeVehicle = await this.getActiveVehicle();
+    const vehicleId = result.vehicleId || activeVehicle?.id || null;
+    
+    // Count total anomalies across all checks
+    const anomaliesCount = Object.values(result.checkResults || {})
+      .reduce((total: number, check: any) => total + (check?.anomalies?.length || 0), 0);
+    
+    await this.database!.runAsync(query, [
+      result.odometerReading,
+      result.riskScore,
+      result.overallStatus,
+      JSON.stringify(result.checkResults),
+      anomaliesCount,
+      result.dataSource,
+      vehicleId
+    ]);
+    
+    console.log('✅ Fraud detection result saved to database');
+  }
+
+  /**
+   * Get fraud detection history
+   */
+  async getFraudDetectionHistory(
+    vehicleId?: number,
+    limit = 50,
+    riskThreshold?: number
+  ): Promise<any[]> {
+    let query = 'SELECT * FROM fraud_detection_results WHERE 1=1';
+    const params: any[] = [];
+
+    if (vehicleId !== undefined) {
+      query += ' AND vehicle_id = ?';
+      params.push(vehicleId);
+    }
+
+    if (riskThreshold !== undefined) {
+      query += ' AND risk_score >= ?';
+      params.push(riskThreshold);
+    }
+
+    query += ' ORDER BY timestamp DESC LIMIT ?';
+    params.push(limit);
+
+    const results = await this.database!.getAllAsync(query, params) as any[];
+    
+    return results.map(row => ({
+      id: row.id,
+      odometerReading: row.odometer_reading,
+      riskScore: row.risk_score,
+      overallStatus: row.overall_status,
+      checkResults: JSON.parse(row.check_results),
+      anomaliesCount: row.anomalies_count,
+      dataSource: row.data_source,
+      timestamp: row.timestamp,
+      vehicleId: row.vehicle_id
+    }));
+  }
+
+  /**
+   * Get fraud detection statistics
+   */
+  async getFraudDetectionStats(vehicleId?: number): Promise<{
+    totalChecks: number;
+    cleanResults: number;
+    suspiciousResults: number;
+    highRiskResults: number;
+    avgRiskScore: number;
+    lastCheckDate: string | null;
+  }> {
+    let baseQuery = 'SELECT COUNT(*) as count FROM fraud_detection_results WHERE 1=1';
+    const params: any[] = [];
+
+    if (vehicleId !== undefined) {
+      baseQuery += ' AND vehicle_id = ?';
+      params.push(vehicleId);
+    }
+
+    // Total checks
+    const totalResult = await this.database!.getFirstAsync(baseQuery, params) as any;
+    const totalChecks = totalResult.count;
+
+    if (totalChecks === 0) {
+      return {
+        totalChecks: 0,
+        cleanResults: 0,
+        suspiciousResults: 0,
+        highRiskResults: 0,
+        avgRiskScore: 0,
+        lastCheckDate: null
+      };
+    }
+
+    // Status counts
+    const statusCounts = { clean: 0, suspicious: 0, high_risk: 0 };
+    for (const status of Object.keys(statusCounts)) {
+      const statusResult = await this.database!.getFirstAsync(
+        baseQuery.replace('COUNT(*)', 'COUNT(*)') + ' AND overall_status = ?',
+        [...params, status]
+      ) as any;
+      statusCounts[status as keyof typeof statusCounts] = statusResult.count;
+    }
+
+    // Average risk score
+    const avgQuery = baseQuery.replace('COUNT(*)', 'AVG(risk_score)');
+    const avgResult = await this.database!.getFirstAsync(avgQuery, params) as any;
+    const avgRiskScore = Math.round(avgResult['AVG(risk_score)'] || 0);
+
+    // Last check date
+    const lastCheckQuery = baseQuery.replace('COUNT(*)', 'MAX(timestamp)');
+    const lastResult = await this.database!.getFirstAsync(lastCheckQuery, params) as any;
+    const lastCheckDate = lastResult['MAX(timestamp)'];
+
+    return {
+      totalChecks,
+      cleanResults: statusCounts.clean,
+      suspiciousResults: statusCounts.suspicious,
+      highRiskResults: statusCounts.high_risk,
+      avgRiskScore,
+      lastCheckDate
+    };
+  }
+
+  /**
+   * Delete fraud detection results for a specific vehicle
+   */
+  async deleteFraudDetectionResults(vehicleId: number): Promise<void> {
+    const query = 'DELETE FROM fraud_detection_results WHERE vehicle_id = ?';
+    await this.database!.runAsync(query, [vehicleId]);
   }
 
   /**
@@ -404,8 +562,7 @@ class DatabaseService {
     query += ' ORDER BY timestamp DESC LIMIT ?';
     params.push(limit);
 
-    const [results] = await this.database!.executeSql(query, params);
-    const alerts = results.rows.raw();
+    const alerts = await this.database!.getAllAsync(query, params) as any[];
 
     return alerts.map(alert => ({
       ...alert,
@@ -417,7 +574,7 @@ class DatabaseService {
   // --- DTC Operations ---
    async addDTC(dtc: DtcCode): Promise<void> {
     const query = `INSERT OR REPLACE INTO dtc_codes (code, description, severity, freeze_frame_data, vehicle_id) VALUES (?, ?, ?, ?, ?)`;
-    await this.database!.executeSql(query, [
+    await this.database!.runAsync(query, [
         dtc.code, dtc.description, dtc.severity, 
         JSON.stringify(dtc.freeze_frame_data || {}), dtc.vehicle_id
       ]);
@@ -427,8 +584,7 @@ class DatabaseService {
     let query = 'SELECT * FROM dtc_codes';
     const params: any[] = [];
     // ... logic from original file
-    const [results] = await this.database!.executeSql(query, params);
-    const dtcs: DtcCode[] = results.rows.raw();
+    const dtcs = await this.database!.getAllAsync(query, params) as DtcCode[];
     // Parse freeze_frame_data back to object
     dtcs.forEach(dtc => {
         if(dtc.freeze_frame_data) {
@@ -442,7 +598,7 @@ class DatabaseService {
 
   async close(): Promise<void> {
     if (this.database) {
-      await this.database.close();
+      await this.database.closeAsync();
       this.database = null;
       this.isInitialized = false;
       console.log('Database connection closed');

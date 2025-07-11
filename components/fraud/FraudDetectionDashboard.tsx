@@ -19,7 +19,14 @@ import {
   clearFraudAlerts,
   toggleFraudDetection,
   exportFraudDetectionReport,
+  initializeRealTimeFraudDetection,
+  stopRealTimeFraudDetection,
 } from '../../store/actions/fraudDetectionActions';
+
+// Import simulation service for demo
+import { simulationService } from '../../services/simulation/SimulationService';
+// Import OBD service for real-time fraud detection
+import OBDIIService from '../../services/obdii/OBDIIService';
 
 // Types
 interface FraudAlert {
@@ -42,6 +49,7 @@ interface FraudAnomaly {
 
 interface FraudDetectionState {
   isEnabled: boolean;
+  realTimeMonitoring: boolean;
   riskScore: number;
   overallStatus: 'clean' | 'suspicious' | 'high_risk';
   lastCheck: string | null;
@@ -71,21 +79,46 @@ interface FraudDetectionState {
 }
 
 const FraudDetectionDashboard: React.FC = () => {
+  console.log('🔄 FraudDetectionDashboard component rendering... [UPDATED]');
+  
   const dispatch = useDispatch();
   
   // Memoized selectors to prevent unnecessary re-renders
   const fraudDataFromStore = useSelector((state: any) => state.vehicle?.fraudDetection);
-  const historicalDataFromStore = useSelector((state: any) => state.data?.historicalData);
+  const historicalDataFromStore = useSelector((state: any) => 
+    state.data?.dataPoints || state.data?.sessionData || []
+  );
+  const liveDataFromStore = useSelector((state: any) => state.data?.liveData);
+  
+  console.log('📊 Current fraud data from Redux:', fraudDataFromStore);
+  
+  // Force immediate initialization on every render
+  React.useEffect(() => {
+    console.log('🚀 FORCING immediate Redux initialization...');
+    console.log('🔍 About to call initializeRealTimeFraudDetection...');
+    try {
+      const result = dispatch(initializeRealTimeFraudDetection(OBDIIService) as any);
+      console.log('✅ initializeRealTimeFraudDetection called, result:', result);
+    } catch (error) {
+      console.error('❌ Error calling initializeRealTimeFraudDetection:', error);
+    }
+  }); // No deps - run on every render
   
   // Use useMemo to create stable default values
   const fraudData = useMemo(() => {
-    return fraudDataFromStore || {
-      isEnabled: true,
-      riskScore: 0,
-      overallStatus: 'clean',
-      lastCheck: null,
-      alerts: [],
-      checks: {
+    console.log('🔍 Raw fraud data from store:', fraudDataFromStore);
+    console.log('🔍 riskScore from store:', fraudDataFromStore?.riskScore);
+    console.log('🔍 overallStatus from store:', fraudDataFromStore?.overallStatus);
+    console.log('🔍 alerts from store:', fraudDataFromStore?.alerts);
+    
+    const result = {
+      isEnabled: fraudDataFromStore?.isEnabled ?? true,
+      realTimeMonitoring: fraudDataFromStore?.realTimeMonitoring ?? false,
+      riskScore: fraudDataFromStore?.riskScore ?? 0,
+      overallStatus: fraudDataFromStore?.overallStatus ?? 'clean',
+      lastCheck: fraudDataFromStore?.lastCheck ?? null,
+      alerts: fraudDataFromStore?.alerts ?? [],
+      checks: fraudDataFromStore?.checks ?? {
         odometerRollback: {
           enabled: true,
           anomalies: [],
@@ -108,6 +141,14 @@ const FraudDetectionDashboard: React.FC = () => {
         },
       },
     };
+    
+    console.log('🎯 Final fraud data being used by UI:', {
+      riskScore: result.riskScore,
+      overallStatus: result.overallStatus,
+      alertsCount: result.alerts?.length || 0
+    });
+    
+    return result;
   }, [fraudDataFromStore]) as FraudDetectionState;
   
   const historicalData = useMemo(() => {
@@ -118,6 +159,13 @@ const FraudDetectionDashboard: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'alerts' | 'settings'>('overview');
   const [refreshing, setRefreshing] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(false);
+
+  // Sync local state with Redux real-time monitoring setting
+  useEffect(() => {
+    const reduxRealTimeEnabled = fraudData?.realTimeMonitoring || false;
+    setIsRealTimeEnabled(reduxRealTimeEnabled);
+  }, [fraudData?.realTimeMonitoring]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -125,6 +173,21 @@ const FraudDetectionDashboard: React.FC = () => {
     });
     return () => subscription?.remove();
   }, []);
+
+  // Cleanup real-time fraud detection on unmount
+  useEffect(() => {
+    return () => {
+      if (isRealTimeEnabled) {
+        console.log('🧹 FraudDetectionDashboard component unmounting, stopping fraud detection...');
+        try {
+          dispatch(stopRealTimeFraudDetection() as any);
+          setIsRealTimeEnabled(false);
+        } catch (error) {
+          console.error('❌ Error during cleanup:', error);
+        }
+      }
+    };
+  }, [dispatch, isRealTimeEnabled]);
 
   // Responsive helpers - memoized to prevent unnecessary recalculations
   const isTablet = useMemo(() => screenWidth >= 768, [screenWidth]);
@@ -151,18 +214,63 @@ const FraudDetectionDashboard: React.FC = () => {
 
   // Mock function to run fraud check
   const handleRunFraudCheck = async () => {
-    if (!historicalData || historicalData.length === 0) {
-      Alert.alert('No Data', 'No historical data available for fraud detection.');
-      return;
-    }
-
     setIsRunningCheck(true);
     
     try {
-      const latestReading = historicalData[historicalData.length - 1];
+      let dataToUse = historicalData;
+      
+      // If no historical data exists, generate some sample data for demo
+      if (!dataToUse || dataToUse.length === 0) {
+        console.log('No historical data found, generating sample data for fraud detection...');
+        
+        // Try to use simulation service to generate realistic historical data
+        try {
+          dataToUse = simulationService.generateHistoricalData(14); // 14 days of data
+          console.log('Generated realistic historical data using simulation service:', dataToUse.length, 'points');
+        } catch (error) {
+          console.warn('Failed to generate data from simulation service, using fallback:', error);
+          
+          // Fallback: Generate sample historical readings manually
+          const now = new Date();
+          const sampleData = [];
+          
+          for (let i = 7; i >= 0; i--) {
+            const timestamp = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000)).toISOString();
+            sampleData.push({
+              id: `sample_${i}`,
+              timestamp,
+              odometer: liveDataFromStore?.odometer ? 
+                Math.max(0, (liveDataFromStore.odometer - (i * 50))) : // Decrease by ~50km per day
+                (45000 - (i * 50)),
+              mileage: liveDataFromStore?.odometer ? 
+                Math.max(0, (liveDataFromStore.odometer - (i * 50))) : 
+                (45000 - (i * 50)),
+              source: 'obd',
+              engineHours: liveDataFromStore?.engineHours ? 
+                Math.max(0, (liveDataFromStore.engineHours - (i * 2))) : // Decrease by 2 hours per day
+                (150 - (i * 2)),
+              vehicleSpeed: liveDataFromStore?.speed || 0,
+              engineRPM: liveDataFromStore?.rpm || 0,
+              distanceSinceCodesCleared: Math.max(0, 1000 - (i * 50)),
+              raw: `sample_data_${i}`
+            });
+          }
+          
+          dataToUse = sampleData;
+          console.log('Generated fallback historical data:', sampleData.length, 'points');
+        }
+      }
+
+      const latestReading = dataToUse[dataToUse.length - 1];
+      console.log('Running fraud detection with data:', { 
+        latestReading, 
+        historicalCount: dataToUse.length 
+      });
+      
       await dispatch(runFraudDetection(latestReading) as any);
       Alert.alert('Check Complete', 'Fraud detection check completed successfully.');
     } catch (error: any) {
+      console.error('Fraud detection error:', error);
       Alert.alert('Error', `Fraud detection failed: ${error.message}`);
     } finally {
       setIsRunningCheck(false);
@@ -181,11 +289,45 @@ const FraudDetectionDashboard: React.FC = () => {
       
       // Share the report using React Native's Share API
       await Share.share({
-        message: `Fraud Detection Report\n\nRisk Score: ${fraudData.riskScore}/100\nStatus: ${fraudData.overallStatus}\nAlerts: ${fraudData.alerts.length}\n\nGenerated on: ${new Date().toLocaleDateString()}`,
+        message: `Fraud Detection Report\n\nRisk Score: ${fraudData.riskScore}/100\nStatus: ${fraudData.overallStatus}\nAlerts: ${(fraudData.alerts || []).length}\n\nGenerated on: ${new Date().toLocaleDateString()}`,
         title: 'Fraud Detection Report',
       });
     } catch (error) {
       Alert.alert('Error', 'Failed to export fraud detection report');
+    }
+  };
+
+  const handleToggleRealTime = async () => {
+    try {
+      if (isRealTimeEnabled) {
+        await dispatch(stopRealTimeFraudDetection() as any);
+        setIsRealTimeEnabled(false);
+        Alert.alert('Success', 'Real-time fraud detection stopped');
+      } else {
+        // Use the real OBD service for fraud detection integration
+        await dispatch(initializeRealTimeFraudDetection(OBDIIService) as any);
+        setIsRealTimeEnabled(true);
+        Alert.alert('Success', 'Real-time fraud detection enabled');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', `Failed to toggle real-time detection: ${error.message}`);
+    }
+  };
+
+  const handleDemoScenario = (scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated') => {
+    try {
+      simulationService.setupFraudDemoScenario(scenario);
+      
+      const messages = {
+        clean: 'Clean vehicle demo - no fraud patterns',
+        rollback: 'Odometer rollback demo - watch for major decrease in 15 seconds',
+        tampering: 'ECU tampering demo - impossible parameter combinations',
+        sophisticated: 'Multiple fraud techniques demo - comprehensive testing'
+      };
+      
+      Alert.alert('Demo Scenario', messages[scenario]);
+    } catch (error: any) {
+      Alert.alert('Error', `Failed to set demo scenario: ${error.message}`);
     }
   };
 
@@ -384,6 +526,47 @@ const FraudDetectionDashboard: React.FC = () => {
         />
       </View>
 
+      {/* Real-time Odometer Display */}
+      <View style={styles.odometerSection}>
+        <View style={styles.odometerCard}>
+          <View style={styles.odometerHeader}>
+            <MaterialIcons name="speed" size={24} color="#4f46e5" />
+            <Text style={styles.odometerTitle}>Current Odometer Reading</Text>
+          </View>
+          <View style={styles.odometerDisplay}>
+            <Text style={styles.odometerValue}>
+              {liveDataFromStore?.odometer ? 
+                `${Math.round(liveDataFromStore.odometer * 0.621371).toLocaleString()} mi` : 
+                '--'
+              }
+            </Text>
+            <Text style={styles.odometerSubtext}>
+              {liveDataFromStore?.odometer ? 
+                `(${Math.round(liveDataFromStore.odometer).toLocaleString()} km)` : 
+                'No data'
+              }
+            </Text>
+          </View>
+          
+          {/* ECU vs Dashboard Verification Note */}
+          <View style={styles.odometerNote}>
+            <MaterialIcons name="info" size={16} color="#64748b" />
+            <Text style={styles.odometerNoteText}>
+              Verify this reading matches your vehicle's dashboard display. Large differences may indicate tampering.
+            </Text>
+          </View>
+          
+          {fraudData.riskScore > 50 && (
+            <View style={styles.odometerWarning}>
+              <MaterialIcons name="warning" size={16} color="#ef4444" />
+              <Text style={styles.odometerWarningText}>
+                Monitor for sudden changes
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
       {/* Navigation Tabs */}
       <View style={styles.tabContainer}>
         <ScrollView 
@@ -458,8 +641,8 @@ const FraudDetectionDashboard: React.FC = () => {
                     </Text>
                     {(result?.anomalies || []).length > 0 && (
                       <View style={styles.anomaliesList}>
-                        {(result?.anomalies || []).slice(0, 2).map((anomaly) => (
-                          <View key={anomaly.id} style={styles.anomalyItem}>
+                        {(result?.anomalies || []).slice(0, 2).map((anomaly, anomalyIndex) => (
+                          <View key={`${anomaly.id}-${anomalyIndex}`} style={styles.anomalyItem}>
                             <Text style={styles.anomalyText}>{anomaly.description}</Text>
                           </View>
                         ))}
@@ -494,9 +677,9 @@ const FraudDetectionDashboard: React.FC = () => {
             </View>
           ) : (
             <View style={styles.alertsList}>
-              {(fraudData.alerts || []).map((alert) => (
+              {(fraudData.alerts || []).map((alert, index) => (
                 <View
-                  key={alert.id}
+                  key={`${alert.id}-${index}`}
                   style={[
                     styles.alertCard,
                     { borderLeftColor: getRiskColor(alert.type) }
@@ -554,6 +737,27 @@ const FraudDetectionDashboard: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
+              <View style={styles.settingItem}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Real-Time ECU Monitoring</Text>
+                  <Text style={styles.settingDescription}>
+                    Continuously monitor live ECU data for fraud patterns
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.toggle,
+                    isRealTimeEnabled && styles.toggleActive
+                  ]}
+                  onPress={handleToggleRealTime}
+                >
+                  <View style={[
+                    styles.toggleThumb,
+                    isRealTimeEnabled && styles.toggleThumbActive
+                  ]} />
+                </TouchableOpacity>
+              </View>
+
               {Object.entries(fraudData.checks || {}).map(([checkType, check]) => (
                 <View key={checkType} style={styles.settingItem}>
                   <View style={styles.settingInfo}>
@@ -580,6 +784,55 @@ const FraudDetectionDashboard: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               ))}
+            </View>
+          </View>
+
+          {/* Demo Scenarios Section */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Demo Scenarios</Text>
+              <Text style={styles.cardSubtitle}>
+                Test fraud detection with predefined scenarios
+              </Text>
+            </View>
+            <View style={styles.cardContent}>
+              <View style={styles.demoButtonsGrid}>
+                <TouchableOpacity
+                  style={[styles.demoButton, { backgroundColor: '#10b981' }]}
+                  onPress={() => handleDemoScenario('clean')}
+                >
+                  <MaterialIcons name="verified" size={24} color="white" />
+                  <Text style={styles.demoButtonText}>Clean Vehicle</Text>
+                  <Text style={styles.demoButtonSubtext}>No fraud patterns</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.demoButton, { backgroundColor: '#f59e0b' }]}
+                  onPress={() => handleDemoScenario('rollback')}
+                >
+                  <MaterialIcons name="trending-down" size={24} color="white" />
+                  <Text style={styles.demoButtonText}>Odometer Rollback</Text>
+                  <Text style={styles.demoButtonSubtext}>Major decrease in 15s</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.demoButton, { backgroundColor: '#ef4444' }]}
+                  onPress={() => handleDemoScenario('tampering')}
+                >
+                  <MaterialIcons name="settings" size={24} color="white" />
+                  <Text style={styles.demoButtonText}>ECU Tampering</Text>
+                  <Text style={styles.demoButtonSubtext}>Impossible parameters</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.demoButton, { backgroundColor: '#dc2626' }]}
+                  onPress={() => handleDemoScenario('sophisticated')}
+                >
+                  <MaterialIcons name="warning" size={24} color="white" />
+                  <Text style={styles.demoButtonText}>Multiple Issues</Text>
+                  <Text style={styles.demoButtonSubtext}>Combined fraud patterns</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -727,7 +980,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statusValue: {
-    fontSize: 22,
+    fontSize: 10,
     fontWeight: '700',
     textAlign: 'center',
     lineHeight: 26,
@@ -1016,6 +1269,118 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
+  },
+  demoButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  demoButton: {
+    flex: 1,
+    minWidth: '48%',
+    maxWidth: '48%',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  demoButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  // Odometer Display Styles
+  odometerSection: {
+    paddingHorizontal: Math.max(16, Math.min(20, Dimensions.get('window').width * 0.05)),
+    paddingVertical: 12,
+  },
+  odometerCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  odometerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  odometerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginLeft: 8,
+  },
+  odometerDisplay: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  odometerValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textAlign: 'center',
+  },
+  odometerSubtext: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  odometerWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  odometerWarningText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  odometerNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  odometerNoteText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 16,
   },
 });
 

@@ -1,10 +1,13 @@
+// services/obdii/OBDIIService.ts
+
 import { EventEmitter } from 'events';
 import BluetoothService from '../bluetooth/BluetoothService';
-import WiFiManager from '../wifi/WiFiManager';
-import { simulationService } from '../simulation/SimulationService';
-import { OBDIIParser, ParsedPIDData } from './OBDIIParser';
-import { PIDDefinition, PIDDefinitions } from './PIDDefinitions';
+import OdometerFraudDetectionService from '../fraud/OdometerFraudDetectionService';
 import MockDataGenerator from '../simulation/MockDataGenerator';
+import { simulationService } from '../simulation/SimulationService';
+import WiFiManager from '../wifi/WiFiManager';
+import { OBDIIParser, ParsedPIDData } from './OBDIIParser';
+import { ManufacturerOdometerConfig, PIDDefinitions } from './PIDDefinitions';
 
 // --- Type Definitions ---
 type ConnectionType = 'bluetooth' | 'wifi' | 'simulation';
@@ -23,6 +26,14 @@ interface CommandQueueItem {
   resolve: (value: string) => void;
   reject: (reason?: any) => void;
   timestamp: number;
+  isMode22?: boolean; // NEW: Flag for Mode 22 commands
+}
+
+interface VehicleInfo {
+  make?: string;
+  model?: string;
+  year?: number;
+  vin?: string;
 }
 
 // --- Central OBD-II Service ---
@@ -37,10 +48,15 @@ class OBDIIService extends EventEmitter {
   private supportedPIDs: Set<string> = new Set();
   private isInitialized = false;
 
-  // **IMPROVED**: Better response handling
+  // NEW: Vehicle-specific configuration
+  private currentVehicleInfo: VehicleInfo = {};
+  private activeOdometerPID: string | null = null;
+  private mode22Supported = false;
+
+  // Response handling
   private responseBuffer = '';
   private currentCommand: CommandQueueItem | null = null;
-  private commandTimeout = 5000; // 5 seconds
+  private commandTimeout = 5000;
   private maxRetries = 3;
 
   constructor() {
@@ -51,6 +67,94 @@ class OBDIIService extends EventEmitter {
     };
     this.setMaxListeners(20);
     this.mockDataGenerator = MockDataGenerator;
+
+    // Initialize fraud detection integration
+    this.initializeFraudDetectionIntegration();
+  }
+
+  /**
+   * Initialize fraud detection integration with OBD service
+   */
+  private initializeFraudDetectionIntegration(): void {
+    console.log('🔍 Initializing fraud detection integration with OBD service');
+
+    // Initialize fraud detection service with this OBD service instance
+    OdometerFraudDetectionService.initializeRealTimeMonitoring(this);
+
+    // Listen for fraud detection results and re-emit for Redux middleware
+    this.on('fraudDetectionResult', (data) => {
+      try {
+        console.log('🚨 Fraud detection result received:', data);
+        console.log('🔄 Re-emitting as realtimeFraudAlert for Redux...');
+        // Use notifySubscribers instead of emit to reach Redux subscription
+        this.notifySubscribers('realtimeFraudAlert', data);
+        console.log('✅ Notified subscribers of realtimeFraudAlert event');
+      } catch (error) {
+        console.error('❌ Error in fraudDetectionResult handler:', error);
+      }
+    });
+  }
+
+  // --- Vehicle Configuration Methods ---
+
+  /**
+   * Set vehicle information to determine appropriate odometer PID
+   */
+  public setVehicleInfo(vehicleInfo: VehicleInfo): void {
+    this.currentVehicleInfo = { ...vehicleInfo };
+    console.log('Vehicle info set:', this.currentVehicleInfo);
+
+    // Determine and set the appropriate odometer PID
+    this.selectOdometerPID();
+  }
+
+  /**
+   * Automatically select the best odometer PID for the current vehicle
+   */
+  private selectOdometerPID(): void {
+    if (!this.currentVehicleInfo.make) {
+      console.warn('No vehicle make specified, cannot select odometer PID');
+      return;
+    }
+
+    // Try to find manufacturer-specific odometer PID
+    const manufacturerPID = PIDDefinitions.getOdometerPIDForManufacturer(this.currentVehicleInfo.make);
+
+    if (manufacturerPID) {
+      // Check if this specific config is compatible
+      const configs = PIDDefinitions.getManufacturerOdometerConfigs();
+      const compatibleConfig = configs.find(config =>
+        PIDDefinitions.isOdometerConfigCompatible(
+          config,
+          this.currentVehicleInfo.make!,
+          this.currentVehicleInfo.model,
+          this.currentVehicleInfo.year
+        )
+      );
+
+      if (compatibleConfig) {
+        this.activeOdometerPID = compatibleConfig.pidName;
+        console.log(`Selected odometer PID: ${this.activeOdometerPID} for ${this.currentVehicleInfo.make}`);
+        return;
+      }
+    }
+
+    // Fallback to standard odometer PID
+    this.activeOdometerPID = 'ODOMETER_STANDARD';
+    console.log('Using standard odometer PID as fallback');
+  }
+
+  /**
+   * Add a new manufacturer odometer configuration dynamically
+   */
+  public addManufacturerOdometerConfig(config: ManufacturerOdometerConfig): void {
+    PIDDefinitions.addManufacturerOdometerConfig(config);
+
+    // Re-select odometer PID if this config is for current vehicle
+    if (this.currentVehicleInfo.make &&
+      config.manufacturer.toLowerCase() === this.currentVehicleInfo.make.toLowerCase()) {
+      this.selectOdometerPID();
+    }
   }
 
   // --- Connection & State Management ---
@@ -60,13 +164,13 @@ class OBDIIService extends EventEmitter {
       console.log('Already connected or connecting');
       return false;
     }
-    
+
     this.updateConnectionInfo('connecting', type, device);
 
     try {
       simulationService.stopSimulation();
       let isConnected = false;
-      
+
       if (type === 'bluetooth') {
         this.commService = BluetoothService;
         await this.commService.initialize();
@@ -79,11 +183,14 @@ class OBDIIService extends EventEmitter {
       if (isConnected && this.commService) {
         this.commService.on('dataReceived', this.handleDataReceived);
         this.commService.on('deviceDisconnected', this.handleDisconnection);
-        
-        // **CRITICAL**: Initialize the adapter with proper error handling
+
+        // Initialize the adapter with proper error handling
         await this.initializeAdapter();
         await this.discoverSupportedPIDs();
-        
+
+        // NEW: Test Mode 22 support
+        await this.testMode22Support();
+
         this.isInitialized = true;
         this.updateConnectionInfo('connected', type, device);
         console.log('OBD-II connection fully established and initialized');
@@ -99,28 +206,70 @@ class OBDIIService extends EventEmitter {
     }
   }
 
+  /**
+   * Test if the vehicle supports Mode 22 commands
+   */
+  private async testMode22Support(): Promise<void> {
+    try {
+      // Try a simple Mode 22 command to test support
+      const testCommand = '2200'; // Simple test command
+      const response = await this.sendCommand(testCommand, 2000); // Shorter timeout for test
+
+      if (response && !response.includes('NO DATA') && !response.includes('ERROR')) {
+        this.mode22Supported = true;
+        console.log('Mode 22 commands supported by vehicle');
+      } else {
+        this.mode22Supported = false;
+        console.log('Mode 22 commands not supported by vehicle');
+      }
+    } catch (error) {
+      this.mode22Supported = false;
+      console.log('Mode 22 support test failed, assuming not supported');
+    }
+  }
+
   public enableSimulation(): void {
     if (this.connectionInfo.status === 'connected') return;
     this.updateConnectionInfo('connected', 'simulation');
     simulationService.startSimulation();
     simulationService.registerCallback(this.handleSimulationData);
     this.isInitialized = true;
+    this.mode22Supported = true; // Simulation supports everything
+
+    // --- Listen for fraud/fault/risk events from MockDataGenerator ---
+    this.removeMockDataListeners();
+    this.mockDataGenerator.on('faultsChanged', (faults) => {
+      this.notifySubscribers('faultsChanged', faults);
+    });
+    this.mockDataGenerator.on('alertsChanged', (alerts) => {
+      this.notifySubscribers('alertsChanged', alerts);
+    });
+    this.mockDataGenerator.on('riskChanged', (risk) => {
+      this.notifySubscribers('riskChanged', risk);
+    });
+  }
+
+  private removeMockDataListeners() {
+    this.mockDataGenerator.removeAllListeners?.('faultsChanged');
+    this.mockDataGenerator.removeAllListeners?.('alertsChanged');
+    this.mockDataGenerator.removeAllListeners?.('riskChanged');
   }
 
   public async disconnect(): Promise<void> {
     console.log('Disconnecting OBD-II service...');
-    
     this.stopAllPolling();
     this.isInitialized = false;
-    
+    this.mode22Supported = false;
+    this.activeOdometerPID = null;
     if (this.connectionInfo.type === 'simulation') {
       simulationService.stopSimulation();
+      this.removeMockDataListeners();
     } else if (this.commService) {
       await this.commService.disconnect();
       this.commService.removeListener('dataReceived', this.handleDataReceived);
       this.commService.removeListener('deviceDisconnected', this.handleDisconnection);
     }
-    
+
     // Clear command queue
     if (this.currentCommand) {
       this.currentCommand.reject(new Error("Disconnected"));
@@ -130,178 +279,40 @@ class OBDIIService extends EventEmitter {
     this.currentCommand = null;
     this.isProcessingQueue = false;
     this.responseBuffer = '';
-    
+
     this.updateConnectionInfo('disconnected', null);
     this.commService = null;
   }
 
-  private handleDisconnection = () => {
-    console.log('Connection lost, attempting to disconnect cleanly');
-    this.disconnect();
-  };
+  // --- Command Handling with Mode 22 Support ---
 
-  private updateConnectionInfo(status: ConnectionStatus, type: ConnectionType | null, device?: any, error?: string) {
-    this.connectionInfo = { status, type, device, error };
-    this.notifySubscribers('connectionStatus', this.connectionInfo);
-  }
-
-  public subscribe(callback: SubscriberCallback): () => void {
-    this.subscribers.add(callback);
-    // Immediately send current connection status
-    callback('connectionStatus', this.connectionInfo);
-    return () => this.subscribers.delete(callback);
-  }
-
-  public getConnectionStatus(): ConnectionInfo {
-    return this.connectionInfo;
-  }
-
-  private notifySubscribers(event: string, data: any): void {
-    this.subscribers.forEach(callback => {
-      try {
-        callback(event, data);
-      } catch (error) {
-        console.error('Error in subscriber callback:', error);
-      }
-    });
-  }
-
-  // --- Command & Data Processing ---
-
-  public async initializeAdapter(): Promise<void> {
-    console.log('Initializing OBD-II adapter...');
-    
-    try {
-      // For WiFi adapters, turn off echo first to avoid command/response confusion
-      // if (this.connectionInfo.type === 'wifi') {
-      //   await this.sendCommand('ATE0');
-      //   await this.delay(2000);
-      // }
-      
-      // Reset the adapter
-      // await this.sendCommand('ATZ');
-      // await this.delay(2000); // Longer wait for reset, especially for WiFi adapters
-
-      // // Turn off echo (in case it wasn't off already)
-      // await this.sendCommand('ATE0');
-      // await this.delay(2000);
-
-      // // Set automatic protocol detection
-      // await this.sendCommand('ATSP0');
-      // await this.delay(2000);
-
-      // // Set line feeds off
-      // await this.sendCommand('ATL0');
-      // await this.delay(2000);
-
-      // // Set headers off
-      // await this.sendCommand('ATH0');
-      // await this.delay(2000);
-
-      // // Set spaces off for more compact responses
-      // await this.sendCommand('ATS0');
-      // await this.delay(2000);
-
-      console.log('OBD-II adapter initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize adapter:', error);
-      throw error;
-    }
-  }
-
-  public async discoverSupportedPIDs(): Promise<void> {
-    console.log('Discovering supported PIDs...');
-    this.supportedPIDs.clear();
-
-    try {
-      // Query for PIDs 01-20 (Mode 01, PID 00)
-      const response = await this.sendCommand('0100');
-      console.log('PID support response:', response);
-      
-      if (response && response.length >= 12) { // Should be at least "4100XXXXXXXX"
-        const cleanResponse = response.replace(/[\s>]/g, '');
-        
-        if (cleanResponse.startsWith('4100')) {
-          const hexData = cleanResponse.substring(4);
-          console.log('PID support hex data:', hexData);
-          
-          // Convert hex to binary to check which PIDs are supported
-          const supportBits = this.hexToBinary(hexData);
-          console.log('PID support bits:', supportBits);
-          
-          const allPIDs = PIDDefinitions.getAllPIDs();
-          
-          // Check each bit position
-          for (let i = 0; i < Math.min(supportBits.length, 32); i++) {
-            if (supportBits[i] === '1') {
-              const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
-              const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
-              
-              if (pidDef) {
-                this.supportedPIDs.add(pidDef.name);
-                console.log(`Supported PID found: ${pidDef.name} (${pidNumber})`);
-              }
-            }
-          }
-        }
-      }
-      
-      // Add some common PIDs that might not be reported but often work
-      const commonPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD'];
-      commonPIDs.forEach(pid => {
-        if (!this.supportedPIDs.has(pid)) {
-          this.supportedPIDs.add(pid);
-          console.log(`Added common PID: ${pid}`);
-        }
-      });
-
-      console.log(`Discovered ${this.supportedPIDs.size} supported PIDs:`, Array.from(this.supportedPIDs));
-      this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
-    } catch (error) {
-      console.error('Failed to discover supported PIDs:', error);
-      // Add fallback PIDs if discovery fails
-      const fallbackPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD', 'THROTTLE_POSITION'];
-      fallbackPIDs.forEach(pid => this.supportedPIDs.add(pid));
-      console.log('Using fallback PIDs:', Array.from(this.supportedPIDs));
-    }
-  }
-
-  private hexToBinary(hex: string): string {
-    let binary = '';
-    for (let i = 0; i < hex.length; i += 2) {
-      const hexByte = hex.substring(i, i + 2);
-      const byte = parseInt(hexByte, 16);
-      binary += byte.toString(2).padStart(8, '0');
-    }
-    return binary;
-  }
-
-  public isPIDSupported(pidName: string): boolean {
-    return this.supportedPIDs.has(pidName);
-  }
-
-  public sendCommand(command: string): Promise<string> {
-    if (this.connectionInfo.type === 'simulation') {
-      return new Promise(resolve => setTimeout(() => resolve('SIMULATED_OK'), 100));
-    }
-
+  public async sendCommand(command: string, timeout = this.commandTimeout): Promise<string> {
     return new Promise((resolve, reject) => {
-      const commandItem: CommandQueueItem = {
+      const isMode22 = command.startsWith('22');
+
+      const queueItem: CommandQueueItem = {
         command,
         resolve,
         reject,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isMode22
       };
-      
-      this.commandQueue.push(commandItem);
-      
-      if (!this.isProcessingQueue) {
-        this.processQueue();
-      }
+
+      this.commandQueue.push(queueItem);
+      this.processCommandQueue();
+
+      // Set timeout
+      setTimeout(() => {
+        const index = this.commandQueue.indexOf(queueItem);
+        if (index > -1) {
+          this.commandQueue.splice(index, 1);
+          reject(new Error(`Command timeout: ${command}`));
+        }
+      }, timeout);
     });
   }
 
-  private async processQueue(): Promise<void> {
+  private async processCommandQueue(): Promise<void> {
     if (this.isProcessingQueue || this.commandQueue.length === 0) {
       return;
     }
@@ -309,201 +320,495 @@ class OBDIIService extends EventEmitter {
     this.isProcessingQueue = true;
 
     while (this.commandQueue.length > 0) {
-      this.currentCommand = this.commandQueue.shift()!;
-      
+      const command = this.commandQueue.shift();
+      if (!command) break;
+
+      this.currentCommand = command;
+
       try {
-        if (!this.commService) {
-          throw new Error('Communication service unavailable');
+        const formattedCommand = this.formatCommand(command.command);
+        console.log(`Sending command: ${formattedCommand}${command.isMode22 ? ' (Mode 22)' : ''}`);
+
+        if (this.connectionInfo.type === 'simulation') {
+          // Handle simulation
+          const mockResponse = await this.handleSimulationCommand(command.command);
+          command.resolve(mockResponse);
+        } else if (this.commService) {
+          // Send to real device
+          await this.commService.sendData(formattedCommand);
+
+          // Wait for response (handled by handleDataReceived)
+          // The response will be processed and resolve/reject will be called
+        } else {
+          command.reject(new Error('No communication service available'));
         }
 
-        console.log(`Sending command: ${this.currentCommand.command}`);
+        // Add delay between commands to avoid overwhelming the ECU
+        await this.delay(command.isMode22 ? 200 : 100); // Longer delay for Mode 22
 
-        // Clear response buffer before sending command
-        this.responseBuffer = '';
-
-        // Set up timeout
-        const timeoutId = setTimeout(() => {
-          if (this.currentCommand) {
-            console.log(`Command timeout: ${this.currentCommand.command}`);
-            this.currentCommand.reject(new Error(`Command timeout: ${this.currentCommand.command}`));
-            this.currentCommand = null;
-          }
-        }, this.commandTimeout);
-
-        // Send the command
-        const success = await this.commService.sendData(this.currentCommand.command + '\r');
-        
-        if (!success) {
-          clearTimeout(timeoutId);
-          this.currentCommand.reject(new Error('Failed to send command'));
-          this.currentCommand = null;
-          continue;
-        }
-
-        // Wait for response (the response will be handled in handleDataReceived)
-        // The timeout will handle cases where no response comes
-        await new Promise<void>((resolve, reject) => {
-          const originalResolve = this.currentCommand!.resolve;
-          const originalReject = this.currentCommand!.reject;
-
-          this.currentCommand!.resolve = (value: string) => {
-            clearTimeout(timeoutId);
-            originalResolve(value);
-            resolve();
-          };
-
-          this.currentCommand!.reject = (reason: any) => {
-            clearTimeout(timeoutId);
-            originalReject(reason);
-            reject(reason);
-          };
-        });
-
-        this.currentCommand = null;
-        
-        // Small delay between commands
-        await this.delay(50);
-
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error processing command:', error);
-        if (this.currentCommand) {
-          this.currentCommand.reject(error);
-          this.currentCommand = null;
-        }
-        
-        // Continue with next command even if this one failed
-        continue;
+        command.reject(error);
       }
+
+      this.currentCommand = null;
     }
 
     this.isProcessingQueue = false;
   }
 
-  private handleDataReceived = (data: any) => {
-    console.log('Raw data received:', JSON.stringify(data));
-    
-    // Extract the actual data string from the event object
-    const dataString = typeof data === 'string' ? data : data.data || '';
-    
-    this.responseBuffer += dataString;
+  private formatCommand(command: string): string {
+    // Ensure command ends with carriage return
+    const formatted = command.endsWith('\r') ? command : command + '\r';
+    return formatted;
+  }
 
-    // Split by common terminators, but also handle responses without line endings
-    const responses = this.responseBuffer.split(/[\r\n]+/);
-    
-    // Keep the last incomplete response in buffer
-    this.responseBuffer = responses.pop() || '';
+  /**
+   * Handle simulation commands including Mode 22
+   */
+  private async handleSimulationCommand(command: string): Promise<string> {
+    // Extract mode and PID from command
+    const mode = command.substring(0, 2);
+    const pid = command.substring(2);
 
-    // Process all complete responses
-    for (const response of responses) {
-      const trimmedResponse = response.trim();
-      
-      if (trimmedResponse.length === 0) continue;
+    if (mode === '22') {
+      // Mode 22 simulation
+      return this.simulateMode22Response(pid);
+    } else {
+      // Standard OBD-II simulation
+      return `41${pid}${this.generateSimulationData(pid)}`;
+    }
+  }
 
-      console.log('Processing response:', trimmedResponse);
+  /**
+   * Generate simulated Mode 22 responses
+   */
+  private simulateMode22Response(pid: string): string {
+    const responses: { [key: string]: string } = {
+      '25AE': '6225AE000FA123', // Toyota odometer simulation: ~1,000,000 km
+      '00C0': '6200C01E8B',     // Honda odometer simulation: ~500,000 km
+      'DD01': '62DD01000C3F2A', // Ford odometer simulation: ~800,000 km
+    };
 
-      // Handle command responses
-      if (this.currentCommand && this.isCommandResponse(trimmedResponse, this.currentCommand.command)) {
-        console.log(`Command response for ${this.currentCommand.command}:`, trimmedResponse);
-        this.currentCommand.resolve(trimmedResponse);
-        this.currentCommand = null; // Clear the current command
-        continue;
-      }
+    return responses[pid] || `62${pid}NODATA`;
+  }
 
-      // Try to parse as OBD data
-      if (OBDIIParser.isValidOBDResponse(trimmedResponse)) {
-        const parsedData = OBDIIParser.parse(trimmedResponse);
-        if (parsedData) {
-          console.log('Parsed OBD data:', parsedData);
-          this.notifySubscribers('dataUpdate', parsedData);
-        }
+  private generateSimulationData(pid: string): string {
+    // Generate realistic simulation data for different PIDs
+    const data: { [key: string]: string } = {
+      '0C': '1A50', // RPM: ~1700
+      '0D': '28',   // Speed: 40 km/h
+      '05': '5F',   // Coolant temp: 55°C
+      '04': '3F',   // Engine load: ~25%
+      '11': '32',   // Throttle: ~20%
+      '2F': 'B3',   // Fuel level: ~70%
+    };
+
+    return data[pid] || '00';
+  }
+
+  // --- Data Reception and Parsing ---
+
+  private handleDataReceived = (data: string) => {
+    this.responseBuffer += data;
+
+    // Process complete responses (ending with '>')
+    const responses = this.responseBuffer.split('>');
+
+    for (let i = 0; i < responses.length - 1; i++) {
+      const response = responses[i].trim();
+      if (response) {
+        this.processResponse(response);
       }
     }
 
-    // Check if buffer contains a complete response without line endings
-    if (this.responseBuffer.length > 0 && this.currentCommand) {
-      const trimmedBuffer = this.responseBuffer.trim();
-      if (this.isCommandResponse(trimmedBuffer, this.currentCommand.command)) {
-        console.log(`Command response for ${this.currentCommand.command}:`, trimmedBuffer);
-        this.currentCommand.resolve(trimmedBuffer);
-        this.currentCommand = null; // Clear the current command
-        this.responseBuffer = ''; // Clear the buffer
-      }
-    }
+    // Keep the last partial response
+    this.responseBuffer = responses[responses.length - 1];
   };
 
-  private isCommandResponse(response: string, command: string): boolean {
-    const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
-    const cleanCommand = command.replace(/[\s\r\n]/g, '').toUpperCase();
+  private processResponse(response: string): void {
+    console.log('Processing response:', response);
 
-    // Check for direct command echo
-    if (cleanResponse === cleanCommand) return false;
-
-    // Check for OK response
-    if (cleanResponse === 'OK') return true;
-
-    // Check for error responses
-    if (cleanResponse.includes('ERROR') || cleanResponse.includes('?')) return true;
-
-    // Check for specific command responses
-    if (cleanCommand.startsWith('AT')) {
-      // Special handling for ATZ reset command - responds with ELM327 version OR just OK
-      if (cleanCommand === 'ATZ' && (cleanResponse.includes('ELM327') || cleanResponse === 'OK')) {
-        return true;
+    if (this.currentCommand) {
+      // Check if this is a Mode 22 response
+      if (this.currentCommand.isMode22) {
+        this.processMode22Response(response);
+      } else {
+        this.processStandardResponse(response);
       }
-      // Other AT commands typically return OK or error
-      if (cleanResponse === 'OK' || cleanResponse.includes('ERROR')) {
-        return true;
+    }
+  }
+
+  /**
+   * Process Mode 22 response
+   */
+  private processMode22Response(response: string): void {
+    if (!this.currentCommand) return;
+
+    try {
+      // Mode 22 responses start with '62' followed by the PID
+      if (response.startsWith('62')) {
+        this.currentCommand.resolve(response);
+
+        // Parse and emit the data if it's an odometer reading
+        this.parseMode22OdometerData(response);
+      } else if (response.includes('NO DATA') || response.includes('ERROR')) {
+        this.currentCommand.reject(new Error(`Mode 22 command failed: ${response}`));
+      } else {
+        this.currentCommand.resolve(response);
       }
-      return false; // Don't assume all AT responses are complete
+    } catch (error) {
+      console.error('Error processing Mode 22 response:', error);
+      this.currentCommand.reject(error);
+    }
+  }
+
+  /**
+   * Parse Mode 22 odometer data and emit as parsed PID data
+   */
+  private parseMode22OdometerData(response: string): void {
+    try {
+      // Extract PID from response (characters 2-5 for most PIDs)
+      const pidFromResponse = response.substring(2, 6);
+
+      // Find matching PID definition
+      const allPIDs = PIDDefinitions.getAllOdometerPIDs();
+      const matchingPID = allPIDs.find(pid =>
+        pid.mode === '22' && pid.pid === pidFromResponse
+      );
+
+      if (matchingPID) {
+        // Extract data bytes (skip '62' + PID)
+        const dataStart = 2 + matchingPID.pid.length;
+        const hexData = response.substring(dataStart);
+
+        // Convert hex string to byte array
+        const bytes: number[] = [];
+        for (let i = 0; i < hexData.length; i += 2) {
+          const byteHex = hexData.substring(i, i + 2);
+          if (byteHex.length === 2) {
+            bytes.push(parseInt(byteHex, 16));
+          }
+        }
+
+        // Parse the data using the PID's parse function
+        const parsedValue = matchingPID.parse(bytes);
+
+        // Create parsed PID data object
+        const parsedData: ParsedPIDData = {
+          name: matchingPID.name,
+          value: parsedValue,
+          unit: matchingPID.unit || '',
+          timestamp: new Date(),
+          raw: response
+        };
+
+        console.log(`Parsed Mode 22 odometer data: ${matchingPID.name} = ${parsedValue} ${matchingPID.unit}`);
+
+        // Emit the parsed data
+        this.notifySubscribers('dataUpdate', parsedData);
+      }
+    } catch (error) {
+      console.error('Error parsing Mode 22 odometer data:', error);
+    }
+  }
+
+  /**
+   * Process standard OBD-II response
+   */
+  private processStandardResponse(response: string): void {
+    if (!this.currentCommand) return;
+
+    try {
+      if (response.includes('NO DATA') || response.includes('ERROR')) {
+        this.currentCommand.reject(new Error(`Command failed: ${response}`));
+      } else {
+        this.currentCommand.resolve(response);
+      }
+    } catch (error) {
+      console.error('Error processing standard response:', error);
+      this.currentCommand.reject(error);
+    }
+  }
+
+  // --- Initialization Methods ---
+
+  private async initializeAdapter(): Promise<void> {
+    const initCommands = [
+      'ATZ',      // Reset adapter
+      'ATE0',     // Echo off
+      'ATL0',     // Line feeds off
+      'ATS0',     // Spaces off
+      'ATH1',     // Headers on
+      'ATSP0',    // Set protocol to auto
+    ];
+
+    for (const command of initCommands) {
+      try {
+        await this.sendCommand(command);
+        await this.delay(100);
+      } catch (error) {
+        console.warn(`Initialization command failed: ${command}`, error);
+      }
+    }
+  }
+
+  /**
+ * Full implementation of PID discovery with proper bitmask parsing
+ */
+  private async discoverSupportedPIDs(): Promise<void> {
+    console.log('🔍 Starting comprehensive PID discovery...');
+
+    try {
+      // Clear existing supported PIDs
+      this.supportedPIDs.clear();
+
+      // Discover PIDs in ranges: 01-20, 21-40, 41-60, 61-80, etc.
+      const pidRanges = [
+        { command: '0100', range: '01-20', startPID: 1 },
+        { command: '0120', range: '21-40', startPID: 33 },
+        { command: '0140', range: '41-60', startPID: 65 },
+        { command: '0160', range: '61-80', startPID: 97 },
+        { command: '0180', range: '81-A0', startPID: 129 },
+        { command: '01A0', range: 'A1-C0', startPID: 161 }
+      ];
+
+      for (const pidRange of pidRanges) {
+        try {
+          console.log(`🔎 Checking PID range ${pidRange.range}...`);
+
+          const response = await this.sendCommand(pidRange.command, 3000);
+
+          if (!response || response.includes('NO DATA') || response.includes('ERROR')) {
+            console.log(`❌ No data for PID range ${pidRange.range}`);
+            continue;
+          }
+
+          // Parse the response (format: 41 [PID] [4 bytes of bitmask])
+          const cleanResponse = response.replace(/\s+/g, '').toUpperCase();
+
+          if (cleanResponse.length < 14) { // 41 + 2 PID chars + 8 hex chars (4 bytes)
+            console.warn(`⚠️ Invalid response length for ${pidRange.range}: ${cleanResponse}`);
+            continue;
+          }
+
+          // Extract the 4-byte bitmask (skip "41" + PID code)
+          const bitmaskHex = cleanResponse.substring(6, 14); // 8 hex characters = 4 bytes
+
+          if (bitmaskHex.length !== 8) {
+            console.warn(`⚠️ Invalid bitmask length for ${pidRange.range}: ${bitmaskHex}`);
+            continue;
+          }
+
+          console.log(`📊 PID range ${pidRange.range} bitmask: ${bitmaskHex}`);
+
+          // Parse the bitmask and identify supported PIDs
+          const supportedPIDsInRange = this.parsePIDBitmask(bitmaskHex, pidRange.startPID);
+
+          // Add supported PIDs to our set
+          supportedPIDsInRange.forEach(pidInfo => {
+            this.supportedPIDs.add(pidInfo.name);
+            console.log(`✅ Supported PID found: ${pidInfo.name} (${pidInfo.hex})`);
+          });
+
+          console.log(`📈 Found ${supportedPIDsInRange.length} supported PIDs in range ${pidRange.range}`);
+
+          // Add a small delay between range checks
+          await this.delay(200);
+
+        } catch (error) {
+          console.warn(`⚠️ Error checking PID range ${pidRange.range}:`, error);
+          // Continue with next range even if this one fails
+        }
+      }
+
+      // Log discovery results
+      const totalSupportedPIDs = this.supportedPIDs.size;
+      console.log(`🎯 PID discovery complete: ${totalSupportedPIDs} PIDs supported`);
+      console.log('📋 Supported PIDs:', Array.from(this.supportedPIDs).sort());
+
+      // Add common PIDs if none were discovered (fallback)
+      if (totalSupportedPIDs === 0) {
+        console.log('🔧 No PIDs discovered, adding common fallback PIDs...');
+        this.addFallbackPIDs();
+      }
+
+    } catch (error) {
+      console.error('❌ PID discovery failed:', error);
+      // Add fallback PIDs in case of complete failure
+      this.addFallbackPIDs();
+    }
+  }
+
+  /**
+   * Parse a 4-byte PID support bitmask and return supported PID information
+   */
+  private parsePIDBitmask(bitmaskHex: string, startPIDNumber: number): Array<{ name: string, hex: string, pidNumber: number }> {
+    const supportedPIDs: Array<{ name: string, hex: string, pidNumber: number }> = [];
+
+    try {
+      // Convert hex string to 32-bit number
+      const bitmask = parseInt(bitmaskHex, 16);
+
+      // Check each bit (32 bits total, representing PIDs 1-32 in the range)
+      for (let bitPosition = 0; bitPosition < 32; bitPosition++) {
+        // Check if the bit is set (1 means supported)
+        const isSupported = (bitmask & (1 << (31 - bitPosition))) !== 0;
+
+        if (isSupported) {
+          const pidNumber = startPIDNumber + bitPosition;
+          const pidHex = pidNumber.toString(16).toUpperCase().padStart(2, '0');
+
+          // Find the PID name from our definitions
+          const pidName = this.getPIDNameFromHex(pidHex);
+
+          if (pidName) {
+            supportedPIDs.push({
+              name: pidName,
+              hex: pidHex,
+              pidNumber: pidNumber
+            });
+          } else {
+            // Unknown PID, but it's supported
+            supportedPIDs.push({
+              name: `UNKNOWN_PID_${pidHex}`,
+              hex: pidHex,
+              pidNumber: pidNumber
+            });
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error parsing PID bitmask:', error, bitmaskHex);
     }
 
-    // Check for OBD response pattern (mode + 0x40)
-    if (cleanCommand.length >= 4) {
-      const commandMode = cleanCommand.substring(0, 2);
-      const responseMode = (parseInt(commandMode, 16) + 0x40).toString(16).toUpperCase().padStart(2, '0');
-      
-      if (cleanResponse.startsWith(responseMode)) {
-        return true;
-      }
+    return supportedPIDs;
+  }
+
+  /**
+   * Get PID name from hex code by looking up in our PID definitions
+   */
+  private getPIDNameFromHex(pidHex: string): string | null {
+    const allPIDs = PIDDefinitions.getAllPIDs();
+
+    // Look for Mode 01 PIDs with matching hex code
+    const matchingPID = allPIDs.find(pid =>
+      pid.mode === '01' &&
+      pid.pid.toUpperCase() === pidHex.toUpperCase()
+    );
+
+    return matchingPID ? matchingPID.name : null;
+  }
+
+  /**
+   * Add common fallback PIDs when discovery fails
+   */
+  private addFallbackPIDs(): void {
+    const commonPIDs = [
+      'ENGINE_RPM',
+      'VEHICLE_SPEED',
+      'ENGINE_COOLANT_TEMP',
+      'ENGINE_LOAD',
+      'THROTTLE_POSITION',
+      'FUEL_LEVEL',
+      'DISTANCE_SINCE_CODES_CLEARED',
+      'DISTANCE_WITH_MIL_ON',
+      'RUNTIME_SINCE_ENGINE_START'
+    ];
+
+    commonPIDs.forEach(pidName => {
+      this.supportedPIDs.add(pidName);
+    });
+
+    console.log(`🔧 Added ${commonPIDs.length} fallback PIDs`);
+  }
+
+  /**
+   * Check if a specific PID is supported (enhanced version)
+   */
+  public isPIDSupported(pidName: string): boolean {
+    // First check our discovered PIDs
+    if (this.supportedPIDs.has(pidName)) {
+      return true;
+    }
+
+    // For simulation mode, support everything
+    if (this.connectionInfo.type === 'simulation') {
+      return true;
+    }
+
+    // For Mode 22 PIDs, check if Mode 22 is supported
+    const pidDefinition = PIDDefinitions.getPID(pidName);
+    if (pidDefinition?.mode === '22') {
+      return this.mode22Supported;
+    }
+
+    // If no PIDs were discovered (discovery failed), assume common PIDs are supported
+    if (this.supportedPIDs.size === 0) {
+      const commonPIDs = [
+        'ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP',
+        'ENGINE_LOAD', 'THROTTLE_POSITION', 'FUEL_LEVEL'
+      ];
+      return commonPIDs.includes(pidName);
     }
 
     return false;
   }
 
-  public async queryPID(pidName: string): Promise<ParsedPIDData | null> {
-    if (!this.isInitialized) {
-      console.warn('OBD-II service not initialized');
-      return null;
-    }
-
-    const pid = PIDDefinitions.getPID(pidName);
-    if (!pid) {
-      console.error(`PID not found: ${pidName}`);
-      return null;
-    }
+  /**
+   * Get detailed information about discovered PIDs
+   */
+  public getPIDDiscoveryInfo(): {
+    totalDiscovered: number;
+    supportedPIDs: string[];
+    mode22Supported: boolean;
+    activeOdometerPID: string | null;
+    discoveryMethod: 'full' | 'fallback' | 'simulation';
+  } {
+    let discoveryMethod: 'full' | 'fallback' | 'simulation' = 'full';
 
     if (this.connectionInfo.type === 'simulation') {
-      const simulatedValue = this.mockDataGenerator.generatePIDData(pid.name);
-      const parsedData: ParsedPIDData = {
-        name: pid.name,
-        value: simulatedValue,
-        unit: pid.unit,
-        timestamp: new Date(),
-        raw: `simulated:${simulatedValue}`,
-        mode: pid.mode,
-        pid: pid.pid,
-      };
-      this.notifySubscribers('dataUpdate', parsedData);
-      return parsedData;
+      discoveryMethod = 'simulation';
+    } else if (this.supportedPIDs.size <= 9) { // Assuming fallback adds ~9 common PIDs
+      discoveryMethod = 'fallback';
+    }
+
+    return {
+      totalDiscovered: this.supportedPIDs.size,
+      supportedPIDs: Array.from(this.supportedPIDs).sort(),
+      mode22Supported: this.mode22Supported,
+      activeOdometerPID: this.activeOdometerPID,
+      discoveryMethod
+    };
+  }
+
+  // --- PID Querying and Polling ---
+
+  public async queryPID(pidName: string): Promise<ParsedPIDData | null> {
+    const pidDefinition = PIDDefinitions.getPID(pidName);
+    if (!pidDefinition) {
+      console.error(`PID definition not found: ${pidName}`);
+      return null;
     }
 
     try {
-      const command = pid.mode + pid.pid;
-      console.log(`Querying PID ${pidName} with command: ${command}`);
-      
+      let command: string;
+
+      if (pidDefinition.mode === '22') {
+        // Mode 22 command
+        if (!this.mode22Supported) {
+          console.warn(`Mode 22 not supported, skipping ${pidName}`);
+          return null;
+        }
+        command = `22${pidDefinition.pid}`;
+      } else {
+        // Standard OBD-II command
+        command = `${pidDefinition.mode}${pidDefinition.pid}`;
+      }
+
       const rawResponse = await this.sendCommand(command);
-      console.log(`Response for ${pidName}:`, rawResponse);
-      
+
       if (!rawResponse || rawResponse.includes('NO DATA') || rawResponse.includes('ERROR')) {
         console.warn(`No data or error for PID: ${pidName}`);
         return null;
@@ -514,12 +819,87 @@ class OBDIIService extends EventEmitter {
         console.log(`Successfully parsed ${pidName}:`, parsedData);
         this.notifySubscribers('dataUpdate', parsedData);
       }
-      
+
       return parsedData;
     } catch (error) {
       console.error(`Error querying PID ${pidName}:`, error);
       return null;
     }
+  }
+
+  // --- Live Data Streaming ---
+
+  public startLiveData(): void {
+    if (this.connectionInfo.status !== 'connected') {
+      console.warn('Cannot start live data - not connected');
+      return;
+    }
+
+    console.log('Starting live data stream...');
+
+    // Get dashboard PIDs
+    const dashboardPIDs = [
+      'ENGINE_RPM',
+      'VEHICLE_SPEED',
+      'ENGINE_COOLANT_TEMP',
+      'ENGINE_LOAD',
+      'THROTTLE_POSITION',
+      'FUEL_LEVEL'
+    ];
+
+    // Get fraud detection PIDs
+    const fraudDetectionPIDs = [
+      'DISTANCE_SINCE_CODES_CLEARED',
+      'DISTANCE_WITH_MIL_ON',
+      'RUNTIME_SINCE_ENGINE_START'
+    ];
+
+    // Combine all PIDs to poll
+    const allPIDs = [...dashboardPIDs, ...fraudDetectionPIDs];
+
+    // Add odometer PID if available and supported
+    if (this.activeOdometerPID) {
+      const odometerPID = PIDDefinitions.getPID(this.activeOdometerPID);
+      if (odometerPID) {
+        if (odometerPID.mode === '22' && this.mode22Supported) {
+          allPIDs.push(this.activeOdometerPID);
+          console.log(`Added odometer PID to polling: ${this.activeOdometerPID}`);
+        } else if (odometerPID.mode === '01') {
+          allPIDs.push(this.activeOdometerPID);
+          console.log(`Added standard odometer PID to polling: ${this.activeOdometerPID}`);
+        } else {
+          console.warn(`Odometer PID ${this.activeOdometerPID} not supported (Mode 22 unavailable)`);
+        }
+      }
+    }
+
+    // Start polling each supported PID
+    allPIDs.forEach(pidName => {
+      const isSimulation = this.connectionInfo.type === 'simulation';
+      const pidSupported = this.isPIDSupported(pidName);
+      const noDiscoveredPIDs = this.supportedPIDs.size === 0;
+      const isOdometerPID = pidName === this.activeOdometerPID;
+
+      // Different intervals for different types of data
+      let interval = 1500; // Default interval
+
+      if (fraudDetectionPIDs.includes(pidName) || isOdometerPID) {
+        interval = 5000; // Slower polling for fraud detection PIDs and odometer (less frequent updates)
+      }
+
+      if (pidSupported || isSimulation || noDiscoveredPIDs || isOdometerPID) {
+        this.startPollingPID(pidName, interval);
+      } else {
+        console.log(`Skipping unsupported PID: ${pidName}`);
+      }
+    });
+
+    console.log(`Started live data for ${this.activePollingPIDs.size} PIDs`);
+  }
+
+  public stopLiveData(): void {
+    console.log("Stopping live data stream...");
+    this.stopAllPolling();
   }
 
   // --- Polling Methods ---
@@ -568,52 +948,95 @@ class OBDIIService extends EventEmitter {
     this.activePollingPIDs.clear();
   }
 
+  // --- Simulation Handling ---
+
   private handleSimulationData = (eventType: string, data: any) => {
     if (eventType === 'data_update') {
-      this.notifySubscribers('dataUpdate', data);
+      // Convert raw simulation data to ParsedPIDData format
+      this.processSimulationData(data);
     }
   };
 
-  public startLiveData(): void {
-    if (this.connectionInfo.status !== 'connected') {
-      console.warn('Cannot start live data - not connected');
-      return;
-    }
+  /**
+   * Convert raw simulation data to ParsedPIDData format and emit individual events
+   */
+  private processSimulationData(rawData: { [key: string]: number }): void {
+    // Map raw simulation keys to PID names and emit individual dataUpdate events
+    Object.entries(rawData).forEach(([key, value]) => {
+      const pidName = this.mapSimulationKeyToPIDName(key);
+      if (pidName) {
+        // Create ParsedPIDData object
+        const parsedData = {
+          name: pidName,
+          value: this.convertSimulationValue(pidName, value),
+          unit: this.getPIDUnit(pidName),
+          timestamp: new Date().toISOString(),
+          raw: value.toString()
+        };
 
-    console.log('Starting live data stream...');
-
-    const dashboardPIDs = [
-      'ENGINE_RPM',
-      'VEHICLE_SPEED', 
-      'ENGINE_COOLANT_TEMP',
-      'ENGINE_LOAD',
-      'THROTTLE_POSITION',
-      'FUEL_LEVEL'
-    ];
-
-    // Start polling each supported PID
-    dashboardPIDs.forEach(pidName => {
-      const isSimulation = this.connectionInfo.type === 'simulation';
-      const pidSupported = this.isPIDSupported(pidName);
-      const noDiscoveredPIDs = this.supportedPIDs.size === 0;
-      
-      if (pidSupported || isSimulation) {
-        this.startPollingPID(pidName, 1500); // Slightly longer interval to avoid overwhelming
-      } else if (!isSimulation && noDiscoveredPIDs) {
-        // If no PIDs discovered yet (discovery failed), try polling common PIDs anyway
-        console.log(`PID discovery failed, attempting to poll common PID: ${pidName}`);
-        this.startPollingPID(pidName, 1500);
-      } else {
-        console.log(`Skipping unsupported PID: ${pidName}`);
+        // Emit individual dataUpdate event for this PID
+        this.notifySubscribers('dataUpdate', parsedData);
       }
     });
-
-    console.log(`Started live data for ${this.activePollingPIDs.size} PIDs`);
   }
 
-  public stopLiveData(): void {
-    console.log("Stopping live data stream...");
-    this.stopAllPolling();
+  /**
+   * Map simulation data keys to standard PID names
+   */
+  private mapSimulationKeyToPIDName(simKey: string): string | null {
+    const keyMapping: { [key: string]: string } = {
+      'ENGINE_RPM': 'ENGINE_RPM',
+      'VEHICLE_SPEED': 'VEHICLE_SPEED',
+      'ENGINE_COOLANT_TEMP': 'ENGINE_COOLANT_TEMP',
+      'THROTTLE_POSITION': 'THROTTLE_POSITION',
+      'ENGINE_LOAD': 'ENGINE_LOAD',
+      'FUEL_LEVEL': 'FUEL_LEVEL',
+      'INTAKE_AIR_TEMP': 'INTAKE_AIR_TEMP',
+      'MAF_RATE': 'MAF_RATE',
+      'TRIP_DISTANCE': 'TRIP_DISTANCE',
+      'TOTAL_DISTANCE': 'TOTAL_DISTANCE', // This is the key odometer mapping
+      // Alternative odometer names that simulation might use
+      'ODOMETER': 'TOTAL_DISTANCE',
+      'VEHICLE_ODOMETER': 'TOTAL_DISTANCE',
+      'TOTAL_DISTANCE_TRAVELED': 'TOTAL_DISTANCE'
+    };
+
+    return keyMapping[simKey] || null;
+  }
+
+  /**
+   * Convert simulation values to appropriate units for display
+   */
+  private convertSimulationValue(pidName: string, value: number): number {
+    // Convert km to miles for odometer data if needed
+    if (pidName === 'TOTAL_DISTANCE' || pidName === 'TRIP_DISTANCE') {
+      // MockDataGenerator outputs in km, dashboard might expect miles
+      // For now, keep in km but ensure consistency
+      return Math.round(value);
+    }
+
+    // For other PIDs, return as-is
+    return value;
+  }
+
+  /**
+   * Get appropriate unit for PID
+   */
+  private getPIDUnit(pidName: string): string {
+    const unitMapping: { [key: string]: string } = {
+      'ENGINE_RPM': 'rpm',
+      'VEHICLE_SPEED': 'km/h',
+      'ENGINE_COOLANT_TEMP': '°C',
+      'THROTTLE_POSITION': '%',
+      'ENGINE_LOAD': '%',
+      'FUEL_LEVEL': '%',
+      'INTAKE_AIR_TEMP': '°C',
+      'MAF_RATE': 'g/s',
+      'TRIP_DISTANCE': 'km',
+      'TOTAL_DISTANCE': 'km'
+    };
+
+    return unitMapping[pidName] || '';
   }
 
   // --- Utility Methods ---
@@ -621,6 +1044,35 @@ class OBDIIService extends EventEmitter {
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+
+  private updateConnectionInfo(status: ConnectionStatus, type: ConnectionType | null, device?: any, error?: string): void {
+    this.connectionInfo = { status, type, device, error };
+    this.notifySubscribers('connectionStatus', this.connectionInfo);
+  }
+
+  private handleDisconnection = () => {
+    console.log('Connection lost, attempting to disconnect cleanly');
+    this.disconnect();
+  };
+
+  // --- Subscription Management ---
+
+  public subscribe(callback: SubscriberCallback): () => void {
+    this.subscribers.add(callback);
+    return () => this.subscribers.delete(callback);
+  }
+
+  public notifySubscribers(event: string, data: any): void {
+    this.subscribers.forEach(callback => {
+      try {
+        callback(event, data);
+      } catch (error) {
+        console.error('Error in subscriber callback:', error);
+      }
+    });
+  }
+
+  // --- Public Getters ---
 
   public getActivePollingPIDs(): string[] {
     return Array.from(this.activePollingPIDs.keys());
@@ -632,6 +1084,26 @@ class OBDIIService extends EventEmitter {
 
   public isThisInitialized(): boolean {
     return this.isInitialized;
+  }
+
+  public isConnected(): boolean {
+    return this.connectionInfo.status === 'connected';
+  }
+
+  public getConnectionInfo(): ConnectionInfo {
+    return { ...this.connectionInfo };
+  }
+
+  public getVehicleInfo(): VehicleInfo {
+    return { ...this.currentVehicleInfo };
+  }
+
+  public getActiveOdometerPID(): string | null {
+    return this.activeOdometerPID;
+  }
+
+  public isMode22Supported(): boolean {
+    return this.mode22Supported;
   }
 }
 

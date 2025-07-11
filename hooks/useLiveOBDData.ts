@@ -1,7 +1,15 @@
-// src/hooks/useLiveOBDData.ts
+// hooks/useLiveOBDData.ts
+
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updatePIDData, mapPIDToVehicleData, VehicleData } from '../store/actions/dataActions';
+import { 
+  updatePIDData, 
+  mapPIDToVehicleData, 
+  VehicleData, 
+  createOdometerReading,
+  hasOdometerData,
+  hasFraudDetectionData 
+} from '../store/actions/dataActions';
 import { validateOdometerReading } from '../store/actions/fraudDetectionActions';
 import OBDIIService from '../services/obdii/OBDIIService';
 import { ParsedPIDData } from '../services/obdii/OBDIIParser';
@@ -13,12 +21,33 @@ type RootState = ReturnType<typeof store.getState>;
 export function useLiveOBDData() {
   const dispatch = useDispatch();
   const [accumulatedData, setAccumulatedData] = useState<Partial<VehicleData>>({});
-
+  const [lastOdometerReading, setLastOdometerReading] = useState<number | null>(null);
   const isConnected = useSelector((state: RootState) => state.connection?.isConnected);
   const connectionType = useSelector((state: RootState) => state.connection?.connectionType);
   const isConnecting = useSelector((state: RootState) => state.connection?.isConnecting);
+  const activeVehicleId = useSelector((state: RootState) => state.vehicle?.activeVehicle);
+  const vehicles = useSelector((state: RootState) => state.vehicle?.vehicles || []);
+  const vehicleInfo = vehicles.find(v => v.id === activeVehicleId);
+  
+  // Get real-time fraud detection setting from Redux
+  const fraudDetectionEnabled = useSelector((state: RootState) => 
+    state.vehicle?.fraudDetection?.realTimeMonitoring || false
+  );
 
   const shouldListen = isConnected && (connectionType === 'bluetooth' || connectionType === 'wifi' || connectionType === 'simulation');
+
+  // Set vehicle info in OBD service when it changes
+  useEffect(() => {
+    if (vehicleInfo && isConnected) {
+      OBDIIService.setVehicleInfo({
+        make: vehicleInfo.make,
+        model: vehicleInfo.model,
+        year: vehicleInfo.year ?? undefined,
+        vin: vehicleInfo.vin
+      });
+      console.log('🚗 Vehicle info set in OBD service:', vehicleInfo);
+    }
+  }, [vehicleInfo, isConnected]);
 
   useEffect(() => {
     if (!shouldListen) return;
@@ -44,28 +73,71 @@ export function useLiveOBDData() {
           vehicleData
         }));
         
-        // Trigger fraud detection if odometer data is received
-        if (vehicleData.odometer !== undefined || vehicleData.tripOdometer !== undefined) {
-          const odometerReading = {
-            odometer: vehicleData.odometer,
-            mileage: vehicleData.odometer, // Use odometer as mileage for compatibility
-            timestamp: new Date().toISOString(),
-            source: 'obd' as const,
-            vehicleSpeed: vehicleData.speed,
-            engineHours: vehicleData.engineHours,
-            fuelLevel: vehicleData.fuelLevel,
-            engineRPM: vehicleData.rpm,
-          };
+        // === ENHANCED FRAUD DETECTION INTEGRATION ===
+        
+        // Check if we have any fraud detection relevant data
+        if (fraudDetectionEnabled && hasFraudDetectionData(vehicleData)) {
           
-          // Only dispatch if we have valid odometer data
-          if (odometerReading.odometer && odometerReading.odometer > 0) {
-            dispatch(validateOdometerReading(odometerReading) as any);
+          // 1. Process odometer readings for fraud detection
+          if (hasOdometerData(vehicleData)) {
+            const currentOdometer = vehicleData.odometer!;
+            
+            // Only trigger fraud detection if odometer reading has changed
+            if (lastOdometerReading === null || currentOdometer !== lastOdometerReading) {
+              console.log(`🔍 New odometer reading detected: ${currentOdometer} km (previous: ${lastOdometerReading || 'none'})`);
+              
+              const odometerReading = createOdometerReading(vehicleData, 'obd');
+              
+              // Dispatch fraud validation
+              dispatch(validateOdometerReading(odometerReading) as any);
+              
+              // Update last reading
+              setLastOdometerReading(currentOdometer);
+              
+              console.log(`✅ Fraud detection triggered for odometer reading: ${currentOdometer} km`);
+            }
+          }
+          
+          // 2. Process other fraud detection data (even without direct odometer)
+          else if (vehicleData.distanceSinceCodesCleared !== undefined || 
+                   vehicleData.distanceWithMILOn !== undefined) {
+            
+            console.log('📊 Processing fraud detection supporting data:', {
+              distanceSinceCodesCleared: vehicleData.distanceSinceCodesCleared,
+              distanceWithMILOn: vehicleData.distanceWithMILOn,
+              engineHours: vehicleData.engineHours
+            });
+            
+            // Create reading with available distance data
+            const supportingReading = {
+              ...createOdometerReading(vehicleData, 'obd'),
+              // Use distance since codes cleared as backup odometer if available
+              odometer: vehicleData.distanceSinceCodesCleared || vehicleData.distanceWithMILOn,
+              mileage: vehicleData.distanceSinceCodesCleared || vehicleData.distanceWithMILOn
+            };
+            
+            if (supportingReading.odometer && supportingReading.odometer > 0) {
+              dispatch(validateOdometerReading(supportingReading) as any);
+              console.log('📈 Fraud detection triggered with supporting distance data');
+            }
           }
         }
         
         console.log('Processed PID data:', pidData.name, '=', pidData.value, vehicleData);
       } else if (eventType === 'connectionStatus') {
         console.log('Connection status update:', data);
+        
+        // Log odometer PID information when connected
+        if (data.status === 'connected') {
+          const activeOdometerPID = OBDIIService.getActiveOdometerPID();
+          const mode22Supported = OBDIIService.isMode22Supported();
+          
+          console.log('🔧 OBD Connection Details:', {
+            activeOdometerPID,
+            mode22Supported,
+            vehicleMake: vehicleInfo?.make || 'Unknown'
+          });
+        }
       }
     });
 
@@ -73,6 +145,21 @@ export function useLiveOBDData() {
     if (OBDIIService.isThisInitialized()) {
       console.log('Starting live data stream...');
       OBDIIService.startLiveData();
+      
+      // Log polling information
+      setTimeout(() => {
+        const activePollingPIDs = OBDIIService.getActivePollingPIDs();
+        console.log('📡 Active polling PIDs:', activePollingPIDs);
+        
+        const activeOdometerPID = OBDIIService.getActiveOdometerPID();
+        if (activeOdometerPID && activePollingPIDs.includes(activeOdometerPID)) {
+          console.log('✅ Odometer PID is being actively polled:', activeOdometerPID);
+        } else if (activeOdometerPID) {
+          console.log('⚠️ Odometer PID configured but not polling:', activeOdometerPID);
+        } else {
+          console.log('❌ No odometer PID configured for this vehicle');
+        }
+      }, 2000);
     }
 
     return () => {
@@ -80,7 +167,7 @@ export function useLiveOBDData() {
       unsubscribe?.();
       OBDIIService.stopLiveData();
     };
-  }, [shouldListen, dispatch]);
+  }, [shouldListen, dispatch, fraudDetectionEnabled, lastOdometerReading, vehicleInfo, activeVehicleId]);
 
   useEffect(() => {
     if (connectionType === 'simulation') {
@@ -105,13 +192,36 @@ export function useLiveOBDData() {
       console.log('Connection lost, stopping live data...');
       OBDIIService.stopLiveData();
       setAccumulatedData({});
+      setLastOdometerReading(null);
     }
   }, [isConnected, isConnecting]);
+
+  // Note: Real-time fraud detection is now controlled via Redux store
+  // Use the toggle in FraudDetectionDashboard to enable/disable
+
+  // Manual trigger for fraud detection (useful for testing)
+  const triggerManualFraudCheck = () => {
+    if (hasOdometerData(accumulatedData)) {
+      const odometerReading = createOdometerReading(accumulatedData, 'manual');
+      dispatch(validateOdometerReading(odometerReading) as any);
+      console.log('🔍 Manual fraud check triggered');
+    } else {
+      console.warn('No odometer data available for manual fraud check');
+    }
+  };
 
   return {
     accumulatedData,
     isConnected,
     connectionType,
-    isConnecting
+    isConnecting,
+    fraudDetectionEnabled,
+    lastOdometerReading,
+    activeOdometerPID: OBDIIService.getActiveOdometerPID(),
+    mode22Supported: OBDIIService.isMode22Supported(),
+    activePollingPIDs: OBDIIService.getActivePollingPIDs(),
+    triggerManualFraudCheck,
+    hasOdometerData: hasOdometerData(accumulatedData),
+    hasFraudDetectionData: hasFraudDetectionData(accumulatedData)
   };
 }

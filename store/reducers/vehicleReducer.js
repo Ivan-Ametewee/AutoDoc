@@ -188,6 +188,7 @@ const initialState = {
   // Fraud Detection State
   fraudDetection: {
     isEnabled: true,
+    realTimeMonitoring: false, // Real-time monitoring off by default
     checks: {
       odometerRollback: {
         enabled: true,
@@ -944,16 +945,27 @@ const vehicleReducer = (state = initialState, action) => {
       };
 
     case FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE:
+      // Safely merge checkResults, filtering out undefined values
+      const safeCheckResults = action.payload.checkResults || {};
+      const updatedChecks = { ...state.fraudDetection.checks };
+      
+      // Only update checks that have valid data
+      Object.entries(safeCheckResults).forEach(([checkType, checkData]) => {
+        if (checkData && typeof checkData === 'object') {
+          updatedChecks[checkType] = {
+            ...updatedChecks[checkType],
+            ...checkData,
+          };
+        }
+      });
+
       return {
         ...state,
         fraudDetection: {
           ...state.fraudDetection,
-          riskScore: action.payload.riskScore,
-          overallStatus: action.payload.status,
-          checks: {
-            ...state.fraudDetection.checks,
-            ...action.payload.checkResults,
-          },
+          riskScore: action.payload.riskScore || state.fraudDetection.riskScore,
+          overallStatus: action.payload.status || state.fraudDetection.overallStatus,
+          checks: updatedChecks,
         },
       };
 
@@ -962,7 +974,7 @@ const vehicleReducer = (state = initialState, action) => {
         ...state,
         fraudDetection: {
           ...state.fraudDetection,
-          alerts: [...state.fraudDetection.alerts, action.payload.alert],
+          alerts: [...(state.fraudDetection.alerts || []), action.payload.alert],
         },
       };
 
@@ -977,6 +989,20 @@ const vehicleReducer = (state = initialState, action) => {
 
     case FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED:
       const checkType = action.payload.checkType;
+      const anomaly = action.payload.anomaly;
+      
+      // Only add anomaly if both checkType and anomaly are valid
+      if (!checkType || !anomaly || typeof anomaly !== 'object') {
+        console.warn('⚠️ Invalid anomaly data received:', action.payload);
+        return state;
+      }
+      
+      // Ensure the check type exists in state
+      if (!state.fraudDetection.checks[checkType]) {
+        console.warn('⚠️ Unknown check type:', checkType);
+        return state;
+      }
+      
       return {
         ...state,
         fraudDetection: {
@@ -986,8 +1012,8 @@ const vehicleReducer = (state = initialState, action) => {
             [checkType]: {
               ...state.fraudDetection.checks[checkType],
               anomalies: [
-                ...state.fraudDetection.checks[checkType].anomalies,
-                action.payload.anomaly,
+                ...(state.fraudDetection.checks[checkType].anomalies || []),
+                anomaly,
               ],
             },
           },

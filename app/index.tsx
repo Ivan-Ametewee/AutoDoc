@@ -1233,9 +1233,11 @@ export default function ConnectionScreen() {
   useEffect(() => {
     // Listen for the final connection status from the central service
     const unsubscribe = OBDIIService.subscribe((event, data) => {
+      console.log('OBDIIService event:', event, data);
       if (event === 'connectionStatus') {
         if (data.status === 'connected') {
           // On successful connection, navigate to the dashboard
+          console.log('Connected, navigating to dashboard');
           router.replace('/(tabs)/dashboard');
         } else if (data.status === 'error') {
           setError(data.error || 'An unknown connection error occurred.');
@@ -1245,6 +1247,13 @@ export default function ConnectionScreen() {
         }
       }
     });
+
+    // Check if already connected on mount
+    const connectionInfo = OBDIIService.getConnectionInfo();
+    if (connectionInfo.status === 'connected') {
+      console.log('Already connected on mount, navigating to dashboard');
+      router.replace('/(tabs)/dashboard');
+    }
 
     return () => unsubscribe();
   }, []);
@@ -1298,10 +1307,29 @@ export default function ConnectionScreen() {
     }
   };
 
-  const handleStartDemo = () => {
+  const handleStartDemo = async () => {
     setError(null);
     setView('connecting');
     OBDIIService.enableSimulation();
+      
+    // try {
+    //   // Add a small delay to ensure subscription is active
+    //   await new Promise(resolve => setTimeout(resolve, 100));
+    //   OBDIIService.enableSimulation();
+      
+    //   // Add a timeout to catch if navigation doesn't happen
+    //   setTimeout(() => {
+    //     const connectionInfo = OBDIIService.getConnectionInfo();
+    //     if (connectionInfo.status === 'connected' && connectionInfo.type === 'simulation') {
+    //       console.log('Demo mode connected, navigating to dashboard');
+    //       router.replace('/(tabs)/dashboard');
+    //     }
+    //   }, 1000);
+    // } catch (error) {
+    //   console.error('Demo mode error:', error);
+    //   setError('Failed to start demo mode');
+    //   setView('initial');
+    // }
   };
 
   const resetView = () => {
