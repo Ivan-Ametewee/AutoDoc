@@ -13,6 +13,7 @@ class SimulationService {
   private currentData: any = {};
   private simulationSpeed = 1000; // ms
   private lastUpdateTime: number = Date.now();
+  private milActive = false; // Malfunction Indicator Lamp status
   
   // **FIXED**: Declared the scenarios and currentScenario properties
   private scenarios = {
@@ -46,6 +47,24 @@ class SimulationService {
     
     // Initialize vehicle state. Assuming initialize method exists on VehicleSimulator
     // this.vehicleSimulator.initialize(); 
+    
+    // Start the engine for realistic data
+    mockDataGenerator.startEngine();
+    
+    // Add some test DTCs randomly when starting simulation
+    if (Math.random() < 0.7) { // 70% chance of having DTCs
+      mockDataGenerator.addTestDTCs();
+    }
+    
+    // Check initial MIL status
+    const initialDTCs = mockDataGenerator.generateDTCs();
+    const hasActiveDTCs = initialDTCs.some(dtc => 
+      (dtc.severity === 'critical' || dtc.severity === 'moderate') && dtc.status === 'active'
+    );
+    this.milActive = hasActiveDTCs;
+    if (hasActiveDTCs) {
+      this.notifyCallbacks('mil_status', { active: true });
+    }
     
     // Start the simulation loop
     this.simulationInterval = setInterval(() => {
@@ -84,6 +103,18 @@ class SimulationService {
 
     this.vehicleSimulator.update(deltaTime, this.currentScenario);
     this.currentData = mockDataGenerator.generateRealtimeData();
+    
+    // Check if there are active DTCs to set MIL status
+    const activeDTCs = mockDataGenerator.generateDTCs();
+    const hasActiveDTCs = activeDTCs.some(dtc => 
+      (dtc.severity === 'critical' || dtc.severity === 'moderate') && dtc.status === 'active'
+    );
+    
+    if (hasActiveDTCs !== this.milActive) {
+      this.milActive = hasActiveDTCs;
+      this.notifyCallbacks('mil_status', { active: this.milActive });
+    }
+    
     this.notifyCallbacks('data_update', this.currentData);
   }
 
@@ -161,6 +192,27 @@ class SimulationService {
   public generateDTCs(): any[] {
     // **FIXED**: `generateDTCs` on mockDataGenerator doesn't take arguments
     return mockDataGenerator.generateDTCs(); 
+  }
+
+  /**
+   * Clear DTCs and turn off MIL
+   */
+  public clearDTCs(): boolean {
+    const success = mockDataGenerator.clearDTCs();
+    if (success) {
+      this.milActive = false;
+      this.notifyCallbacks('mil_status', { active: false });
+      this.notifyCallbacks('dtc_cleared', { success: true });
+      console.log('Simulation: DTCs cleared, MIL turned off');
+    }
+    return success;
+  }
+
+  /**
+   * Get MIL status
+   */
+  public getMILStatus(): boolean {
+    return this.milActive;
   }
 
   /**

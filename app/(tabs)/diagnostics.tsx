@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import OBDIIService from '../../services/obdii/OBDIIService';
+import { comprehensiveDTCCodes } from '../../services/obdii/ComprehensiveDTCCodes';
 
 interface DiagnosticTroubleCode {
   code: string;
@@ -24,6 +27,7 @@ interface DiagnosticTroubleCode {
     speed: number;
     engineLoad: number;
     coolantTemp: number;
+    throttlePosition?: number;
     timestamp: Date;
   };
 }
@@ -43,36 +47,7 @@ interface LiveData {
 }
 
 export default function DiagnosticsScreen() {
-  const [dtcCodes, setDtcCodes] = useState<DiagnosticTroubleCode[]>([
-    {
-      code: 'P0171',
-      description: 'System Too Lean (Bank 1)',
-      severity: 'moderate',
-      status: 'active',
-      system: 'engine',
-      freezeFrameData: {
-        rpm: 2150,
-        speed: 45,
-        engineLoad: 35,
-        coolantTemp: 92,
-        timestamp: new Date(Date.now() - 3600000),
-      },
-    },
-    {
-      code: 'P0420',
-      description: 'Catalyst System Efficiency Below Threshold (Bank 1)',
-      severity: 'moderate',
-      status: 'pending',
-      system: 'emissions',
-    },
-    {
-      code: 'B1342',
-      description: 'ECM/PCM Internal Engine Off Timer Performance',
-      severity: 'minor',
-      status: 'cleared',
-      system: 'electrical',
-    },
-  ]);
+  const [dtcCodes, setDtcCodes] = useState<DiagnosticTroubleCode[]>([]);
 
   const [systemStatuses, setSystemStatuses] = useState<SystemStatus[]>([
     { system: 'Misfire Monitor', status: 'ready', icon: 'flash' },
@@ -89,88 +64,230 @@ export default function DiagnosticsScreen() {
   ]);
 
   const [liveData, setLiveData] = useState<LiveData[]>([
-    { parameter: 'Engine RPM', value: '850', unit: 'rpm', status: 'normal', icon: 'speedometer' },
+    { parameter: 'Engine RPM', value: '0', unit: 'rpm', status: 'normal', icon: 'speedometer' },
     { parameter: 'Vehicle Speed', value: '0', unit: 'mph', status: 'normal', icon: 'car' },
-    { parameter: 'Engine Load', value: '15', unit: '%', status: 'normal', icon: 'bar-chart' },
-    { parameter: 'Coolant Temperature', value: '89', unit: '°C', status: 'normal', icon: 'thermometer' },
-    { parameter: 'Intake Air Temperature', value: '23', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
+    { parameter: 'Engine Load', value: '0', unit: '%', status: 'normal', icon: 'bar-chart' },
+    { parameter: 'Coolant Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer' },
+    { parameter: 'Intake Air Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
     { parameter: 'Throttle Position', value: '0', unit: '%', status: 'normal', icon: 'options' },
-    { parameter: 'Fuel Pressure', value: '3.2', unit: 'bar', status: 'normal', icon: 'water' },
-    { parameter: 'Manifold Pressure', value: '1.0', unit: 'bar', status: 'normal', icon: 'resize' },
+    { parameter: 'Fuel Level', value: '0', unit: '%', status: 'normal', icon: 'water' },
+    { parameter: 'MAF Rate', value: '0', unit: 'g/s', status: 'normal', icon: 'resize' },
   ]);
 
-  const [selectedTab, setSelectedTab] = useState<'dtc' | 'systems' | 'live'>('dtc');
+  const [selectedTab, setSelectedTab] = useState<'dtc' | 'systems' | 'live' | 'search'>('dtc');
   const [isScanning, setIsScanning] = useState(false);
   const [selectedDTC, setSelectedDTC] = useState<DiagnosticTroubleCode | null>(null);
   const [showDTCModal, setShowDTCModal] = useState(false);
+  const [loadingFreezeFrame, setLoadingFreezeFrame] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
-  // Simulate live data updates
+  // Load DTCs on component mount and manage live data
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveData(prev =>
-        prev.map(item => {
-          let newValue = parseFloat(item.value);
-          let newStatus = item.status;
-
-          switch (item.parameter) {
-            case 'Engine RPM':
-              newValue = Math.max(700, newValue + (Math.random() - 0.5) * 50);
+    loadDTCs();
+    
+    // Start live data polling if connected
+    const connectionStatus = OBDIIService.getConnectionStatus();
+    if (connectionStatus.status === 'connected') {
+      OBDIIService.startLiveData();
+    }
+    
+    // Subscribe to DTC events and live data from OBDIIService
+    const unsubscribe = OBDIIService.subscribe((event, data) => {
+      if (event === 'dtcScanComplete') {
+        setDtcCodes(data);
+        setIsScanning(false);
+      } else if (event === 'dtcCleared') {
+        if (data.success) {
+          setDtcCodes(prev => prev.map(code => ({ ...code, status: 'cleared' as const })));
+        }
+      } else if (event === 'dataUpdate') {
+        // Update live data based on OBD-II data updates
+        console.log('Diagnostics: Received dataUpdate:', data.name, '=', data.value);
+        
+        setLiveData(prev => prev.map(item => {
+          let newValue = item.value;
+          let newStatus: LiveData['status'] = 'normal';
+          
+          // Map OBD-II PID names to display parameter names
+          switch (data.name) {
+            case 'ENGINE_RPM':
+              if (item.parameter === 'Engine RPM') {
+                newValue = Math.round(data.value).toString();
+              }
               break;
-            case 'Engine Load':
-              newValue = Math.max(0, Math.min(100, newValue + (Math.random() - 0.5) * 10));
+            case 'VEHICLE_SPEED':
+              if (item.parameter === 'Vehicle Speed') {
+                newValue = Math.round(data.value).toString();
+              }
               break;
-            case 'Coolant Temperature':
-              newValue = Math.max(70, Math.min(110, newValue + (Math.random() - 0.5) * 2));
-              newStatus = newValue > 95 ? 'warning' : newValue > 105 ? 'critical' : 'normal';
+            case 'ENGINE_LOAD':
+              if (item.parameter === 'Engine Load') {
+                newValue = Math.round(data.value).toString();
+                newStatus = data.value > 80 ? 'warning' : data.value > 90 ? 'critical' : 'normal';
+              }
               break;
-            case 'Fuel Pressure':
-              newValue = Math.max(2.5, Math.min(4.0, newValue + (Math.random() - 0.5) * 0.2));
-              newStatus = newValue < 2.8 ? 'warning' : newValue < 2.5 ? 'critical' : 'normal';
+            case 'ENGINE_COOLANT_TEMP':
+              if (item.parameter === 'Coolant Temperature') {
+                newValue = Math.round(data.value).toString();
+                newStatus = data.value > 95 ? 'warning' : data.value > 105 ? 'critical' : 'normal';
+              }
+              break;
+            case 'INTAKE_AIR_TEMP':
+              if (item.parameter === 'Intake Air Temperature') {
+                newValue = Math.round(data.value).toString();
+              }
+              break;
+            case 'THROTTLE_POSITION':
+              if (item.parameter === 'Throttle Position') {
+                newValue = Math.round(data.value).toString();
+              }
+              break;
+            case 'FUEL_LEVEL':
+              if (item.parameter === 'Fuel Level') {
+                newValue = Math.round(data.value).toString();
+                newStatus = data.value < 20 ? 'warning' : data.value < 10 ? 'critical' : 'normal';
+              }
+              break;
+            case 'MAF_RATE':
+              if (item.parameter === 'MAF Rate') {
+                newValue = data.value.toFixed(1);
+              }
               break;
             default:
               return item;
           }
-
+          
           return {
             ...item,
-            value: newValue.toFixed(item.parameter === 'Engine RPM' ? 0 : 1),
+            value: newValue,
             status: newStatus,
           };
-        })
-      );
-    }, 2000);
+        }));
+      }
+    });
 
-    return () => clearInterval(interval);
+    return unsubscribe;
   }, []);
+
+  // Ensure live data is running when screen is focused and live tab is selected
+  useFocusEffect(
+    useCallback(() => {
+      const connectionStatus = OBDIIService.getConnectionStatus();
+      console.log('Diagnostics: Connection status:', connectionStatus);
+      
+      if (connectionStatus.status === 'connected') {
+        // Always ensure live data is running when this screen is focused
+        console.log('Diagnostics: Starting live data...');
+        OBDIIService.startLiveData();
+        
+        // Check which PIDs are being polled
+        setTimeout(() => {
+          const activePIDs = OBDIIService.getActivePollingPIDs();
+          console.log('Diagnostics: Active polling PIDs:', activePIDs);
+        }, 1000);
+      }
+      
+      return () => {
+        // Don't stop live data here as other screens might need it
+        // The dashboard will manage the global live data state
+      };
+    }, [selectedTab])
+  );
+
+  const loadDTCs = async () => {
+    try {
+      const connectionStatus = OBDIIService.getConnectionStatus();
+      if (connectionStatus.status === 'connected') {
+        const dtcs = await OBDIIService.scanDTC();
+        setDtcCodes(dtcs);
+      }
+    } catch (error) {
+      console.error('Error loading DTCs:', error);
+    }
+  };
+
 
   const handleScanDTC = async () => {
     setIsScanning(true);
     
-    // Simulate scanning delay
-    setTimeout(() => {
-      setIsScanning(false);
+    try {
+      const connectionStatus = OBDIIService.getConnectionStatus();
+      if (connectionStatus.status !== 'connected') {
+        Alert.alert(
+          'Not Connected',
+          'Please connect to an OBD-II adapter or enable simulation mode to scan for DTCs.',
+          [{ text: 'OK' }]
+        );
+        setIsScanning(false);
+        return;
+      }
+
+      const dtcs = await OBDIIService.scanDTC();
+      setDtcCodes(dtcs);
+      
+      const activeCodes = dtcs.filter(code => code.status === 'active').length;
       Alert.alert(
         'Scan Complete',
-        `Found ${dtcCodes.filter(code => code.status === 'active').length} active codes`,
+        `Found ${activeCodes} active diagnostic trouble code${activeCodes !== 1 ? 's' : ''}`,
         [{ text: 'OK' }]
       );
-    }, 3000);
+    } catch (error) {
+      console.error('DTC scan failed:', error);
+      Alert.alert(
+        'Scan Failed',
+        'Failed to scan for diagnostic trouble codes. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleClearDTC = () => {
+    const connectionStatus = OBDIIService.getConnectionStatus();
+    if (connectionStatus.status !== 'connected') {
+      Alert.alert(
+        'Not Connected',
+        'Please connect to an OBD-II adapter or enable simulation mode to clear DTCs.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Clear Diagnostic Codes',
-      'Are you sure you want to clear all diagnostic trouble codes? This action cannot be undone.',
+      'Are you sure you want to clear all diagnostic trouble codes? This will also turn off the Check Engine Light.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Clear',
           style: 'destructive',
-          onPress: () => {
-            setDtcCodes(prev =>
-              prev.map(code => ({ ...code, status: 'cleared' as const }))
-            );
-            Alert.alert('Success', 'All diagnostic codes have been cleared.');
+          onPress: async () => {
+            try {
+              const success = await OBDIIService.clearDTC();
+              
+              if (success) {
+                setDtcCodes(prev =>
+                  prev.map(code => ({ ...code, status: 'cleared' as const }))
+                );
+                Alert.alert(
+                  'Success', 
+                  'All diagnostic codes have been cleared and the Check Engine Light should turn off.'
+                );
+              } else {
+                Alert.alert(
+                  'Failed',
+                  'Failed to clear diagnostic codes. Please try again.'
+                );
+              }
+            } catch (error) {
+              console.error('Clear DTC failed:', error);
+              Alert.alert(
+                'Error',
+                'An error occurred while clearing diagnostic codes.'
+              );
+            }
           },
         },
       ]
@@ -247,9 +364,33 @@ export default function DiagnosticsScreen() {
           <TouchableOpacity
             key={`dtc-${code.code}-${index}`}
             style={styles.codeItem}
-            onPress={() => {
+            onPress={async () => {
               setSelectedDTC(code);
               setShowDTCModal(true);
+              
+              // Refresh freeze frame data when DTC is selected
+              if (code.code) {
+                setLoadingFreezeFrame(true);
+                try {
+                  const connectionStatus = OBDIIService.getConnectionStatus();
+                  if (connectionStatus.status === 'connected') {
+                    const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
+                    
+                    // Update the selected DTC with fresh freeze frame data
+                    setSelectedDTC(prev => prev ? {
+                      ...prev,
+                      freezeFrameData: {
+                        ...freezeFrameData,
+                        timestamp: freezeFrameData.timestamp || new Date()
+                      }
+                    } : null);
+                  }
+                } catch (error) {
+                  console.error('Failed to refresh freeze frame data:', error);
+                } finally {
+                  setLoadingFreezeFrame(false);
+                }
+              }
             }}
           >
             <View style={styles.codeHeader}>
@@ -331,6 +472,93 @@ export default function DiagnosticsScreen() {
     </View>
   );
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = comprehensiveDTCCodes.searchCodes(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const renderSearchTab = () => (
+    <View style={styles.tabContent}>
+      <View style={styles.searchContainer}>
+        <Text style={styles.sectionTitle}>DTC Code Search</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Enter DTC code or search description..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          autoCapitalize="characters"
+          autoCorrect={false}
+        />
+      </View>
+      
+      <ScrollView style={styles.searchResults}>
+        {searchQuery.trim() === '' ? (
+          <View style={styles.searchInstructions}>
+            <Ionicons name="search" size={48} color="#CCC" />
+            <Text style={styles.instructionText}>
+              Search the comprehensive DTC database
+            </Text>
+            <Text style={styles.instructionSubtext}>
+              Enter a DTC code (e.g., P0171) or search by keywords like "lean", "misfire", "catalyst"
+            </Text>
+          </View>
+        ) : searchResults.length === 0 ? (
+          <View style={styles.noResults}>
+            <Ionicons name="alert-circle-outline" size={48} color="#999" />
+            <Text style={styles.noResultsText}>No codes found for "{searchQuery}"</Text>
+            <Text style={styles.noResultsSubtext}>Try a different search term</Text>
+          </View>
+        ) : (
+          searchResults.map((result, index) => (
+            <TouchableOpacity
+              key={`search-${result.code}-${index}`}
+              style={styles.searchResultItem}
+              onPress={() => {
+                setSelectedDTC({
+                  code: result.code,
+                  description: result.description,
+                  severity: result.severity === 'critical' ? 'critical' : result.severity === 'high' ? 'critical' : result.severity === 'medium' ? 'moderate' : 'minor',
+                  status: 'cleared' as const,
+                  system: result.system.toLowerCase() === 'powertrain' ? 'engine' as const :
+                          result.system.toLowerCase() === 'body' ? 'airbag' as const :
+                          result.system.toLowerCase() === 'chassis' ? 'abs' as const :
+                          result.system.toLowerCase() === 'network/communication' ? 'electrical' as const : 'engine' as const
+                });
+                setShowDTCModal(true);
+              }}
+            >
+              <View style={styles.searchResultHeader}>
+                <Text style={styles.searchResultCode}>{result.code}</Text>
+                <View style={styles.searchResultSystem}>
+                  <Text style={styles.searchResultSystemText}>{result.system}</Text>
+                </View>
+              </View>
+              <Text style={styles.searchResultDescription} numberOfLines={2}>
+                {result.description}
+              </Text>
+              {result.severity && (
+                <View style={[styles.searchResultSeverity, { backgroundColor: getSeverityColor(result.severity === 'critical' ? 'critical' : result.severity === 'high' ? 'critical' : result.severity === 'medium' ? 'moderate' : 'minor') }]}>
+                  <Text style={styles.searchResultSeverityText}>{result.severity.toUpperCase()}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -368,11 +596,20 @@ export default function DiagnosticsScreen() {
             Live Data
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'search' && styles.activeTab]}
+          onPress={() => setSelectedTab('search')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'search' && styles.activeTabText]}>
+            Search
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {selectedTab === 'dtc' && renderDTCTab()}
       {selectedTab === 'systems' && renderSystemsTab()}
       {selectedTab === 'live' && renderLiveTab()}
+      {selectedTab === 'search' && renderSearchTab()}
 
       <Modal
         visible={showDTCModal}
@@ -410,32 +647,94 @@ export default function DiagnosticsScreen() {
                 </Text>
               </View>
               
-              {selectedDTC.freezeFrameData && (
-                <View style={styles.freezeFrameSection}>
-                  <Text style={styles.dtcDetailSectionTitle}>Freeze Frame Data</Text>
-                  <View style={styles.freezeFrameGrid}>
-                    <View style={styles.freezeFrameItem}>
-                      <Text style={styles.freezeFrameLabel}>RPM</Text>
-                      <Text style={styles.freezeFrameValue}>{selectedDTC.freezeFrameData.rpm}</Text>
-                    </View>
-                    <View style={styles.freezeFrameItem}>
-                      <Text style={styles.freezeFrameLabel}>Speed</Text>
-                      <Text style={styles.freezeFrameValue}>{selectedDTC.freezeFrameData.speed} mph</Text>
-                    </View>
-                    <View style={styles.freezeFrameItem}>
-                      <Text style={styles.freezeFrameLabel}>Load</Text>
-                      <Text style={styles.freezeFrameValue}>{selectedDTC.freezeFrameData.engineLoad}%</Text>
-                    </View>
-                    <View style={styles.freezeFrameItem}>
-                      <Text style={styles.freezeFrameLabel}>Coolant</Text>
-                      <Text style={styles.freezeFrameValue}>{selectedDTC.freezeFrameData.coolantTemp}°C</Text>
-                    </View>
+              {/* Additional DTC Information from comprehensive database */}
+              {(() => {
+                const dtcInfo = comprehensiveDTCCodes.getDTCInfo(selectedDTC.code);
+                return dtcInfo ? (
+                  <>
+                    {dtcInfo.causes && dtcInfo.causes.length > 0 && (
+                      <View style={styles.dtcDetailSection}>
+                        <Text style={styles.dtcDetailSectionTitle}>Possible Causes</Text>
+                        {dtcInfo.causes.map((cause: string, index: number) => (
+                          <Text key={index} style={styles.dtcDetailListItem}>• {cause}</Text>
+                        ))}
+                      </View>
+                    )}
+                    
+                    {dtcInfo.symptoms && dtcInfo.symptoms.length > 0 && (
+                      <View style={styles.dtcDetailSection}>
+                        <Text style={styles.dtcDetailSectionTitle}>Symptoms</Text>
+                        {dtcInfo.symptoms.map((symptom: string, index: number) => (
+                          <Text key={index} style={styles.dtcDetailListItem}>• {symptom}</Text>
+                        ))}
+                      </View>
+                    )}
+                    
+                    {dtcInfo.solutions && dtcInfo.solutions.length > 0 && (
+                      <View style={styles.dtcDetailSection}>
+                        <Text style={styles.dtcDetailSectionTitle}>Diagnostic Steps</Text>
+                        {dtcInfo.solutions.map((solution: string, index: number) => (
+                          <Text key={index} style={styles.dtcDetailListItem}>• {solution}</Text>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                ) : null;
+              })()}
+
+              <View style={styles.freezeFrameSection}>
+                <Text style={styles.dtcDetailSectionTitle}>Freeze Frame Data</Text>
+                {loadingFreezeFrame ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#007AFF" />
+                    <Text style={styles.loadingText}>Loading freeze frame data...</Text>
                   </View>
-                  <Text style={styles.freezeFrameTimestamp}>
-                    Recorded: {selectedDTC.freezeFrameData.timestamp.toLocaleString()}
-                  </Text>
-                </View>
-              )}
+                ) : selectedDTC.freezeFrameData ? (
+                  <>
+                    <View style={styles.freezeFrameGrid}>
+                      <View style={styles.freezeFrameItem}>
+                        <Text style={styles.freezeFrameLabel}>RPM</Text>
+                        <Text style={styles.freezeFrameValue}>
+                          {selectedDTC.freezeFrameData.rpm || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.freezeFrameItem}>
+                        <Text style={styles.freezeFrameLabel}>Speed</Text>
+                        <Text style={styles.freezeFrameValue}>
+                          {selectedDTC.freezeFrameData.speed ? `${selectedDTC.freezeFrameData.speed} mph` : 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.freezeFrameItem}>
+                        <Text style={styles.freezeFrameLabel}>Load</Text>
+                        <Text style={styles.freezeFrameValue}>
+                          {selectedDTC.freezeFrameData.engineLoad ? `${selectedDTC.freezeFrameData.engineLoad}%` : 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={styles.freezeFrameItem}>
+                        <Text style={styles.freezeFrameLabel}>Coolant</Text>
+                        <Text style={styles.freezeFrameValue}>
+                          {selectedDTC.freezeFrameData.coolantTemp ? `${selectedDTC.freezeFrameData.coolantTemp}°C` : 'N/A'}
+                        </Text>
+                      </View>
+                      {selectedDTC.freezeFrameData.throttlePosition && (
+                        <View style={styles.freezeFrameItem}>
+                          <Text style={styles.freezeFrameLabel}>Throttle</Text>
+                          <Text style={styles.freezeFrameValue}>
+                            {selectedDTC.freezeFrameData.throttlePosition}%
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.freezeFrameTimestamp}>
+                      Recorded: {selectedDTC.freezeFrameData.timestamp ? 
+                        new Date(selectedDTC.freezeFrameData.timestamp).toLocaleString() : 
+                        'Unknown'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.noDataText}>No freeze frame data available</Text>
+                )}
+              </View>
             </ScrollView>
           )}
         </SafeAreaView>
@@ -720,5 +1019,128 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 10,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
+  },
+  searchContainer: {
+    marginBottom: 20,
+  },
+  searchInput: {
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 15,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginTop: 10,
+  },
+  searchResults: {
+    flex: 1,
+  },
+  searchInstructions: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  instructionText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  instructionSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 10,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  noResults: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  noResultsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  searchResultItem: {
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  searchResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  searchResultCode: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  searchResultSystem: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  searchResultSystemText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+  },
+  searchResultDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  searchResultSeverity: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  searchResultSeverityText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  dtcDetailListItem: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 6,
+    lineHeight: 20,
   },
 });

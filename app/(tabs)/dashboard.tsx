@@ -39,6 +39,7 @@ export default function DashboardScreen() {
   
   const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [milActive, setMilActive] = useState(false);
 
   const quickActions = [
  {
@@ -118,6 +119,8 @@ export default function DashboardScreen() {
             }
             return newData; // Return the updated state
           });
+        } else if (event === 'milStatus') {
+          setMilActive(data.active);
         }
       };
       
@@ -126,11 +129,36 @@ export default function DashboardScreen() {
       // Start the live data stream when the screen is focused
       if (OBDIIService.getConnectionStatus().status === 'connected') {
         OBDIIService.startLiveData();
+        
+        // Query MIL status initially and then periodically
+        const queryMIL = async () => {
+          try {
+            const milData = await OBDIIService.queryMILStatus();
+            setMilActive(milData.milActive);
+          } catch (error) {
+            console.error('Failed to query MIL status:', error);
+          }
+        };
+        
+        // Query immediately
+        queryMIL();
+        
+        // Query every 10 seconds
+        const milInterval = setInterval(queryMIL, 10000);
+        
+        // Store interval ID for cleanup
+        (unsubscribe as any).milInterval = milInterval;
       }
 
       // Cleanup function runs when the screen goes out of focus
       return () => {
         OBDIIService.stopLiveData();
+        
+        // Clear MIL query interval if it exists
+        if ((unsubscribe as any).milInterval) {
+          clearInterval((unsubscribe as any).milInterval);
+        }
+        
         unsubscribe();
       };
     }, [])
@@ -197,6 +225,26 @@ export default function DashboardScreen() {
               <Text style={styles.gaugeLabel}>Speed</Text>
               <Text style={styles.gaugeValue}>{formatValue(liveData.speed)}</Text>
               <Text style={styles.gaugeUnit}>km/h</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Check Engine Light / MIL Indicator */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>System Status</Text>
+          <View style={styles.statusIndicators}>
+            <View style={[styles.statusCard, milActive ? styles.statusCardActive : styles.statusCardInactive]}>
+              <Ionicons 
+                name="warning" 
+                size={24} 
+                color={milActive ? '#FF3B30' : '#8E8E93'} 
+              />
+              <Text style={[styles.statusLabel, { color: milActive ? '#FF3B30' : '#8E8E93' }]}>
+                Check Engine
+              </Text>
+              <Text style={[styles.statusValue, { color: milActive ? '#FF3B30' : '#8E8E93' }]}>
+                {milActive ? 'ACTIVE' : 'OFF'}
+              </Text>
             </View>
           </View>
         </View>
@@ -476,6 +524,43 @@ const styles = StyleSheet.create({
  activityTime: {
     fontSize: 12,
     color: '#8E8E93',
+  },
+  statusIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  statusCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 2,
+  },
+  statusCardActive: {
+    borderColor: '#FF3B30',
+    backgroundColor: '#FFF5F5',
+  },
+  statusCardInactive: {
+    borderColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+  },
+  statusLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  statusValue: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 4,
+    textAlign: 'center',
   },
 
 });

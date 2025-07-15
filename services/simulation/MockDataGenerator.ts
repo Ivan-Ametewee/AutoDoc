@@ -21,6 +21,7 @@ class MockDataGenerator {
   private faultProbability: number; // Probability of generating a fault
   private tripDistance: number; // Distance for the current trip
   private totalDistance: number; // Total distance (odometer reading)
+  private freezeFrameCache: Map<string, any> = new Map(); // Cache freeze frame data per DTC
 
   constructor() {
     this.engineState = {
@@ -41,9 +42,17 @@ class MockDataGenerator {
     this.tripDistance = 0;
     this.totalDistance = 45231; // Odometer reading
     
-    // Fault simulation
-    this.faults = [];
-    this.faultProbability = 0.001; // 0.1% chance per update
+    // Fault simulation - Start with some initial DTCs for testing
+    this.faults = [
+      {
+        code: 'P0171',
+        description: 'System Too Lean (Bank 1)',
+        severity: 'medium',
+        timestamp: new Date(Date.now() - 3600000),
+        pending: false
+      }
+    ];
+    this.faultProbability = 0.0020; // 0.2% chance per update - increased for better demo
   }
 
   // Main data generation method
@@ -224,25 +233,58 @@ class MockDataGenerator {
   // Generate specific PID data
   generatePIDData(pidName: string): number {
     const readings = this.getCurrentReadings();
-    return readings[pidName] || 0;
+    const value = readings[pidName] || 0;
+    console.log(`MockData: ${pidName} = ${value} (engine running: ${this.engineState.running})`);
+    return value;
   }
 
   // Generate fault codes
   generateDTCs() {
     return this.faults.map(fault => ({
-      ...fault,
-      freezeFrameData: this.generateFreezeFrame()
+      code: fault.code,
+      description: fault.description,
+      severity: fault.severity === 'high' ? 'critical' : fault.severity === 'medium' ? 'moderate' : 'minor',
+      status: fault.pending ? 'pending' : 'active',
+      system: this.getSystemFromCode(fault.code),
+      timestamp: fault.timestamp,
+      freezeFrameData: this.getFreezeFrameForDTC(fault.code)
     }));
   }
 
+  // Helper to determine system from DTC code
+  private getSystemFromCode(code: string): string {
+    const prefix = code.charAt(0);
+    switch (prefix) {
+      case 'P': return 'engine';
+      case 'B': return 'body';
+      case 'C': return 'chassis';
+      case 'U': return 'network';
+      default: return 'unknown';
+    }
+  }
+
   generateFreezeFrame() {
+    // Generate realistic freeze frame data (when the DTC was recorded)
     return {
-      ENGINE_RPM: this.engineState.rpm,
-      VEHICLE_SPEED: this.engineState.speed,
-      ENGINE_COOLANT_TEMP: this.engineState.coolantTemp,
-      ENGINE_LOAD: this.engineState.engineLoad,
-      timestamp: new Date()
+      rpm: Math.floor(Math.random() * 1000) + 1500, // 1500-2500 RPM
+      speed: Math.floor(Math.random() * 60) + 20, // 20-80 mph
+      engineLoad: Math.floor(Math.random() * 40) + 30, // 30-70%
+      coolantTemp: Math.floor(Math.random() * 30) + 85, // 85-115°C
+      throttlePosition: Math.floor(Math.random() * 30) + 15, // 15-45%
+      timestamp: new Date(Date.now() - Math.random() * 86400000) // Random time in last 24h
     };
+  }
+
+  // Get freeze frame data for a specific DTC (cached)
+  getFreezeFrameForDTC(dtcCode: string) {
+    if (!this.freezeFrameCache.has(dtcCode)) {
+      // Generate and cache freeze frame data for this DTC
+      const freezeFrame = this.generateFreezeFrame();
+      this.freezeFrameCache.set(dtcCode, freezeFrame);
+      console.log(`Generated freeze frame for ${dtcCode}:`, freezeFrame);
+    }
+    
+    return this.freezeFrameCache.get(dtcCode);
   }
 
   // Generate vehicle information
@@ -285,7 +327,31 @@ class MockDataGenerator {
 
   clearDTCs() {
     this.faults = [];
+    // Clear freeze frame cache when DTCs are cleared
+    this.freezeFrameCache.clear();
     return true;
+  }
+
+  // Add a method to simulate having DTCs for testing
+  addTestDTCs() {
+    const testDTCs = [
+      { code: 'P0420', description: 'Catalyst System Efficiency Below Threshold (Bank 1)', severity: 'medium' },
+      { code: 'P0300', description: 'Random/Multiple Cylinder Misfire Detected', severity: 'high' },
+      { code: 'P0128', description: 'Coolant Thermostat', severity: 'low' }
+    ];
+    
+    // Add 1-2 random DTCs
+    const numToAdd = Math.floor(Math.random() * 2) + 1;
+    for (let i = 0; i < numToAdd; i++) {
+      const testDTC = testDTCs[Math.floor(Math.random() * testDTCs.length)];
+      if (!this.faults.find(f => f.code === testDTC.code)) {
+        this.faults.push({
+          ...testDTC,
+          timestamp: new Date(),
+          pending: Math.random() < 0.3
+        });
+      }
+    }
   }
 
   // Utility methods
@@ -307,6 +373,7 @@ class MockDataGenerator {
       mafRate: 0
     };
     this.faults = [];
+    this.freezeFrameCache.clear(); // Clear freeze frame cache on reset
     this.tripDistance = 0;
   }
 }

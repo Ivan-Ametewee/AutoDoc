@@ -83,7 +83,7 @@ class OBDIIService extends EventEmitter {
         
         // **CRITICAL**: Initialize the adapter with proper error handling
         await this.initializeAdapter();
-        await this.discoverSupportedPIDs();
+        //await this.discoverSupportedPIDs();
         
         this.isInitialized = true;
         this.updateConnectionInfo('connected', type, device);
@@ -178,7 +178,7 @@ class OBDIIService extends EventEmitter {
       await this.delay(2000); // Wait for reset to complete
 
       // Turn off echo to avoid command/response confusion
-      await this.sendCommand('ATE0');
+      //await this.sendCommand('ATE0');
       await this.delay(1000);
 
       // Set automatic protocol detection
@@ -609,7 +609,9 @@ class OBDIIService extends EventEmitter {
       'ENGINE_COOLANT_TEMP',
       'ENGINE_LOAD',
       'THROTTLE_POSITION',
-      'FUEL_LEVEL'
+      'FUEL_LEVEL',
+      'INTAKE_AIR_TEMP',
+      'MAF_RATE'
     ];
 
     // Start polling each supported PID
@@ -653,6 +655,410 @@ class OBDIIService extends EventEmitter {
 
   public isThisInitialized(): boolean {
     return this.isInitialized;
+  }
+
+  // --- DTC Methods ---
+
+  public async queryFreezeFrameData(dtcCode: string): Promise<any> {
+    if (!this.isInitialized) {
+      console.warn('OBD-II service not initialized');
+      throw new Error('Service not initialized');
+    }
+
+    console.log(`Querying freeze frame data for DTC: ${dtcCode}`);
+
+    if (this.connectionInfo.type === 'simulation') {
+      // Return cached freeze frame data for this specific DTC
+      const simulatedData = this.mockDataGenerator.getFreezeFrameForDTC(dtcCode);
+      return simulatedData;
+    }
+
+    try {
+      // Mode 02: Show freeze frame data
+      // Query common PIDs for freeze frame: RPM, Speed, Coolant Temp, Engine Load
+      const freezeFramePIDs = [
+        { pid: '0C', name: 'ENGINE_RPM' },
+        { pid: '0D', name: 'VEHICLE_SPEED' },
+        { pid: '05', name: 'ENGINE_COOLANT_TEMP' },
+        { pid: '04', name: 'ENGINE_LOAD' },
+        { pid: '11', name: 'THROTTLE_POSITION' }
+      ];
+
+      const freezeFrameData: any = {
+        timestamp: new Date()
+      };
+
+      // Query each PID for freeze frame data
+      for (const pidInfo of freezeFramePIDs) {
+        try {
+          // Mode 02 command: 02 + PID + Frame Number (00 for first frame)
+          const command = `02${pidInfo.pid}00`;
+          const response = await this.sendCommand(command);
+          
+          if (response && !response.includes('NO DATA') && !response.includes('ERROR')) {
+            const parsedValue = this.parseFreezeFrameResponse(response, pidInfo.pid);
+            if (parsedValue !== null) {
+              switch (pidInfo.name) {
+                case 'ENGINE_RPM':
+                  freezeFrameData.rpm = parsedValue;
+                  break;
+                case 'VEHICLE_SPEED':
+                  freezeFrameData.speed = parsedValue;
+                  break;
+                case 'ENGINE_COOLANT_TEMP':
+                  freezeFrameData.coolantTemp = parsedValue;
+                  break;
+                case 'ENGINE_LOAD':
+                  freezeFrameData.engineLoad = parsedValue;
+                  break;
+                case 'THROTTLE_POSITION':
+                  freezeFrameData.throttlePosition = parsedValue;
+                  break;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to get freeze frame data for PID ${pidInfo.pid}:`, error);
+          // Continue with other PIDs even if one fails
+        }
+      }
+
+      console.log('Freeze frame data retrieved:', freezeFrameData);
+      return freezeFrameData;
+    } catch (error) {
+      console.error('Error querying freeze frame data:', error);
+      throw error;
+    }
+  }
+
+  private parseFreezeFrameResponse(response: string, pid: string): number | null {
+    try {
+      const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
+      
+      // Check if response starts with 42 (Mode 02 response) + PID
+      const expectedPrefix = `42${pid}`;
+      if (!cleanResponse.startsWith(expectedPrefix)) {
+        console.warn(`Invalid freeze frame response format for PID ${pid}:`, cleanResponse);
+        return null;
+      }
+
+      // Extract data bytes (skip Mode, PID, and frame number)
+      const dataStart = expectedPrefix.length + 2; // +2 for frame number
+      const dataBytes = cleanResponse.substring(dataStart);
+      
+      if (dataBytes.length < 2) {
+        console.warn(`Insufficient freeze frame data for PID ${pid}`);
+        return null;
+      }
+
+      // Parse based on PID
+      switch (pid) {
+        case '0C': // ENGINE_RPM - 2 bytes, formula: ((A*256)+B)/4
+          if (dataBytes.length >= 4) {
+            const A = parseInt(dataBytes.substring(0, 2), 16);
+            const B = parseInt(dataBytes.substring(2, 4), 16);
+            return Math.round(((A * 256) + B) / 4);
+          }
+          break;
+        case '0D': // VEHICLE_SPEED - 1 byte, formula: A
+          return parseInt(dataBytes.substring(0, 2), 16);
+        case '05': // ENGINE_COOLANT_TEMP - 1 byte, formula: A - 40
+          return parseInt(dataBytes.substring(0, 2), 16) - 40;
+        case '04': // ENGINE_LOAD - 1 byte, formula: A * 100/255
+          return Math.round((parseInt(dataBytes.substring(0, 2), 16) * 100) / 255);
+        case '11': // THROTTLE_POSITION - 1 byte, formula: A * 100/255
+          return Math.round((parseInt(dataBytes.substring(0, 2), 16) * 100) / 255);
+        default:
+          console.warn(`Unknown PID for freeze frame parsing: ${pid}`);
+          return null;
+      }
+    } catch (error) {
+      console.error(`Error parsing freeze frame response for PID ${pid}:`, error);
+      return null;
+    }
+    
+    return null;
+  }
+
+  public async queryMILStatus(): Promise<{ milActive: boolean; dtcCount: number }> {
+    if (!this.isInitialized) {
+      console.warn('OBD-II service not initialized');
+      throw new Error('Service not initialized');
+    }
+
+    console.log('Querying MIL status...');
+
+    if (this.connectionInfo.type === 'simulation') {
+      // Get MIL status from simulation service
+      const milActive = simulationService.getMILStatus();
+      const dtcs = simulationService.generateDTCs();
+      const dtcCount = dtcs.filter(dtc => dtc.status === 'active').length;
+      
+      return { milActive, dtcCount };
+    }
+
+    try {
+      // Mode 01, PID 01: Monitor status since DTCs cleared
+      const response = await this.sendCommand('0101');
+      console.log('MIL status response:', response);
+
+      if (!response || response.includes('NO DATA') || response.includes('ERROR')) {
+        console.warn('No MIL status data available');
+        return { milActive: false, dtcCount: 0 };
+      }
+
+      // Parse MIL status response
+      const milData = this.parseMILStatusResponse(response);
+      console.log('Parsed MIL data:', milData);
+      
+      // Notify subscribers of MIL status
+      this.notifySubscribers('milStatus', { active: milData.milActive });
+      
+      return milData;
+    } catch (error) {
+      console.error('Error querying MIL status:', error);
+      throw error;
+    }
+  }
+
+  private parseMILStatusResponse(response: string): { milActive: boolean; dtcCount: number } {
+    try {
+      // Clean the response
+      const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
+      
+      // Check if it starts with 41 01 (Mode 01, PID 01 response)
+      if (!cleanResponse.startsWith('4101')) {
+        console.warn('Invalid MIL status response format:', cleanResponse);
+        return { milActive: false, dtcCount: 0 };
+      }
+
+      // Extract the status bytes (4 bytes after 4101)
+      const statusData = cleanResponse.substring(4);
+      
+      if (statusData.length < 8) {
+        console.warn('Incomplete MIL status data');
+        return { milActive: false, dtcCount: 0 };
+      }
+
+      // First byte contains MIL status and DTC count
+      const firstByte = parseInt(statusData.substring(0, 2), 16);
+      
+      // Bit 7 (MSB) indicates MIL status: 1 = ON, 0 = OFF
+      const milActive = (firstByte & 0x80) !== 0;
+      
+      // Bits 0-6 contain DTC count (0-127)
+      const dtcCount = firstByte & 0x7F;
+      
+      console.log(`MIL Status: ${milActive ? 'ON' : 'OFF'}, DTC Count: ${dtcCount}`);
+      
+      return { milActive, dtcCount };
+    } catch (error) {
+      console.error('Error parsing MIL status response:', error);
+      return { milActive: false, dtcCount: 0 };
+    }
+  }
+
+  public async scanDTC(): Promise<any[]> {
+    if (!this.isInitialized) {
+      console.warn('OBD-II service not initialized');
+      throw new Error('Service not initialized');
+    }
+
+    console.log('Starting DTC scan...');
+
+    if (this.connectionInfo.type === 'simulation') {
+      // Simulate DTC scan with mock data
+      const simulatedDTCs = this.mockDataGenerator.generateDTCs();
+      console.log('Simulated DTC scan result:', simulatedDTCs);
+      this.notifySubscribers('dtcScanComplete', simulatedDTCs);
+      return simulatedDTCs;
+    }
+
+    try {
+      // Mode 03: Request stored diagnostic trouble codes
+      const response = await this.sendCommand('03');
+      console.log('DTC scan response:', response);
+
+      if (!response || response.includes('NO DATA') || response.includes('ERROR')) {
+        console.log('No DTCs found');
+        const noDTCs: any[] = [];
+        this.notifySubscribers('dtcScanComplete', noDTCs);
+        return noDTCs;
+      }
+
+      // Parse DTC response
+      const dtcs = await this.parseDTCResponse(response);
+      console.log('Parsed DTCs:', dtcs);
+      
+      this.notifySubscribers('dtcScanComplete', dtcs);
+      return dtcs;
+    } catch (error) {
+      console.error('Error scanning DTCs:', error);
+      throw error;
+    }
+  }
+
+  public async clearDTC(): Promise<boolean> {
+    if (!this.isInitialized) {
+      console.warn('OBD-II service not initialized');
+      throw new Error('Service not initialized');
+    }
+
+    console.log('Clearing DTCs...');
+
+    if (this.connectionInfo.type === 'simulation') {
+      // Simulate DTC clear with mock data through simulation service
+      const success = simulationService.clearDTCs();
+      console.log('Simulated DTC clear result:', success);
+      
+      if (success) {
+        this.notifySubscribers('dtcCleared', { success: true });
+        // Also trigger a MIL off event for dashboard
+        this.notifySubscribers('milStatus', { active: false });
+      }
+      return success;
+    }
+
+    try {
+      // Mode 04: Clear diagnostic trouble codes
+      const response = await this.sendCommand('04');
+      console.log('DTC clear response:', response);
+
+      const success = Boolean(response && (response.includes('OK') || response === '44'));
+      
+      if (success) {
+        console.log('DTCs cleared successfully');
+        this.notifySubscribers('dtcCleared', { success: true });
+        // Also trigger a MIL off event for dashboard
+        this.notifySubscribers('milStatus', { active: false });
+      } else {
+        console.warn('Failed to clear DTCs');
+        this.notifySubscribers('dtcCleared', { success: false });
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Error clearing DTCs:', error);
+      this.notifySubscribers('dtcCleared', { success: false });
+      throw error;
+    }
+  }
+
+  private async parseDTCResponse(response: string): Promise<any[]> {
+    const dtcs: any[] = [];
+    
+    try {
+      // Clean the response
+      const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
+      
+      // Check if it starts with 43 (Mode 03 response)
+      if (!cleanResponse.startsWith('43')) {
+        console.warn('Invalid DTC response format:', cleanResponse);
+        return dtcs;
+      }
+
+      // Extract DTC count and data
+      const dtcData = cleanResponse.substring(2);
+      
+      if (dtcData.length < 2) {
+        console.log('No DTC data in response');
+        return dtcs;
+      }
+
+      // Parse DTC codes (each DTC is 2 bytes = 4 hex characters)
+      const dtcPromises: Promise<any>[] = [];
+      
+      for (let i = 0; i < dtcData.length; i += 4) {
+        if (i + 3 < dtcData.length) {
+          const dtcHex = dtcData.substring(i, i + 4);
+          const dtcCode = this.convertHexToDTC(dtcHex);
+          
+          if (dtcCode && dtcCode !== 'P0000') {
+            // Get DTC info from our database (now async)
+            dtcPromises.push(this.getDTCFromDatabase(dtcCode));
+          }
+        }
+      }
+      
+      // Wait for all DTC info to be retrieved
+      const dtcInfos = await Promise.all(dtcPromises);
+      dtcs.push(...dtcInfos);
+    } catch (error) {
+      console.error('Error parsing DTC response:', error);
+    }
+
+    return dtcs;
+  }
+
+  private convertHexToDTC(hex: string): string {
+    try {
+      const value = parseInt(hex, 16);
+      
+      // Extract system prefix
+      const systemBits = (value & 0xC000) >> 14;
+      const systemPrefixes = ['P', 'C', 'B', 'U'];
+      const prefix = systemPrefixes[systemBits];
+      
+      // Extract remaining digits
+      const firstDigit = (value & 0x3000) >> 12;
+      const secondDigit = (value & 0x0F00) >> 8;
+      const thirdDigit = (value & 0x00F0) >> 4;
+      const fourthDigit = value & 0x000F;
+      
+      return `${prefix}${firstDigit}${secondDigit.toString(16).toUpperCase()}${thirdDigit.toString(16).toUpperCase()}${fourthDigit.toString(16).toUpperCase()}`;
+    } catch (error) {
+      console.error('Error converting hex to DTC:', error);
+      return '';
+    }
+  }
+
+  private async getDTCFromDatabase(code: string): Promise<any> {
+    try {
+      // Import DTCCodes class for real DTC lookup
+      const { dtcCodes } = require('./DTCCodes');
+      const dtcInfo = dtcCodes.getDTCInfo(code);
+      
+      // Get freeze frame data for this DTC
+      let freezeFrameData = null;
+      try {
+        freezeFrameData = await this.queryFreezeFrameData(code);
+      } catch (error) {
+        console.warn(`Failed to get freeze frame data for ${code}:`, error);
+        // Use default freeze frame data if query fails
+        freezeFrameData = {
+          rpm: 0,
+          speed: 0,
+          engineLoad: 0,
+          coolantTemp: 0,
+          timestamp: new Date(),
+        };
+      }
+      
+      return {
+        code: dtcInfo.code,
+        description: dtcInfo.description,
+        severity: dtcInfo.severity,
+        status: 'active',
+        system: dtcInfo.system.toLowerCase(),
+        freezeFrameData,
+      };
+    } catch (error) {
+      console.error('Error getting DTC from database:', error);
+      return {
+        code,
+        description: 'Unknown diagnostic trouble code',
+        severity: 'medium',
+        status: 'active',
+        system: 'unknown',
+        freezeFrameData: {
+          rpm: 0,
+          speed: 0,
+          engineLoad: 0,
+          coolantTemp: 0,
+          timestamp: new Date(),
+        },
+      };
+    }
   }
 }
 

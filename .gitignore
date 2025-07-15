@@ -37,3 +37,8 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Project reports and documentation
+PROJECT_PROGRESS_REPORT.md
+*.docx
+reports/

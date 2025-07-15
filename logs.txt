@@ -1,218 +1,26 @@
- LOG  Attempting to connect to: OBDII
- LOG  Successfully connected to: OBDII
+ LOG  Connecting to OBDII network and server: WiFi_OBDII
+ LOG  Connecting to WiFi network: WiFi_OBDII
+ LOG  Polling for connection to "WiFi_OBDII"...
+ LOG  Connection to "WiFi_OBDII" confirmed.
+ LOG  Successfully connected to network: WiFi_OBDII
+ LOG  Connecting to OBDII server at 192.168.0.10:35000
+ LOG  Connected to OBDII server
+ LOG  Successfully connected to OBDII network and server
  LOG  Initializing OBD-II adapter...
- LOG  OBD-II adapter initialized successfully
- LOG  Discovering supported PIDs...
- LOG  Sending command: 0100
- LOG  Sending data to ELM327: "0100\r"
- LOG  Command timeout: 0100
- ERROR  Failed to discover supported PIDs: [Error: Command timeout: 0100]
- LOG  Using fallback PIDs: ["ENGINE_RPM", "VEHICLE_SPEED", "ENGINE_COOLANT_TEMP", "ENGINE_LOAD", "THROTTLE_POSITION"]
- ERROR  Error processing command: [Error: Command timeout: 0100]
- LOG  OBD-II connection fully established and initialized
- LOG  [Dashboard] Received Event: connectionStatus {"status":"connected","type":"bluetooth","device":{"_bluetoothModule":{"_nativeModule":{},"_eventEmitter":{"_nativeModule":{}}},"_nativeDevice":{"extra":{},"bonded":true,"type":"CLASSIC","id":"00:1D:A5:06:4C:E4","deviceClass":{"majorClass":7936,"deviceClass":7936},"address":"00:1D:A5:06:4C:E4","name":"OBDII"},"name":"OBDII","address":"00:1D:A5:06:4C:E4","id":"00:1D:A5:06:4C:E4","bonded":true,"deviceClass":{"majorClass":7936,"deviceClass":7936},"type":"CLASSIC","extra":{}}}
- LOG  Starting live data stream...
- LOG  Starting to poll ENGINE_RPM every 1500ms
- LOG  Starting to poll VEHICLE_SPEED every 1500ms
- LOG  Starting to poll ENGINE_COOLANT_TEMP every 1500ms
- LOG  Starting to poll ENGINE_LOAD every 1500ms
- LOG  Starting to poll THROTTLE_POSITION every 1500ms
- LOG  Skipping unsupported PID: FUEL_LEVEL
- LOG  Started live data for 5 PIDs
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Sending command: 010C
- LOG  Sending data to ELM327: "010C\r"
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 010C
- ERROR  Error querying PID ENGINE_RPM: [Error: Command timeout: 010C]
- ERROR  Error processing command: [Error: Command timeout: 010C]
- LOG  Sending command: 010D
- LOG  Sending data to ELM327: "010D\r"
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 010D
- ERROR  Error querying PID VEHICLE_SPEED: [Error: Command timeout: 010D]
- ERROR  Error processing command: [Error: Command timeout: 010D]
- LOG  Sending command: 0105
- LOG  Sending data to ELM327: "0105\r"
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 0105
- ERROR  Error querying PID ENGINE_COOLANT_TEMP: [Error: Command timeout: 0105]
- ERROR  Error processing command: [Error: Command timeout: 0105]
- LOG  Sending command: 0104
- LOG  Sending data to ELM327: "0104\r"
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 0104
- ERROR  Error querying PID ENGINE_LOAD: [Error: Command timeout: 0104]
- ERROR  Error processing command: [Error: Command timeout: 0104]
- LOG  Sending command: 0111
- LOG  Sending data to ELM327: "0111\r"
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 0111
- ERROR  Error querying PID THROTTLE_POSITION: [Error: Command timeout: 0111]
- ERROR  Error processing command: [Error: Command timeout: 0111]
- LOG  Sending command: 0105
- LOG  Sending data to ELM327: "0105\r"
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Command timeout: 0105
- ERROR  Error querying PID ENGINE_COOLANT_TEMP: [Error: Command timeout: 0105]
- ERROR  Error processing command: [Error: Command timeout: 0105]
- LOG  Sending command: 010D
- LOG  Sending data to ELM327: "010D\r"
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Command timeout: 010D
- ERROR  Error querying PID VEHICLE_SPEED: [Error: Command timeout: 010D]
- ERROR  Error processing command: [Error: Command timeout: 010D]
- LOG  Sending command: 0104
- LOG  Sending data to ELM327: "0104\r"
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID THROTTLE_POSITION with command: 0111
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID VEHICLE_SPEED with command: 010D
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_RPM with command: 010C
- LOG  Querying PID ENGINE_LOAD with command: 0104
- LOG  Querying PID ENGINE_COOLANT_TEMP with command: 0105
- LOG  Querying PID THROTTLE_POSITION with command: 0111
+ LOG  Sending command: ATZ
+ LOG  Sending data to ELM327 via WiFi: "ATZ\r"
+ LOG  Command sent: ATZ
+�LOG  Received data: ATZ
+ LOG  Raw data received: {"data":"ATZ","timestamp":"2025-07-15T11:39:46.995Z"}
+>LM327 v1.5ved data: 
+ LOG  Raw data received: {"data":"�","timestamp":"2025-07-15T11:39:47.761Z"}
+ LOG  Raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-15T11:39:47.762Z"}
+ LOG  Command response for ATZ: ATZ�ELM327 v1.5
+ LOG  Sending command: ATE0
+ LOG  Sending data to ELM327 via WiFi: "ATE0\r"
+ LOG  Command sent: ATE0
+>KOG  Received data: ATE0
+ LOG  Raw data received: {"data":">ATE0","timestamp":"2025-07-15T11:39:49.836Z"}
+ LOG  Raw data received: {"data":"OK","timestamp":"2025-07-15T11:39:49.838Z"}
+ LOG  Command timeout: ATE0
+ LOG  Retrying command: ATE0, retries left: 2
