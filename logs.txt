@@ -1,26 +1,202 @@
- LOG  Connecting to OBDII network and server: WiFi_OBDII
- LOG  Connecting to WiFi network: WiFi_OBDII
- LOG  Polling for connection to "WiFi_OBDII"...
- LOG  Connection to "WiFi_OBDII" confirmed.
- LOG  Successfully connected to network: WiFi_OBDII
- LOG  Connecting to OBDII server at 192.168.0.10:35000
- LOG  Connected to OBDII server
- LOG  Successfully connected to OBDII network and server
- LOG  Initializing OBD-II adapter...
- LOG  Sending command: ATZ
+ LOG  Initializing ELM327 adapter following datasheet specifications...
+ LOG  Executing initialization command: ATZ - Reset ELM327
+ LOG  Sending ELM327 command: ATZ
  LOG  Sending data to ELM327 via WiFi: "ATZ\r"
  LOG  Command sent: ATZ
 �LOG  Received data: ATZ
- LOG  Raw data received: {"data":"ATZ","timestamp":"2025-07-15T11:39:46.995Z"}
+ LOG  ELM327 raw data received: {"data":"ATZ","timestamp":"2025-07-17T11:53:40.085Z"}
+ LOG  ELM327 response buffer after adding data: "ATZ"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: "ATZ"
+ LOG  ELM327 checking buffer response: ATZ
+ LOG  ELM327Handler: Parsing response: "ATZ" -> "ATZ"
+ LOG  ELM327Handler: Checking if response is complete for command "ATZ": ECHO
 >LM327 v1.5ved data: 
- LOG  Raw data received: {"data":"�","timestamp":"2025-07-15T11:39:47.761Z"}
- LOG  Raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-15T11:39:47.762Z"}
- LOG  Command response for ATZ: ATZ�ELM327 v1.5
- LOG  Sending command: ATE0
+ LOG  ELM327 raw data received: {"data":"�","timestamp":"2025-07-17T11:53:40.868Z"}
+ LOG  ELM327 response buffer after adding data: "ATZ�"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: "ATZ�"
+ LOG  ELM327 checking buffer response: ATZ�
+ LOG  ELM327Handler: Parsing response: "ATZ�" -> "ATZ�"
+ LOG  ELM327Handler: Checking if response is complete for command "ATZ": ECHO
+ LOG  ELM327 raw data received: {"data":"ELM327 v1.5","timestamp":"2025-07-17T11:53:40.877Z"}
+ LOG  ELM327 response buffer after adding data: "ATZ�ELM327 v1.5"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: "ATZ�ELM327 v1.5"
+ LOG  ELM327 checking buffer response: ATZ�ELM327 v1.5
+ LOG  ELM327Handler: Parsing response: "ATZ�ELM327 v1.5" -> "ATZ�ELM327 V1.5"
+ LOG  ELM327Handler: Detected ELM327 version info in response
+ LOG  ELM327Handler: Checking if response is complete for command "ATZ": DATA
+ LOG  ELM327Handler: ATZ command completed with ELM327 version info
+ LOG  ELM327 buffer response for ATZ: {"data": "ATZ�ELM327 v1.5", "rawResponse": "ATZ�ELM327 v1.5", "responseType": "DATA", "success": true}
+ LOG  Initialization command successful: ATZ -> ATZ�ELM327 v1.5
+ LOG  Executing initialization command: ATE0 - Disable echo
+ LOG  Sending ELM327 command: ATE0
  LOG  Sending data to ELM327 via WiFi: "ATE0\r"
  LOG  Command sent: ATE0
 >KOG  Received data: ATE0
- LOG  Raw data received: {"data":">ATE0","timestamp":"2025-07-15T11:39:49.836Z"}
- LOG  Raw data received: {"data":"OK","timestamp":"2025-07-15T11:39:49.838Z"}
- LOG  Command timeout: ATE0
- LOG  Retrying command: ATE0, retries left: 2
+ LOG  ELM327 raw data received: {"data":">ATE0","timestamp":"2025-07-17T11:53:42.933Z"}
+ LOG  ELM327 response buffer after adding data: ">ATE0"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">ATE0"
+ LOG  ELM327 checking buffer response: >ATE0
+ LOG  ELM327Handler: Parsing response: ">ATE0" -> ">ATE0"
+ LOG  ELM327Handler: Checking if response is complete for command "ATE0": UNKNOWN
+ LOG  ELM327 raw data received: {"data":"OK","timestamp":"2025-07-17T11:53:42.943Z"}
+ LOG  ELM327 response buffer after adding data: ">ATE0OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">ATE0OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATE0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATE0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATE0 -> OK
+ LOG  Executing initialization command: ATL0 - Disable line feeds
+ LOG  Sending ELM327 command: ATL0
+ LOG  Sending data to ELM327 via WiFi: "ATL0\r"
+ LOG  Command sent: ATL0
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:43.533Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATL0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATL0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATL0 -> OK
+ LOG  Executing initialization command: ATH0 - Hide headers
+ LOG  Sending ELM327 command: ATH0
+ LOG  Sending data to ELM327 via WiFi: "ATH0\r"
+ LOG  Command sent: ATH0
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:44.107Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATH0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATH0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATH0 -> OK
+ LOG  Executing initialization command: ATS0 - Hide spaces
+ LOG  Sending ELM327 command: ATS0
+ LOG  Sending data to ELM327 via WiFi: "ATS0\r"
+ LOG  Command sent: ATS0
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:44.690Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATS0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATS0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATS0 -> OK
+ LOG  Executing initialization command: ATM0 - Disable memory
+ LOG  Sending ELM327 command: ATM0
+ LOG  Sending data to ELM327 via WiFi: "ATM0\r"
+ LOG  Command sent: ATM0
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:45.294Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATM0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATM0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATM0 -> OK
+ LOG  Executing initialization command: ATSP0 - Auto protocol detection
+ LOG  Sending ELM327 command: ATSP0
+ LOG  Sending data to ELM327 via WiFi: "ATSP0\r"
+ LOG  Command sent: ATSP0
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:45.876Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATSP0": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATSP0: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATSP0 -> OK
+ LOG  Executing initialization command: ATAT1 - Enable adaptive timing
+ LOG  Sending ELM327 command: ATAT1
+ LOG  Sending data to ELM327 via WiFi: "ATAT1\r"
+ LOG  Command sent: ATAT1
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:46.470Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATAT1": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATAT1: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Initialization command successful: ATAT1 -> OK
+ LOG  Applying WiFi-specific ELM327 configuration...
+ LOG  Sending ELM327 command: ATST32
+ LOG  Sending data to ELM327 via WiFi: "ATST32\r"
+ LOG  Command sent: ATST32
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:47.040Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATST32": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATST32: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Sending ELM327 command: ATAT2
+ LOG  Sending data to ELM327 via WiFi: "ATAT2\r"
+ LOG  Command sent: ATAT2
+>LOG  Received data: OK
+ LOG  ELM327 raw data received: {"data":">OK","timestamp":"2025-07-17T11:53:47.666Z"}
+ LOG  ELM327 response buffer after adding data: ">OK"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">OK"
+ LOG  ELM327 checking buffer response: OK
+ LOG  ELM327Handler: Parsing response: "OK" -> "OK"
+ LOG  ELM327Handler: Checking if response is complete for command "ATAT2": OK
+ LOG  ELM327Handler: Response type OK indicates completion
+ LOG  ELM327 buffer response for ATAT2: {"data": "OK", "rawResponse": "OK", "responseType": "OK", "success": true}
+ LOG  Sending ELM327 command: ATDP
+ LOG  Sending data to ELM327 via WiFi: "ATDP\r"
+ LOG  Command sent: ATDP
+>LOG  Received data: AUTO
+ LOG  ELM327 raw data received: {"data":">AUTO","timestamp":"2025-07-17T11:53:48.247Z"}
+ LOG  ELM327 response buffer after adding data: ">AUTO"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">AUTO"
+ LOG  ELM327 checking buffer response: >AUTO
+ LOG  ELM327Handler: Parsing response: ">AUTO" -> ">AUTO"
+ LOG  ELM327Handler: Checking if response is complete for command "ATDP": UNKNOWN
+ LOG  ELM327 command timeout: ATDP
+ LOG  Retrying ELM327 command: ATDP, retries left: 2
+ LOG  Sending data to ELM327 via WiFi: "0100\r"
+4100BE1FA813ed data: SEARCHING...
+ LOG  ELM327 raw data received: {"data":">SEARCHING...","timestamp":"2025-07-17T11:54:10.040Z"}
+ LOG  ELM327 response buffer after adding data: ">AUTO>SEARCHING..."
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">AUTO>SEARCHING..."
+ LOG  ELM327 raw data received: {"data":"4100BE1FA813","timestamp":"2025-07-17T11:54:10.046Z"}
+ LOG  ELM327 response buffer after adding data: ">AUTO>SEARCHING...4100BE1FA813"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">AUTO>SEARCHING...4100BE1FA813"
+>LOG  Received data: 
+ LOG  Sending data to ELM327 via WiFi: "0100\r"
+ LOG  Received data: 4100BE1FA813
+ LOG  ELM327 raw data received: {"data":">4100BE1FA813","timestamp":"2025-07-17T11:54:40.040Z"}
+ LOG  ELM327 response buffer after adding data: ">AUTO>SEARCHING...4100BE1FA813>4100BE1FA813"
+ LOG  ELM327 responses to process: []
+ LOG  ELM327 remaining buffer: ">AUTO>SEARCHING...4100BE1FA813>4100BE1FA813"
+>LOG  Received data:

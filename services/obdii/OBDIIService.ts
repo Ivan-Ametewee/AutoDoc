@@ -5,6 +5,7 @@ import { simulationService } from '../simulation/SimulationService';
 import { OBDIIParser, ParsedPIDData } from './OBDIIParser';
 import { PIDDefinition, PIDDefinitions } from './PIDDefinitions';
 import MockDataGenerator from '../simulation/MockDataGenerator';
+import { ELM327Handler, ELM327Response, ELM327Command } from './ELM327Handler';
 
 // --- Type Definitions ---
 type ConnectionType = 'bluetooth' | 'wifi' | 'simulation';
@@ -20,10 +21,11 @@ interface ConnectionInfo {
 
 interface CommandQueueItem {
   command: string;
-  resolve: (value: string) => void;
+  resolve: (value: ELM327Response) => void;
   reject: (reason?: any) => void;
   timestamp: number;
   retries?: number;
+  expectedResponseType?: 'OK' | 'DATA' | 'ANY';
 }
 
 // --- Central OBD-II Service ---
@@ -83,7 +85,7 @@ class OBDIIService extends EventEmitter {
         
         // **CRITICAL**: Initialize the adapter with proper error handling
         await this.initializeAdapter();
-        //await this.discoverSupportedPIDs();
+        await this.discoverSupportedPIDs();
         
         this.isInitialized = true;
         this.updateConnectionInfo('connected', type, device);
@@ -170,101 +172,211 @@ class OBDIIService extends EventEmitter {
   // --- Command & Data Processing ---
 
   public async initializeAdapter(): Promise<void> {
-    console.log('Initializing OBD-II adapter...');
+    console.log('Initializing ELM327 adapter following datasheet specifications...');
     
     try {
-      // Reset the adapter first
-      await this.sendCommand('ATZ');
-      await this.delay(2000); // Wait for reset to complete
-
-      // Turn off echo to avoid command/response confusion
-      //await this.sendCommand('ATE0');
-      await this.delay(1000);
-
-      // Set automatic protocol detection
-      await this.sendCommand('ATSP0');
-      await this.delay(1000);
-
-      // Set line feeds off for cleaner responses
-      await this.sendCommand('ATL0');
-      await this.delay(1000);
-
-      // Set headers off to get raw data only
-      await this.sendCommand('ATH0');
-      await this.delay(1000);
-
-      // Set spaces off for more compact responses
-      await this.sendCommand('ATS0');
-      await this.delay(1000);
-
-      // Additional WiFi-specific configuration
-      if (this.connectionInfo.type === 'wifi') {
-        // Set timeout for WiFi adapters
-        await this.sendCommand('ATST32');
-        await this.delay(1000);
+      // Get the standard ELM327 initialization sequence
+      const initSequence = ELM327Handler.getInitializationSequence();
+      
+      for (const command of initSequence) {
+        console.log(`Executing initialization command: ${command.command} - ${command.description}`);
+        
+        const response = await this.sendELM327Command(command);
+        
+        if (!response.success) {
+          console.warn(`Initialization command failed: ${command.command} - ${response.error}`);
+          
+          // Some commands might fail on certain adapters, continue with critical ones
+          if (command.command === 'ATZ') {
+            throw new Error(`Critical initialization failed: Reset command failed - ${response.error}`);
+          }
+          
+          // Continue with non-critical commands
+          console.log(`Continuing initialization despite failure of: ${command.command}`);
+        } else {
+          console.log(`Initialization command successful: ${command.command} -> ${response.data}`);
+        }
+        
+        // Wait between commands as specified by ELM327 datasheet
+        await this.delay(command.command === 'ATZ' ? 2000 : 500);
       }
 
-      console.log('OBD-II adapter initialized successfully');
+      // Additional protocol-specific initialization for WiFi adapters
+      if (this.connectionInfo.type === 'wifi') {
+        console.log('Applying WiFi-specific ELM327 configuration...');
+        const wifiCommands = [
+          { command: 'ATST32', expectsData: false, timeout: 1000, description: 'Set timeout for WiFi stability' },
+          { command: 'ATAT2', expectsData: false, timeout: 1000, description: 'Set adaptive timing for WiFi' }
+        ];
+        
+        for (const command of wifiCommands) {
+          try {
+            await this.sendELM327Command(command);
+            await this.delay(500);
+          } catch (error) {
+            console.warn(`WiFi-specific command failed: ${command.command}`, error);
+          }
+        }
+      }
+
+      // Query the active protocol to verify initialization
+      try {
+        const protocolResponse = await this.sendELM327Command(ELM327Handler.COMMANDS.DESCRIBE_PROTOCOL);
+        if (protocolResponse.success) {
+          console.log(`ELM327 active protocol: ${protocolResponse.data}`);
+          this.notifySubscribers('protocolDetected', protocolResponse.data);
+        }
+      } catch (error) {
+        console.warn('Could not query active protocol:', error);
+      }
+
+      console.log('ELM327 adapter initialized successfully according to datasheet specifications');
     } catch (error) {
-      console.error('Failed to initialize adapter:', error);
+      console.error('Failed to initialize ELM327 adapter:', error);
       throw error;
     }
   }
 
   public async discoverSupportedPIDs(): Promise<void> {
-    console.log('Discovering supported PIDs...');
+    console.log('Discovering supported PIDs using ELM327 specifications...');
     this.supportedPIDs.clear();
 
     try {
-      // Query for PIDs 01-20 (Mode 01, PID 00)
-      const response = await this.sendCommand('0100');
-      console.log('PID support response:', response);
+      // Query for PIDs 01-20 (Mode 01, PID 00) using proper ELM327 command
+      const pidSupportCommand: ELM327Command = {
+        command: '0100',
+        expectsData: true,
+        timeout: 3000,
+        description: 'Query supported PIDs 01-20'
+      };
       
-      if (response && response.length >= 12) { // Should be at least "4100XXXXXXXX"
-        const cleanResponse = response.replace(/[\s>]/g, '');
+      const response = await this.sendELM327Command(pidSupportCommand);
+      console.log('ELM327 PID support response:', response);
+      
+      if (response.success && response.responseType === 'DATA') {
+        const cleanResponse = response.data.replace(/[\s>]/g, '').toUpperCase();
+        console.log('Clean PID support response:', cleanResponse);
         
         if (cleanResponse.startsWith('4100')) {
           const hexData = cleanResponse.substring(4);
           console.log('PID support hex data:', hexData);
           
-          // Convert hex to binary to check which PIDs are supported
-          const supportBits = this.hexToBinary(hexData);
-          console.log('PID support bits:', supportBits);
+          if (hexData.length >= 8) { // Should be 8 hex characters (4 bytes)
+            // Convert hex to binary to check which PIDs are supported
+            const supportBits = this.hexToBinary(hexData);
+            console.log('PID support bits:', supportBits);
+            
+            const allPIDs = PIDDefinitions.getAllPIDs();
+            
+            // Check each bit position (PIDs 01-20 correspond to bits 0-19)
+            for (let i = 0; i < Math.min(supportBits.length, 32); i++) {
+              if (supportBits[i] === '1') {
+                const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
+                const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+                
+                if (pidDef) {
+                  this.supportedPIDs.add(pidDef.name);
+                  console.log(`ELM327 supported PID found: ${pidDef.name} (${pidNumber})`);
+                }
+              }
+            }
+            
+            // Check if PID 20 is supported (indicates more PIDs available)
+            if (supportBits[19] === '1') {
+              console.log('PID 20 supported - querying additional PIDs 21-40...');
+              await this.discoverAdditionalPIDs('0120', 21, 40);
+            }
+          } else {
+            console.warn('Invalid PID support response length:', hexData.length);
+          }
+        } else {
+          console.warn('Invalid PID support response format - expected to start with 4100');
+        }
+      } else if (response.responseType === 'NO_DATA') {
+        console.log('Vehicle does not support PID discovery (Mode 01 PID 00)');
+      } else if (response.responseType === 'UNABLE_TO_CONNECT') {
+        console.warn('Unable to connect to vehicle for PID discovery');
+      } else {
+        console.warn('ELM327 PID discovery failed:', response.error);
+      }
+      
+      // Add some common PIDs that might not be reported but often work
+      // These are essential PIDs that most OBD-II vehicles support
+      const commonPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD'];
+      let addedCommonPIDs = 0;
+      
+      commonPIDs.forEach(pid => {
+        if (!this.supportedPIDs.has(pid)) {
+          this.supportedPIDs.add(pid);
+          addedCommonPIDs++;
+          console.log(`Added essential PID: ${pid}`);
+        }
+      });
+      
+      if (addedCommonPIDs > 0) {
+        console.log(`Added ${addedCommonPIDs} essential PIDs that may work despite not being reported`);
+      }
+
+      console.log(`ELM327 PID discovery complete: ${this.supportedPIDs.size} supported PIDs:`, Array.from(this.supportedPIDs));
+      this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
+      
+    } catch (error) {
+      console.error('ELM327 PID discovery failed:', error);
+      
+      // Add fallback PIDs if discovery fails completely
+      const fallbackPIDs = [
+        'ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 
+        'ENGINE_LOAD', 'THROTTLE_POSITION', 'FUEL_LEVEL', 
+        'INTAKE_AIR_TEMP', 'MAF_RATE'
+      ];
+      
+      fallbackPIDs.forEach(pid => this.supportedPIDs.add(pid));
+      console.log('Using fallback PIDs due to discovery failure:', Array.from(this.supportedPIDs));
+      this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
+    }
+  }
+
+  /**
+   * Discover additional PIDs beyond the basic 01-20 range
+   */
+  private async discoverAdditionalPIDs(command: string, startPID: number, endPID: number): Promise<void> {
+    try {
+      const additionalPIDCommand: ELM327Command = {
+        command,
+        expectsData: true,
+        timeout: 3000,
+        description: `Query supported PIDs ${startPID}-${endPID}`
+      };
+      
+      const response = await this.sendELM327Command(additionalPIDCommand);
+      
+      if (response.success && response.responseType === 'DATA') {
+        const cleanResponse = response.data.replace(/[\s>]/g, '').toUpperCase();
+        const expectedPrefix = (parseInt(command.substring(0, 2), 16) + 0x40).toString(16).toUpperCase().padStart(2, '0') + command.substring(2);
+        
+        if (cleanResponse.startsWith(expectedPrefix)) {
+          const hexData = cleanResponse.substring(4);
           
-          const allPIDs = PIDDefinitions.getAllPIDs();
-          
-          // Check each bit position
-          for (let i = 0; i < Math.min(supportBits.length, 32); i++) {
-            if (supportBits[i] === '1') {
-              const pidNumber = (i + 1).toString(16).toUpperCase().padStart(2, '0');
-              const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
-              
-              if (pidDef) {
-                this.supportedPIDs.add(pidDef.name);
-                console.log(`Supported PID found: ${pidDef.name} (${pidNumber})`);
+          if (hexData.length >= 8) {
+            const supportBits = this.hexToBinary(hexData);
+            const allPIDs = PIDDefinitions.getAllPIDs();
+            
+            for (let i = 0; i < Math.min(supportBits.length, 32); i++) {
+              if (supportBits[i] === '1') {
+                const pidNumber = (startPID + i).toString(16).toUpperCase().padStart(2, '0');
+                const pidDef = allPIDs.find(def => def.pid === pidNumber && def.mode === '01');
+                
+                if (pidDef) {
+                  this.supportedPIDs.add(pidDef.name);
+                  console.log(`Additional ELM327 supported PID found: ${pidDef.name} (${pidNumber})`);
+                }
               }
             }
           }
         }
       }
-      
-      // Add some common PIDs that might not be reported but often work
-      const commonPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD'];
-      commonPIDs.forEach(pid => {
-        if (!this.supportedPIDs.has(pid)) {
-          this.supportedPIDs.add(pid);
-          console.log(`Added common PID: ${pid}`);
-        }
-      });
-
-      console.log(`Discovered ${this.supportedPIDs.size} supported PIDs:`, Array.from(this.supportedPIDs));
-      this.notifySubscribers('supportedPIDsDiscovered', Array.from(this.supportedPIDs));
     } catch (error) {
-      console.error('Failed to discover supported PIDs:', error);
-      // Add fallback PIDs if discovery fails
-      const fallbackPIDs = ['ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP', 'ENGINE_LOAD', 'THROTTLE_POSITION'];
-      fallbackPIDs.forEach(pid => this.supportedPIDs.add(pid));
-      console.log('Using fallback PIDs:', Array.from(this.supportedPIDs));
+      console.warn(`Failed to discover additional PIDs ${startPID}-${endPID}:`, error);
     }
   }
 
@@ -283,17 +395,52 @@ class OBDIIService extends EventEmitter {
   }
 
   public sendCommand(command: string, retries: number = 3): Promise<string> {
+    // Legacy method for backwards compatibility - converts to new ELM327 format
+    return this.sendELM327Command({
+      command,
+      expectsData: !command.toUpperCase().startsWith('AT') || command.toUpperCase() === 'ATI' || command.toUpperCase() === 'ATZ',
+      timeout: ELM327Handler.getCommandTimeout(command),
+      description: `Legacy command: ${command}`
+    }).then(response => {
+      if (response.success) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Command failed');
+      }
+    });
+  }
+
+  public async sendELM327Command(command: ELM327Command, retries: number = 3): Promise<ELM327Response> {
     if (this.connectionInfo.type === 'simulation') {
-      return new Promise(resolve => setTimeout(() => resolve('SIMULATED_OK'), 100));
+      // Simulate ELM327 responses for testing
+      await this.delay(100);
+      return {
+        success: true,
+        data: command.expectsData ? 'SIMULATED_DATA' : 'OK',
+        responseType: command.expectsData ? 'DATA' : 'OK',
+        rawResponse: command.expectsData ? 'SIMULATED_DATA' : 'OK'
+      };
+    }
+
+    // Validate command before sending
+    if (!ELM327Handler.isValidCommand(command.command)) {
+      return {
+        success: false,
+        data: '',
+        error: `Invalid ELM327 command: ${command.command}`,
+        responseType: 'ERROR',
+        rawResponse: ''
+      };
     }
 
     return new Promise((resolve, reject) => {
       const commandItem: CommandQueueItem = {
-        command,
+        command: command.command,
         resolve,
         reject,
         timestamp: Date.now(),
-        retries
+        retries,
+        expectedResponseType: command.expectsData ? 'DATA' : 'OK'
       };
       
       this.commandQueue.push(commandItem);
@@ -316,22 +463,34 @@ class OBDIIService extends EventEmitter {
       
       try {
         if (!this.commService) {
-          throw new Error('Communication service unavailable');
+          const errorResponse: ELM327Response = {
+            success: false,
+            data: '',
+            error: 'Communication service unavailable',
+            responseType: 'ERROR',
+            rawResponse: ''
+          };
+          this.currentCommand.reject(errorResponse);
+          this.currentCommand = null;
+          continue;
         }
 
-        console.log(`Sending command: ${this.currentCommand.command}`);
+        console.log(`Sending ELM327 command: ${this.currentCommand.command}`);
 
         // Clear response buffer before sending command
         this.responseBuffer = '';
 
-        // Set up timeout
+        // Get appropriate timeout for this command
+        const commandTimeout = ELM327Handler.getCommandTimeout(this.currentCommand.command);
+        
+        // Set up timeout with proper ELM327 error handling
         const timeoutId = setTimeout(() => {
           if (this.currentCommand) {
-            console.log(`Command timeout: ${this.currentCommand.command}`);
+            console.log(`ELM327 command timeout: ${this.currentCommand.command}`);
             
             // Check if retries are available
             if (this.currentCommand.retries && this.currentCommand.retries > 0) {
-              console.log(`Retrying command: ${this.currentCommand.command}, retries left: ${this.currentCommand.retries - 1}`);
+              console.log(`Retrying ELM327 command: ${this.currentCommand.command}, retries left: ${this.currentCommand.retries - 1}`);
               
               // Retry the command with decremented retry count
               const retryCommand = {
@@ -340,55 +499,78 @@ class OBDIIService extends EventEmitter {
                 timestamp: Date.now()
               };
               
+              // Clear the response buffer when retrying to avoid accumulation
+              console.log('ELM327 clearing response buffer for retry');
+              this.responseBuffer = '';
+              
               this.commandQueue.unshift(retryCommand); // Add to front of queue
               this.currentCommand = null;
             } else {
-              this.currentCommand.reject(new Error(`Command timeout: ${this.currentCommand.command}`));
+              const timeoutResponse: ELM327Response = {
+                success: false,
+                data: '',
+                error: `ELM327 command timeout: ${this.currentCommand.command}`,
+                responseType: 'ERROR',
+                rawResponse: ''
+              };
+              this.currentCommand.reject(timeoutResponse);
               this.currentCommand = null;
             }
           }
-        }, this.commandTimeout);
+        }, commandTimeout);
 
-        // Send the command (don't add \r if already present)
-        const commandToSend = this.currentCommand.command.endsWith('\r') ? 
-          this.currentCommand.command : this.currentCommand.command + '\r';
-        const success = await this.commService.sendData(commandToSend);
+        // Format command according to ELM327 specifications
+        const formattedCommand = ELM327Handler.formatCommand(this.currentCommand.command);
+        const success = await this.commService.sendData(formattedCommand);
         
         if (!success) {
           clearTimeout(timeoutId);
-          this.currentCommand.reject(new Error('Failed to send command'));
+          const sendErrorResponse: ELM327Response = {
+            success: false,
+            data: '',
+            error: 'Failed to send command to ELM327',
+            responseType: 'ERROR',
+            rawResponse: ''
+          };
+          this.currentCommand.reject(sendErrorResponse);
           this.currentCommand = null;
           continue;
         }
 
         // Wait for response (the response will be handled in handleDataReceived)
-        // The timeout will handle cases where no response comes
         await new Promise<void>((resolve, reject) => {
           const originalResolve = this.currentCommand!.resolve;
           const originalReject = this.currentCommand!.reject;
 
-          this.currentCommand!.resolve = (value: string) => {
+          this.currentCommand!.resolve = (response: ELM327Response) => {
             clearTimeout(timeoutId);
-            originalResolve(value);
+            originalResolve(response);
             resolve();
           };
 
-          this.currentCommand!.reject = (reason: any) => {
+          this.currentCommand!.reject = (error: any) => {
             clearTimeout(timeoutId);
-            originalReject(reason);
-            reject(reason);
+            originalReject(error);
+            reject(error);
           };
         });
 
         this.currentCommand = null;
         
-        // Small delay between commands
-        await this.delay(50);
+        // ELM327 datasheet recommends small delays between commands
+        await this.delay(100);
 
       } catch (error: any) {
-        console.error('Error processing command:', error);
+        console.error('Error processing ELM327 command:', error);
         if (this.currentCommand) {
-          this.currentCommand.reject(error);
+          const processErrorResponse: ELM327Response = {
+            success: false,
+            data: '',
+            error: error.message || 'Unknown error processing command',
+            responseType: 'ERROR',
+            rawResponse: ''
+          };
+          this.currentCommand.reject(processErrorResponse);
           this.currentCommand = null;
         }
         
@@ -401,95 +583,186 @@ class OBDIIService extends EventEmitter {
   }
 
   private handleDataReceived = (data: any) => {
-    console.log('Raw data received:', JSON.stringify(data));
+    console.log('ELM327 raw data received:', JSON.stringify(data));
     
     // Extract the actual data string from the event object
     const dataString = typeof data === 'string' ? data : data.data || '';
     
     this.responseBuffer += dataString;
+    console.log('ELM327 response buffer after adding data:', JSON.stringify(this.responseBuffer));
 
-    // Split by common terminators, but also handle responses without line endings
+    // Split by ELM327 line terminators
     const responses = this.responseBuffer.split(/[\r\n]+/);
     
     // Keep the last incomplete response in buffer
     this.responseBuffer = responses.pop() || '';
+    
+    console.log('ELM327 responses to process:', responses);
+    console.log('ELM327 remaining buffer:', JSON.stringify(this.responseBuffer));
 
-    // Process all complete responses
+    // Process all complete responses using ELM327 specifications
     for (const response of responses) {
       const trimmedResponse = response.trim();
       
       if (trimmedResponse.length === 0) continue;
 
-      console.log('Processing response:', trimmedResponse);
+      console.log('Processing ELM327 response:', trimmedResponse);
 
-      // Handle command responses
-      if (this.currentCommand && this.isCommandResponse(trimmedResponse, this.currentCommand.command)) {
-        console.log(`Command response for ${this.currentCommand.command}:`, trimmedResponse);
-        this.currentCommand.resolve(trimmedResponse);
-        this.currentCommand = null; // Clear the current command
-        continue;
+      // Parse response according to ELM327 datasheet
+      const elm327Response = ELM327Handler.parseResponse(trimmedResponse);
+      console.log('Parsed ELM327 response:', elm327Response);
+
+      // Handle command responses if we have a pending command
+      if (this.currentCommand) {
+        const isComplete = ELM327Handler.isCompleteResponse(elm327Response, this.currentCommand.command);
+        console.log(`ELM327 response complete for "${this.currentCommand.command}": ${isComplete}`);
+        
+        if (isComplete) {
+          console.log(`ELM327 command response for ${this.currentCommand.command}:`, elm327Response);
+          this.currentCommand.resolve(elm327Response);
+          this.currentCommand = null; // Clear the current command
+          continue;
+        } else if (elm327Response.responseType === 'ECHO') {
+          // Command echo - ignore and continue waiting for actual response
+          console.log('Ignoring ELM327 command echo:', trimmedResponse);
+          continue;
+        } else if (elm327Response.responseType === 'SEARCHING') {
+          // ELM327 is searching for protocol - continue waiting
+          console.log('ELM327 searching for protocol...');
+          continue;
+        } else if (elm327Response.responseType === 'ERROR') {
+          // ELM327 reported an error for current command
+          console.log('ELM327 error response for command:', elm327Response);
+          this.currentCommand.resolve(elm327Response);
+          this.currentCommand = null;
+          continue;
+        }
       }
 
-      // Try to parse as OBD data
-      if (OBDIIParser.isValidOBDResponse(trimmedResponse)) {
-        const parsedData = OBDIIParser.parse(trimmedResponse);
+      // Try to parse as OBD data if it's a data response
+      if (elm327Response.responseType === 'DATA' && 
+          OBDIIParser.isValidOBDResponse(elm327Response.data)) {
+        const parsedData = OBDIIParser.parse(elm327Response.data);
         if (parsedData) {
-          console.log('Parsed OBD data:', parsedData);
+          console.log('Parsed OBD data from ELM327:', parsedData);
           this.notifySubscribers('dataUpdate', parsedData);
         }
       }
     }
 
     // Check if buffer contains a complete response without line endings
+    // This handles ELM327 adapters that don't send proper line terminators
     if (this.responseBuffer.length > 0 && this.currentCommand) {
       const trimmedBuffer = this.responseBuffer.trim();
-      if (this.isCommandResponse(trimmedBuffer, this.currentCommand.command)) {
-        console.log(`Command response for ${this.currentCommand.command}:`, trimmedBuffer);
-        this.currentCommand.resolve(trimmedBuffer);
+      
+      // Try to extract the actual OBD response from buffer (after the echo)
+      let responseToCheck = trimmedBuffer;
+      
+      // If buffer contains both echo and response, extract just the response part
+      if (trimmedBuffer.includes('>')) {
+        const parts = trimmedBuffer.split('>');
+        if (parts.length > 1) {
+          // Look for the part that contains the actual response
+          for (let i = 1; i < parts.length; i++) {
+            const part = parts[i].trim();
+            if (part) {
+              // For AT commands, look for OK, ERROR, or specific responses
+              if (this.currentCommand.command.startsWith('AT')) {
+                if (part.includes('OK') || part.includes('ERROR') || part.includes('ELM327')) {
+                  // Extract just the response part (OK, ERROR, etc.)
+                  if (part.includes('OK')) {
+                    responseToCheck = 'OK';
+                  } else if (part.includes('ERROR')) {
+                    responseToCheck = 'ERROR';
+                  } else if (part.includes('ELM327')) {
+                    responseToCheck = part;
+                  } else if (part.includes('AUTO') || part.includes('ISO') || part.includes('CAN') || part.includes('KWP') || part.includes('PWM')) {
+                    responseToCheck = part.includes('AUTO') ? 'AUTO' : part;
+                  }
+                  break;
+                }
+              } else {
+                // For OBD commands, look for hex data
+                if (!part.startsWith('AT') && part.length > 4) {
+                  responseToCheck = part;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      console.log('ELM327 checking buffer response:', responseToCheck);
+      const bufferResponse = ELM327Handler.parseResponse(responseToCheck);
+      
+      if (ELM327Handler.isCompleteResponse(bufferResponse, this.currentCommand.command)) {
+        console.log(`ELM327 buffer response for ${this.currentCommand.command}:`, bufferResponse);
+        this.currentCommand.resolve(bufferResponse);
         this.currentCommand = null; // Clear the current command
         this.responseBuffer = ''; // Clear the buffer
+      } else {
+        // If we have a substantial buffer but it's not recognized as complete,
+        // try additional pattern matching
+        if (this.responseBuffer.length > 5) {
+          console.log('ELM327 large buffer detected, checking for patterns...');
+          
+          let patternFound = false;
+          
+          // For AT commands, look for OK or ERROR patterns
+          if (this.currentCommand.command.startsWith('AT')) {
+            if (trimmedBuffer.includes('OK')) {
+              console.log('ELM327 found OK pattern in buffer');
+              const okResponse = ELM327Handler.parseResponse('OK');
+              if (ELM327Handler.isCompleteResponse(okResponse, this.currentCommand.command)) {
+                console.log(`ELM327 OK pattern response for ${this.currentCommand.command}:`, okResponse);
+                this.currentCommand.resolve(okResponse);
+                this.currentCommand = null;
+                this.responseBuffer = '';
+                patternFound = true;
+              }
+            } else if (trimmedBuffer.includes('ERROR')) {
+              console.log('ELM327 found ERROR pattern in buffer');
+              const errorResponse = ELM327Handler.parseResponse('ERROR');
+              this.currentCommand.resolve(errorResponse);
+              this.currentCommand = null;
+              this.responseBuffer = '';
+              patternFound = true;
+            } else if (trimmedBuffer.includes('AUTO') && this.currentCommand.command === 'ATDP') {
+              console.log('ELM327 found AUTO protocol pattern in buffer');
+              const autoResponse = ELM327Handler.parseResponse('AUTO');
+              if (ELM327Handler.isCompleteResponse(autoResponse, this.currentCommand.command)) {
+                console.log(`ELM327 AUTO pattern response for ${this.currentCommand.command}:`, autoResponse);
+                this.currentCommand.resolve(autoResponse);
+                this.currentCommand = null;
+                this.responseBuffer = '';
+                patternFound = true;
+              }
+            }
+          }
+          
+          // For OBD commands, look for hex pattern in buffer (like "41 00 BE 1F A8 13")
+          if (!patternFound) {
+            const hexMatch = trimmedBuffer.match(/[0-9A-F]{2}(?:\s+[0-9A-F]{2})*/i);
+            if (hexMatch) {
+              console.log('ELM327 found hex pattern in buffer:', hexMatch[0]);
+              const hexResponse = ELM327Handler.parseResponse(hexMatch[0]);
+              
+              if (ELM327Handler.isCompleteResponse(hexResponse, this.currentCommand!.command)) {
+                console.log(`ELM327 hex pattern response for ${this.currentCommand!.command}:`, hexResponse);
+                this.currentCommand!.resolve(hexResponse);
+                this.currentCommand = null;
+                this.responseBuffer = '';
+                patternFound = true;
+              }
+            }
+          }
+        }
       }
     }
   };
 
-  private isCommandResponse(response: string, command: string): boolean {
-    const cleanResponse = response.replace(/[\s>]/g, '').toUpperCase();
-    const cleanCommand = command.replace(/[\s\r\n]/g, '').toUpperCase();
-
-    // Check for direct command echo
-    if (cleanResponse === cleanCommand) return false;
-
-    // Check for OK response
-    if (cleanResponse === 'OK') return true;
-
-    // Check for error responses
-    if (cleanResponse.includes('ERROR') || cleanResponse.includes('?')) return true;
-
-    // Check for specific command responses
-    if (cleanCommand.startsWith('AT')) {
-      // Special handling for ATZ reset command - responds with ELM327 version OR just OK
-      if (cleanCommand === 'ATZ' && (cleanResponse.includes('ELM327') || cleanResponse === 'OK')) {
-        return true;
-      }
-      // Other AT commands typically return OK or error
-      if (cleanResponse === 'OK' || cleanResponse.includes('ERROR')) {
-        return true;
-      }
-      return false; // Don't assume all AT responses are complete
-    }
-
-    // Check for OBD response pattern (mode + 0x40)
-    if (cleanCommand.length >= 4) {
-      const commandMode = cleanCommand.substring(0, 2);
-      const responseMode = (parseInt(commandMode, 16) + 0x40).toString(16).toUpperCase().padStart(2, '0');
-      
-      if (cleanResponse.startsWith(responseMode)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+  // Legacy method removed - now using ELM327Handler.parseResponse() and ELM327Handler.isCompleteResponse()
 
   public async queryPID(pidName: string): Promise<ParsedPIDData | null> {
     if (!this.isInitialized) {
