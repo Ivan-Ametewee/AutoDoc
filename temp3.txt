@@ -1,0 +1,92 @@
+After you have successfully connected to a Bluetooth device, each one has a connected BluetoothSocket. You can now share information between devices. Using the BluetoothSocket, the general procedure to transfer data is as follows:
+
+Get the InputStream and OutputStream that handle transmissions through the socket using getInputStream() and getOutputStream(), respectively.
+
+Read and write data to the streams using read(byte[]) and write(byte[]).
+
+There are, of course, implementation details to consider. In particular, you should use a dedicated thread for reading from the stream and writing to it. This is important because both the read(byte[]) and write(byte[]) methods are blocking calls. The read(byte[]) method blocks until there is something to read from the stream. The write(byte[]) method doesn't usually block, but it can block for flow control if the remote device isn't calling read(byte[]) quickly enough and the intermediate buffers become full as a result. So, you should dedicate your main loop in the thread to reading from the InputStream. You can use a separate public method in the thread to initiate writes to the OutputStream.
+
+Example
+The following is an example of how you can transfer data between two devices connected over Bluetooth:
+
+Kotlin
+Java
+
+private const val TAG = "MY_APP_DEBUG_TAG"
+
+// Defines several constants used when transmitting messages between the
+// service and the UI.
+const val MESSAGE_READ: Int = 0
+const val MESSAGE_WRITE: Int = 1
+const val MESSAGE_TOAST: Int = 2
+// ... (Add other message types here as needed.)
+
+class MyBluetoothService(
+       // handler that gets info from Bluetooth service
+       private val handler: Handler) {
+
+   private inner class ConnectedThread(private val mmSocket: BluetoothSocket) : Thread() {
+
+       private val mmInStream: InputStream = mmSocket.inputStream
+       private val mmOutStream: OutputStream = mmSocket.outputStream
+       private val mmBuffer: ByteArray = ByteArray(1024) // mmBuffer store for the stream
+
+       override fun run() {
+           var numBytes: Int // bytes returned from read()
+
+           // Keep listening to the InputStream until an exception occurs.
+           while (true) {
+               // Read from the InputStream.
+               numBytes = try {
+                   mmInStream.read(mmBuffer)
+               } catch (e: IOException) {
+                   Log.d(TAG, "Input stream was disconnected", e)
+                   break
+               }
+
+               // Send the obtained bytes to the UI activity.
+               val readMsg = handler.obtainMessage(
+                       MESSAGE_READ, numBytes, -1,
+                       mmBuffer)
+               readMsg.sendToTarget()
+           }
+       }
+
+       // Call this from the main activity to send data to the remote device.
+       fun write(bytes: ByteArray) {
+           try {
+               mmOutStream.write(bytes)
+           } catch (e: IOException) {
+               Log.e(TAG, "Error occurred when sending data", e)
+
+               // Send a failure message back to the activity.
+               val writeErrorMsg = handler.obtainMessage(MESSAGE_TOAST)
+               val bundle = Bundle().apply {
+                   putString("toast", "Couldn't send data to the other device")
+               }
+               writeErrorMsg.data = bundle
+               handler.sendMessage(writeErrorMsg)
+               return
+           }
+
+           // Share the sent message with the UI activity.
+           val writtenMsg = handler.obtainMessage(
+                   MESSAGE_WRITE, -1, -1, mmBuffer)
+           writtenMsg.sendToTarget()
+       }
+
+       // Call this method from the main activity to shut down the connection.
+       fun cancel() {
+           try {
+               mmSocket.close()
+           } catch (e: IOException) {
+               Log.e(TAG, "Could not close the connect socket", e)
+           }
+       }
+   }
+}
+After the constructor acquires the necessary streams, the thread waits for data to come through the InputStream. When read(byte[]) returns with data from the stream, the data is sent to the main activity using a member Handler from the parent class. The thread then waits for more bytes to be read from the InputStream.
+
+To send outgoing data, you call the thread's write() method from the main activity and pass in the bytes to be sent. This method calls write(byte[]) to send the data to the remote device. If an IOException is thrown when calling write(byte[]), the thread sends a toast to the main activity, explaining to the user that the device couldn't send the given bytes to the other (connected) device.
+
+The thread's cancel() method allows you to terminate the connection at any time by closing the BluetoothSocket. Always call this method when you're done using the Bluetooth connection.

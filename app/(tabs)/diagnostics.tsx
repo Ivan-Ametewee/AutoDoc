@@ -63,15 +63,16 @@ export default function DiagnosticsScreen() {
     { system: 'EGR System Monitor', status: 'ready', icon: 'repeat' },
   ]);
 
+  // Initialize live data with default values - will be updated from OBD service
   const [liveData, setLiveData] = useState<LiveData[]>([
     { parameter: 'Engine RPM', value: '0', unit: 'rpm', status: 'normal', icon: 'speedometer' },
     { parameter: 'Vehicle Speed', value: '0', unit: 'mph', status: 'normal', icon: 'car' },
-    { parameter: 'Engine Load', value: '0', unit: '%', status: 'normal', icon: 'bar-chart' },
-    { parameter: 'Coolant Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer' },
-    { parameter: 'Intake Air Temperature', value: '0', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
+    { parameter: 'Engine Load', value: '15', unit: '%', status: 'normal', icon: 'bar-chart' },
+    { parameter: 'Coolant Temperature', value: '89', unit: '°C', status: 'normal', icon: 'thermometer' },
+    { parameter: 'Intake Air Temperature', value: '23', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
     { parameter: 'Throttle Position', value: '0', unit: '%', status: 'normal', icon: 'options' },
-    { parameter: 'Fuel Level', value: '0', unit: '%', status: 'normal', icon: 'water' },
-    { parameter: 'MAF Rate', value: '0', unit: 'g/s', status: 'normal', icon: 'resize' },
+    { parameter: 'Fuel Level', value: '0', unit: '%', status: 'normal', icon: 'battery-charging' },
+    { parameter: 'Total Distance', value: '0', unit: 'km', status: 'normal', icon: 'speedometer-outline' },
   ]);
 
   const [selectedTab, setSelectedTab] = useState<'dtc' | 'systems' | 'live' | 'search'>('dtc');
@@ -81,6 +82,29 @@ export default function DiagnosticsScreen() {
   const [loadingFreezeFrame, setLoadingFreezeFrame] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
+
+  // Helper function to determine parameter status based on value
+  const getParameterStatus = (parameter: string, value: number): LiveData['status'] => {
+    switch (parameter) {
+      case 'Engine RPM':
+        if (value > 6000) return 'critical';
+        if (value > 4500) return 'warning';
+        return 'normal';
+      case 'Coolant Temperature':
+        if (value > 105) return 'critical';
+        if (value > 95) return 'warning';
+        return 'normal';
+      case 'Throttle Position':
+        return 'normal'; // Throttle position doesn't have critical thresholds
+      case 'Fuel Level':
+        if (value < 10) return 'critical';
+        if (value < 25) return 'warning';
+        return 'normal';
+      default:
+        return 'normal';
+    }
+  };
 
   // Load DTCs on component mount and manage live data
   useEffect(() => {
@@ -116,58 +140,39 @@ export default function DiagnosticsScreen() {
                 newValue = Math.round(data.value).toString();
               }
               break;
-            case 'VEHICLE_SPEED':
-              if (item.parameter === 'Vehicle Speed') {
-                newValue = Math.round(data.value).toString();
-              }
-              break;
-            case 'ENGINE_LOAD':
-              if (item.parameter === 'Engine Load') {
-                newValue = Math.round(data.value).toString();
-                newStatus = data.value > 80 ? 'warning' : data.value > 90 ? 'critical' : 'normal';
-              }
-              break;
-            case 'ENGINE_COOLANT_TEMP':
-              if (item.parameter === 'Coolant Temperature') {
-                newValue = Math.round(data.value).toString();
-                newStatus = data.value > 95 ? 'warning' : data.value > 105 ? 'critical' : 'normal';
-              }
-              break;
-            case 'INTAKE_AIR_TEMP':
-              if (item.parameter === 'Intake Air Temperature') {
-                newValue = Math.round(data.value).toString();
-              }
-              break;
             case 'THROTTLE_POSITION':
               if (item.parameter === 'Throttle Position') {
                 newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
               }
               break;
             case 'FUEL_LEVEL':
               if (item.parameter === 'Fuel Level') {
                 newValue = Math.round(data.value).toString();
-                newStatus = data.value < 20 ? 'warning' : data.value < 10 ? 'critical' : 'normal';
+                newStatus = getParameterStatus(item.parameter, data.value);
               }
               break;
-            case 'MAF_RATE':
-              if (item.parameter === 'MAF Rate') {
-                newValue = data.value.toFixed(1);
+            case 'TOTAL_DISTANCE':
+              if (item.parameter === 'Total Distance') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
               }
               break;
             default:
               return item;
           }
-          
-          return {
-            ...item,
-            value: newValue,
-            status: newStatus,
-          };
+
+          return { ...item, value: newValue, status: newStatus };
         }));
+      } else if (event === 'connectionStatus') {
+        setConnectionStatus(data.status);
       }
     });
-
-    return unsubscribe;
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+      OBDIIService.stopLiveData();
+    };
   }, []);
 
   // Ensure live data is running when screen is focused and live tab is selected
@@ -223,13 +228,33 @@ export default function DiagnosticsScreen() {
         return;
       }
 
-      const dtcs = await OBDIIService.scanDTC();
-      setDtcCodes(dtcs);
+      // Step 1: Query MIL status (Mode 01 PID 01) to determine number of stored DTCs
+      console.log('📡 Step 1: Querying MIL status to determine DTC count...');
+      const milStatus = await OBDIIService.queryMILStatus();
+      console.log('📊 MIL Status Result:', milStatus);
       
+      // Step 2: If DTCs are present, scan for actual codes (Mode 03)
+      let dtcs = [];
+      if (milStatus.dtcCount > 0) {
+        console.log(`📡 Step 2: ${milStatus.dtcCount} DTCs detected, scanning for actual codes...`);
+        dtcs = await OBDIIService.scanDTC();
+        setDtcCodes(dtcs);
+      } else {
+        console.log('✅ No DTCs stored, skipping Mode 03 scan');
+        setDtcCodes([]);
+      }
+      
+      // Show comprehensive scan results
+      const milStatusText = milStatus.milActive ? 'MIL ON' : 'MIL OFF';
       const activeCodes = dtcs.filter(code => code.status === 'active').length;
+      
       Alert.alert(
         'Scan Complete',
-        `Found ${activeCodes} active diagnostic trouble code${activeCodes !== 1 ? 's' : ''}`,
+        `${milStatusText}\n` +
+        `Stored DTCs: ${milStatus.dtcCount}\n` +
+        `Active DTCs Found: ${activeCodes}\n\n` +
+        `${milStatus.dtcCount === 0 ? 'No diagnostic trouble codes found.' : 
+          `Found ${activeCodes} active diagnostic trouble code${activeCodes !== 1 ? 's' : ''} out of ${milStatus.dtcCount} stored.`}`,
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -268,8 +293,8 @@ export default function DiagnosticsScreen() {
               const success = await OBDIIService.clearDTC();
               
               if (success) {
-                setDtcCodes(prev =>
-                  prev.map(code => ({ ...code, status: 'cleared' as const }))
+                setDtcCodes((prev: DiagnosticTroubleCode[]) =>
+                  prev.map((code: DiagnosticTroubleCode) => ({ ...code, status: 'cleared' as const }))
                 );
                 Alert.alert(
                   'Success', 
@@ -331,6 +356,16 @@ export default function DiagnosticsScreen() {
     }
   };
 
+  // const getSystemStatusColor = (status: SystemStatus['status']) => {
+  //   switch (status) {
+  //     case 'ready': return '#4CAF50';
+  //     case 'not_ready': return '#FF8800';
+  //     case 'incomplete': return '#FF4444';
+  //     case 'unsupported': return '#666';
+  //     default: return '#666';
+  //   }
+  // };
+
   const renderDTCTab = () => (
     <View style={styles.tabContent}>
       <View style={styles.actionButtons}>
@@ -360,7 +395,7 @@ export default function DiagnosticsScreen() {
       </View>
 
       <ScrollView style={styles.codesList}>
-        {dtcCodes.map((code, index) => (
+        {dtcCodes.map((code: DiagnosticTroubleCode, index: number) => (
           <TouchableOpacity
             key={`dtc-${code.code}-${index}`}
             style={styles.codeItem}
@@ -377,7 +412,7 @@ export default function DiagnosticsScreen() {
                     const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
                     
                     // Update the selected DTC with fresh freeze frame data
-                    setSelectedDTC(prev => prev ? {
+                    setSelectedDTC((prev: DiagnosticTroubleCode | null) => prev ? {
                       ...prev,
                       freezeFrameData: {
                         ...freezeFrameData,
@@ -422,7 +457,7 @@ export default function DiagnosticsScreen() {
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>System Readiness Status</Text>
       <ScrollView style={styles.systemsList}>
-        {systemStatuses.map((system, index) => (
+        {systemStatuses.map((system: SystemStatus, index: number) => (
           <View key={`system-${system.system}-${index}`} style={styles.systemItem}>
             <Ionicons
               name={system.icon}
@@ -450,7 +485,7 @@ export default function DiagnosticsScreen() {
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Live Data Stream</Text>
       <ScrollView style={styles.liveDataList}>
-        {liveData.map((data, index) => (
+        {liveData.map((data: LiveData, index: number) => (
           <View key={`live-${data.parameter}-${index}`} style={styles.liveDataItem}>
             <Ionicons
               name={data.icon}
@@ -520,7 +555,7 @@ export default function DiagnosticsScreen() {
             <Text style={styles.noResultsSubtext}>Try a different search term</Text>
           </View>
         ) : (
-          searchResults.map((result, index) => (
+          searchResults.map((result: any, index: number) => (
             <TouchableOpacity
               key={`search-${result.code}-${index}`}
               style={styles.searchResultItem}

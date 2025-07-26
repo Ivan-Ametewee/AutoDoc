@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events';
+
 interface EngineState {
   running: boolean;
   warmupTime: number;
@@ -12,8 +14,18 @@ interface EngineState {
 }
 
 type DrivingScenario = 'idle' | 'city' | 'highway' | 'aggressive';
+type FraudMode = 'none' | 'rollback' | 'tampering' | 'multiple';
 
-class MockDataGenerator {
+interface FraudSimulation {
+  enabled: boolean;
+  mode: FraudMode;
+  rollbackAmount: number;
+  rollbackTriggered: boolean;
+  tamperingPatterns: string[];
+  lastFraudEvent: number;
+}
+
+class MockDataGenerator extends EventEmitter {
   private engineState: EngineState;
   private drivingScenario: DrivingScenario;
   private lastUpdate: number;
@@ -21,9 +33,11 @@ class MockDataGenerator {
   private faultProbability: number; // Probability of generating a fault
   private tripDistance: number; // Distance for the current trip
   private totalDistance: number; // Total distance (odometer reading)
+  private fraudSimulation: FraudSimulation; // NEW: Fraud simulation state
   private freezeFrameCache: Map<string, any> = new Map(); // Cache freeze frame data per DTC
 
   constructor() {
+    super();
     this.engineState = {
       running: false,
       warmupTime: 0,
@@ -36,23 +50,20 @@ class MockDataGenerator {
       intakeAirTemp: 25,
       mafRate: 0
     } as EngineState;
-    
-    this.drivingScenario = 'idle'; // idle, city, highway, aggressive
+    this.drivingScenario = 'idle';
     this.lastUpdate = Date.now();
     this.tripDistance = 0;
-    this.totalDistance = 45231; // Odometer reading
-    
-    // Fault simulation - Start with some initial DTCs for testing
-    this.faults = [
-      {
-        code: 'P0171',
-        description: 'System Too Lean (Bank 1)',
-        severity: 'medium',
-        timestamp: new Date(Date.now() - 3600000),
-        pending: false
-      }
-    ];
-    this.faultProbability = 0.0020; // 0.2% chance per update - increased for better demo
+    this.totalDistance = 45231;
+    this.faults = [];
+    this.faultProbability = 0.001;
+    this.fraudSimulation = {
+      enabled: false,
+      mode: 'none',
+      rollbackAmount: 0,
+      rollbackTriggered: false,
+      tamperingPatterns: [],
+      lastFraudEvent: 0
+    };
   }
 
   // Main data generation method
@@ -63,7 +74,13 @@ class MockDataGenerator {
 
     this.updateEngineState(deltaTime);
     this.simulateDrivingScenario(deltaTime);
+    this.updateDistance(deltaTime);
     this.checkForFaults();
+
+    // NEW: Apply fraud simulation if enabled
+    if (this.fraudSimulation.enabled) {
+      this.applyFraudSimulation(now);
+    }
 
     return this.getCurrentReadings();
   }
@@ -71,13 +88,13 @@ class MockDataGenerator {
   updateEngineState(deltaTime: number) {
     if (this.engineState.running) {
       this.engineState.warmupTime += deltaTime;
-      
+
       // Coolant temperature rises gradually when cold
       if (this.engineState.coolantTemp < 90) {
         const tempRiseRate = Math.max(0.5, (90 - this.engineState.coolantTemp) * 0.02);
         this.engineState.coolantTemp += tempRiseRate * deltaTime;
       }
-      
+
       // Intake air temperature affected by engine heat and ambient
       const ambientTemp = 25;
       const engineHeatEffect = (this.engineState.coolantTemp - ambientTemp) * 0.3;
@@ -100,7 +117,7 @@ class MockDataGenerator {
         this.simulateAggressiveDriving(deltaTime);
         break;
     }
-    
+
     // Randomly change scenarios
     if (Math.random() < 0.001) {
       this.changeScenario();
@@ -123,7 +140,7 @@ class MockDataGenerator {
     this.engineState.throttlePosition = 20 + this.randomVariation(15);
     this.engineState.engineLoad = 35 + this.randomVariation(10);
     this.engineState.mafRate = 15 + this.randomVariation(5);
-    
+
     this.updateDistance(deltaTime);
   }
 
@@ -134,7 +151,7 @@ class MockDataGenerator {
     this.engineState.throttlePosition = 45 + this.randomVariation(8);
     this.engineState.engineLoad = 55 + this.randomVariation(8);
     this.engineState.mafRate = 25 + this.randomVariation(3);
-    
+
     this.updateDistance(deltaTime);
   }
 
@@ -145,28 +162,28 @@ class MockDataGenerator {
     this.engineState.throttlePosition = 70 + this.randomVariation(20);
     this.engineState.engineLoad = 75 + this.randomVariation(15);
     this.engineState.mafRate = 35 + this.randomVariation(8);
-    
+
     this.updateDistance(deltaTime);
   }
 
   calculateRPMFromSpeed(speed: number): number {
     // Simplified transmission simulation
     if (speed === 0) return 700; // Idle
-    
+
     // Approximate gear ratios
     const gearRatios = [3.5, 2.1, 1.4, 1.0, 0.8];
     const finalDrive = 3.9;
     const wheelCircumference = 2.0; // meters
-    
+
     let gear = 1;
     if (speed > 15) gear = 2;
     if (speed > 25) gear = 3;
     if (speed > 40) gear = 4;
     if (speed > 55) gear = 5;
-    
+
     const gearRatio = gearRatios[gear - 1];
     const wheelRPM = (speed * 1.60934 * 1000) / (60 * wheelCircumference); // Convert mph to wheel RPM
-    
+
     return wheelRPM * gearRatio * finalDrive;
   }
 
@@ -187,7 +204,7 @@ class MockDataGenerator {
     if (Math.random() < this.faultProbability) {
       this.generateRandomFault();
     }
-    
+
     // Clear faults occasionally
     if (Math.random() < 0.0001 && this.faults.length > 0) {
       this.faults.splice(Math.floor(Math.random() * this.faults.length), 1);
@@ -203,9 +220,9 @@ class MockDataGenerator {
       { code: 'P0442', description: 'Evaporative Emission Control System Leak Detected (small leak)', severity: 'low' },
       { code: 'P0506', description: 'Idle Control System RPM Lower Than Expected', severity: 'medium' }
     ];
-    
+
     const fault = possibleFaults[Math.floor(Math.random() * possibleFaults.length)];
-    
+
     if (!this.faults.find(f => f.code === fault.code)) {
       this.faults.push({
         ...fault,
@@ -215,7 +232,46 @@ class MockDataGenerator {
     }
   }
 
-  getCurrentReadings(): {[key: string]: number} {
+  /**
+   * Add a specific fault code (used by fraud simulation)
+   */
+  addFault(fault: { code: string; description: string; severity: string }) {
+    if (!this.faults.find(f => f.code === fault.code)) {
+      this.faults.push({
+        ...fault,
+        timestamp: new Date(),
+        pending: false
+      });
+      this.emit('faultsChanged', this.faults);
+      this.emit('alertsChanged', this.getActiveAlerts());
+      this.emit('riskChanged', this.getRiskScoreAndStatus());
+      console.log(`🚨 Added fraud-related fault: ${fault.code} - ${fault.description}`);
+    }
+  }
+
+  // Returns active alerts (critical or pending faults)
+  getActiveAlerts() {
+    return this.faults.filter(f => f.severity === 'critical' || f.pending);
+  }
+
+  // Returns a risk score and status based on current faults
+  getRiskScoreAndStatus() {
+    let risk = 0;
+    let status = 'Normal';
+    for (const f of this.faults) {
+      if (f.severity === 'critical') risk += 50;
+      else if (f.severity === 'high') risk += 30;
+      else if (f.severity === 'medium') risk += 15;
+      else if (f.severity === 'low') risk += 5;
+      if (f.code === 'U0001') risk += 50; // Odometer fraud code
+    }
+    if (risk >= 80) status = 'High Risk';
+    else if (risk >= 40) status = 'Moderate Risk';
+    else if (risk > 0) status = 'Low Risk';
+    return { riskScore: risk, status };
+  }
+
+  getCurrentReadings(): { [key: string]: number } {
     return {
       ENGINE_RPM: Math.round(this.engineState.rpm),
       VEHICLE_SPEED: Math.round(this.engineState.speed),
@@ -332,26 +388,151 @@ class MockDataGenerator {
     return true;
   }
 
-  // Add a method to simulate having DTCs for testing
-  addTestDTCs() {
-    const testDTCs = [
-      { code: 'P0420', description: 'Catalyst System Efficiency Below Threshold (Bank 1)', severity: 'medium' },
-      { code: 'P0300', description: 'Random/Multiple Cylinder Misfire Detected', severity: 'high' },
-      { code: 'P0128', description: 'Coolant Thermostat', severity: 'low' }
-    ];
-    
-    // Add 1-2 random DTCs
-    const numToAdd = Math.floor(Math.random() * 2) + 1;
-    for (let i = 0; i < numToAdd; i++) {
-      const testDTC = testDTCs[Math.floor(Math.random() * testDTCs.length)];
-      if (!this.faults.find(f => f.code === testDTC.code)) {
-        this.faults.push({
-          ...testDTC,
-          timestamp: new Date(),
-          pending: Math.random() < 0.3
-        });
+  // === NEW: FRAUD SIMULATION METHODS ===
+
+  /**
+   * Enable fraud simulation with specific scenarios
+   */
+  public enableFraudSimulation(mode: FraudMode = 'rollback'): void {
+    console.log(`🚨 Enabling fraud simulation mode: ${mode}`);
+
+    this.fraudSimulation.enabled = true;
+    this.fraudSimulation.mode = mode;
+    this.fraudSimulation.lastFraudEvent = Date.now();
+    this.fraudSimulation.rollbackTriggered = false;
+
+    switch (mode) {
+      case 'rollback':
+        this.fraudSimulation.rollbackAmount = Math.floor(Math.random() * 50000) + 10000; // 10k-60k rollback
+        console.log(`📉 Odometer rollback will occur: ${this.fraudSimulation.rollbackAmount} units`);
+        break;
+      case 'tampering':
+        this.fraudSimulation.tamperingPatterns = ['speed_rpm_mismatch', 'impossible_values'];
+        console.log('⚙️ ECU tampering patterns enabled');
+        break;
+      case 'multiple':
+        this.fraudSimulation.rollbackAmount = Math.floor(Math.random() * 25000) + 5000;
+        this.fraudSimulation.tamperingPatterns = ['speed_rpm_mismatch'];
+        console.log('🔥 Multiple fraud patterns enabled');
+        break;
+    }
+  }
+
+  /**
+   * Disable fraud simulation
+   */
+  public disableFraudSimulation(): void {
+    console.log('✅ Disabling fraud simulation');
+    this.fraudSimulation.enabled = false;
+    this.fraudSimulation.mode = 'none';
+    this.fraudSimulation.rollbackTriggered = false;
+    this.fraudSimulation.tamperingPatterns = [];
+  }
+
+  /**
+   * Apply fraud simulation effects
+   */
+  private applyFraudSimulation(currentTime: number): void {
+    const timeSinceLastEvent = currentTime - this.fraudSimulation.lastFraudEvent;
+
+    switch (this.fraudSimulation.mode) {
+      case 'rollback':
+        this.simulateOdometerRollback(timeSinceLastEvent);
+        break;
+      case 'tampering':
+        this.simulateECUTampering();
+        break;
+      case 'multiple':
+        this.simulateOdometerRollback(timeSinceLastEvent);
+        this.simulateECUTampering();
+        break;
+    }
+  }
+
+  /**
+   * Simulate odometer rollback after a delay
+   */
+  private simulateOdometerRollback(timeSinceLastEvent: number): void {
+    // Trigger rollback after 15 seconds of normal operation
+    if (!this.fraudSimulation.rollbackTriggered && timeSinceLastEvent > 15000) {
+      const originalDistance = this.totalDistance;
+      this.totalDistance = Math.max(0, this.totalDistance - this.fraudSimulation.rollbackAmount);
+
+      console.log(`🚨 FRAUD SIMULATION: Odometer rollback occurred!`);
+      console.log(`📉 ${originalDistance} km → ${this.totalDistance} km (-${this.fraudSimulation.rollbackAmount} km)`);
+
+      this.fraudSimulation.rollbackTriggered = true;
+      this.fraudSimulation.lastFraudEvent = Date.now();
+
+      // Create a fraud-related fault code
+      this.addFault({
+        code: 'U0001',
+        description: 'Odometer Data Inconsistency Detected',
+        severity: 'critical'
+      });
+    }
+  }
+
+  /**
+   * Simulate ECU tampering patterns
+   */
+  private simulateECUTampering(): void {
+    if (this.fraudSimulation.tamperingPatterns.includes('speed_rpm_mismatch')) {
+      // Occasionally show impossible speed/RPM combinations
+      if (Math.random() < 0.1) { // 10% chance
+        if (this.engineState.speed > 30) {
+          // Force RPM to 0 while showing speed (impossible)
+          this.engineState.rpm = 0;
+          console.log('⚠️ FRAUD SIMULATION: Impossible speed/RPM combination');
+        }
       }
     }
+
+    if (this.fraudSimulation.tamperingPatterns.includes('impossible_values')) {
+      // Generate impossible parameter values
+      if (Math.random() < 0.05) { // 5% chance
+        this.engineState.speed = Math.random() * 400 + 300; // Impossible speed > 300 km/h
+        console.log('⚠️ FRAUD SIMULATION: Impossible speed value generated');
+      }
+    }
+  }
+
+  /**
+   * Set up predefined fraud demo scenarios
+   */
+  public setupFraudDemoScenario(scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated'): void {
+    switch (scenario) {
+      case 'clean':
+        this.disableFraudSimulation();
+        this.totalDistance = 45231;
+        console.log('✅ Clean vehicle scenario - no fraud patterns');
+        break;
+
+      case 'rollback':
+        this.totalDistance = 125000; // Higher starting odometer
+        this.enableFraudSimulation('rollback');
+        console.log('📉 Rollback fraud scenario - major odometer decrease coming');
+        break;
+
+      case 'tampering':
+        this.totalDistance = 89000;
+        this.enableFraudSimulation('tampering');
+        console.log('⚙️ ECU tampering scenario - parameter inconsistencies');
+        break;
+
+      case 'sophisticated':
+        this.totalDistance = 156000;
+        this.enableFraudSimulation('multiple');
+        console.log('🔥 Sophisticated fraud scenario - multiple techniques');
+        break;
+    }
+  }
+
+  /**
+   * Get fraud simulation status for debugging
+   */
+  public getFraudSimulationStatus(): FraudSimulation {
+    return { ...this.fraudSimulation };
   }
 
   // Utility methods
@@ -375,6 +556,21 @@ class MockDataGenerator {
     this.faults = [];
     this.freezeFrameCache.clear(); // Clear freeze frame cache on reset
     this.tripDistance = 0;
+    this.emit('faultsChanged', this.faults);
+    this.emit('alertsChanged', this.getActiveAlerts());
+    this.emit('riskChanged', this.getRiskScoreAndStatus());
+  }
+
+  // --- MIL Status Generation ---
+
+  /**
+   * Generate MIL (Malfunction Indicator Lamp) status
+   */
+  generateMILStatus(): { milActive: boolean; dtcCount: number } {
+    const milActive = this.faults.length > 0;
+    const dtcCount = Math.min(this.faults.length, 127); // Max 127 DTCs
+    
+    return { milActive, dtcCount };
   }
 }
 

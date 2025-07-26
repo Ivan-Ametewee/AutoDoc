@@ -13,7 +13,7 @@ export interface ELM327Response {
   success: boolean;
   data: string;
   error?: string;
-  responseType: 'OK' | 'ERROR' | 'DATA' | 'PROMPT' | 'ECHO' | 'SEARCHING' | 'UNABLE_TO_CONNECT' | 'NO_DATA' | 'UNKNOWN';
+  responseType: 'OK' | 'ERROR' | 'DATA' | 'PROMPT' | 'ECHO' | 'SEARCHING' | 'STOPPED' | 'UNABLE_TO_CONNECT' | 'NO_DATA' | 'UNKNOWN';
   rawResponse: string;
 }
 
@@ -167,6 +167,16 @@ export class ELM327Handler {
       };
     }
 
+    if (upper.includes(this.RESPONSES.STOPPED)) {
+      return {
+        success: false,
+        data: trimmed,
+        error: 'ELM327 stopped processing',
+        responseType: 'STOPPED',
+        rawResponse
+      };
+    }
+
     if (upper.includes(this.RESPONSES.UNABLE_TO_CONNECT)) {
       return {
         success: false,
@@ -228,16 +238,60 @@ export class ELM327Handler {
     }
 
     // Check for ELM327 version info first (takes priority over echo detection)
-    if (upper.includes('ELM327') || upper.includes('V1.') || upper.includes('V2.')) {
+    // Handle corrupted data by extracting the ELM327 part
+    const elm327Match = trimmed.match(/(ELM327[^\r\n]*v?\d+\.\d+[^\r\n]*)/i);
+    if (elm327Match || upper.includes('ELM327') || upper.includes('V1.') || upper.includes('V2.')) {
       console.log(`ELM327Handler: Detected ELM327 version info in response`);
+      const cleanData = elm327Match ? elm327Match[1] : trimmed;
       return {
         success: true,
-        data: trimmed,
+        data: cleanData,
         responseType: 'DATA',
         rawResponse
       };
     }
 
+    // Check for concatenated AT command + response (e.g., "ATE0OK", "ATZELMX27")
+    const atConcatenatedMatch = upper.match(/^(AT[A-Z0-9]+)(OK|ERROR|ELM327.*|[A-Z].*)$/);
+    if (atConcatenatedMatch) {
+      const [, command, response] = atConcatenatedMatch;
+      // If it's just the command part, treat as echo
+      if (response === command) {
+        return {
+          success: true,
+          data: trimmed,
+          responseType: 'ECHO',
+          rawResponse
+        };
+      }
+      // If it contains a response, extract just the response part
+      if (response === 'OK') {
+        return {
+          success: true,
+          data: 'OK',
+          responseType: 'OK',
+          rawResponse
+        };
+      }
+      if (response === 'ERROR') {
+        return {
+          success: false,
+          data: 'ERROR',
+          error: 'ELM327 reported error',
+          responseType: 'ERROR',
+          rawResponse
+        };
+      }
+      if (response.includes('ELM327')) {
+        return {
+          success: true,
+          data: response,
+          responseType: 'DATA',
+          rawResponse
+        };
+      }
+    }
+    
     // Check if this looks like pure command echo (starts with AT but no additional data)
     if (upper.startsWith('AT') && !this.containsResponseData(upper)) {
       return {
@@ -427,6 +481,9 @@ export class ELM327Handler {
         
       case 'SEARCHING':
         return false; // Still searching for protocol
+        
+      case 'STOPPED':
+        return true; // ELM327 stopped processing - this is a complete response
         
       case 'PROMPT':
         return false; // Just a prompt, wait for actual response

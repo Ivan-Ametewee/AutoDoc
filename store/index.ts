@@ -17,10 +17,37 @@ const settingsPersistConfig = {
   storage: AsyncStorage,
 };
 
-// Vehicle persist config
+// Vehicle persist config - exclude alerts from persistence
 const vehiclePersistConfig = {
   key: 'vehicle',
   storage: AsyncStorage,
+  transforms: [
+    // Transform to exclude alerts from being persisted
+    {
+      in: (inboundState: any) => {
+        if (!inboundState) return inboundState;
+        return {
+          ...inboundState,
+          fraudDetection: inboundState.fraudDetection ? {
+            ...inboundState.fraudDetection,
+            // Reset alerts on app startup but preserve other fraud detection data
+            alerts: [],
+            // Clear anomalies on app startup to prevent accumulation
+            checks: inboundState.fraudDetection.checks ? 
+              Object.keys(inboundState.fraudDetection.checks).reduce((acc, key) => {
+                acc[key] = {
+                  ...inboundState.fraudDetection.checks[key],
+                  anomalies: []
+                };
+                return acc;
+              }, {} as any) : inboundState.fraudDetection.checks
+          } : inboundState.fraudDetection
+        };
+      },
+      out: (outboundState: any) => outboundState,
+      config: {}
+    }
+  ]
 };
 
 // Combine all reducers with explicit types
@@ -52,6 +79,9 @@ const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
+      // Disable immutable state check in development to improve performance
+      // with large fraud detection state objects
+      immutableCheck: false,
     }),
   devTools: __DEV__, // Enable Redux DevTools in development
 });

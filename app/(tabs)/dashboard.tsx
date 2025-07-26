@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useState, useCallback } from 'react';
 import {
@@ -28,13 +28,14 @@ interface LiveDataState {
   fuelLevel: number;
   throttlePosition: number;
   maf: number;
+  odometer: number; // Odometer reading in miles/km
 }
 
 export default function DashboardScreen() {
   // --- State Management ---
   const [liveData, setLiveData] = useState<LiveDataState>({
     rpm: 0, speed: 0, coolantTemp: 0, engineLoad: 0, batteryVoltage: 0,
-    fuelLevel: 0, throttlePosition: 0, maf: 0,
+    fuelLevel: 0, throttlePosition: 0, maf: 0, odometer: 0,
   });
   
   const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
@@ -48,6 +49,13 @@ export default function DashboardScreen() {
   icon: 'medical-outline' as const,
   route: '/(tabs)/diagnostics',
   color: '#FF3B30',
+ },
+ {
+  id: 'fraud-detection',
+  title: 'Fraud Detection',
+  icon: 'shield-checkmark-outline' as const,
+  route: '/fraud-detection',
+  color: '#9C27B0',
  },
  {
   id: 'history',
@@ -115,6 +123,18 @@ export default function DashboardScreen() {
               // Note: A real PID for battery voltage would be needed here
               case 'CONTROL_MODULE_VOLTAGE':
                   newData.batteryVoltage = data.value;
+                  break;
+              case 'ODOMETER':
+              case 'VEHICLE_ODOMETER':
+              case 'TOTAL_DISTANCE':
+              case 'TOTAL_DISTANCE_TRAVELED':
+                  // Convert km to miles for display (MockDataGenerator outputs km)
+                  const kmValue = data.value;
+                  const milesValue = kmValue * 0.621371; // Convert km to miles
+                  newData.odometer = milesValue;
+                  
+                  // Log odometer updates for debugging fraud detection
+                  console.log(`[Dashboard] Odometer update: ${kmValue} km (${milesValue.toFixed(0)} mi) from PID: ${data.name}`);
                   break;
             }
             return newData; // Return the updated state
@@ -252,6 +272,11 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vehicle Metrics</Text>
           <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <MaterialIcons name="speed" size={20} color="#8E44AD" />
+              <Text style={styles.metricLabel}>Odometer</Text>
+              <Text style={styles.metricValue}>{formatValue(liveData.odometer, 0)} mi</Text>
+            </View>
             <View style={styles.metricCard}>
               <Ionicons name="thermometer" size={20} color="#FF6B35" />
               <Text style={styles.metricLabel}>Coolant Temp</Text>

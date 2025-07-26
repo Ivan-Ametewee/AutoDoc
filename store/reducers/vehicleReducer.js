@@ -1,4 +1,5 @@
 // src/store/reducers/vehicleReducer.js
+import { FRAUD_DETECTION_TYPES } from '../types/fraudTypes';
 
 const initialState = {
   // Current Active Vehicle
@@ -182,6 +183,40 @@ const initialState = {
     vehicleInfo: false,
     detection: false,
     database: false,
+  },
+
+  // Fraud Detection State
+  fraudDetection: {
+    isEnabled: true,
+    realTimeMonitoring: false, // Real-time monitoring off by default
+    checks: {
+      odometerRollback: {
+        enabled: true,
+        threshold: -100,
+        lastKnownMileage: null,
+        anomalies: [],
+      },
+      inconsistentReporting: {
+        enabled: true,
+        threshold: 500,
+        timeWindow: 24,
+        anomalies: [],
+      },
+      digitalTampering: {
+        enabled: true,
+        ecu_checks: true,
+        anomalies: [],
+      },
+      dataIntegrity: {
+        enabled: true,
+        checksumValidation: true,
+        anomalies: [],
+      }
+    },
+    riskScore: 0,
+    lastCheck: null,
+    overallStatus: 'clean',
+    alerts: [],
   },
 };
 
@@ -898,6 +933,170 @@ const vehicleReducer = (state = initialState, action) => {
           ? (remainingVehiclesAfterBulk.length > 0 ? remainingVehiclesAfterBulk[0].id : null)
           : state.activeVehicle,
       };
+
+    // Fraud Detection Actions
+    case FRAUD_DETECTION_TYPES.RUN_FRAUD_CHECK:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          lastCheck: new Date().toISOString(),
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE:
+      // Safely merge checkResults, filtering out undefined values
+      const safeCheckResults = action.payload.checkResults || {};
+      const updatedChecks = { ...state.fraudDetection.checks };
+      
+      // Only update checks that have valid data
+      Object.entries(safeCheckResults).forEach(([checkType, checkData]) => {
+        if (checkData && typeof checkData === 'object') {
+          updatedChecks[checkType] = {
+            ...updatedChecks[checkType],
+            ...checkData,
+          };
+        }
+      });
+
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          riskScore: action.payload.riskScore || state.fraudDetection.riskScore,
+          overallStatus: action.payload.status || state.fraudDetection.overallStatus,
+          checks: updatedChecks,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT:
+      // Limit alerts to 50 max for performance (keep most recent)
+      const currentAlerts = state.fraudDetection.alerts || [];
+      const newAlerts = currentAlerts.length >= 50 
+        ? [...currentAlerts.slice(1), action.payload.alert] // Remove oldest, add newest
+        : [...currentAlerts, action.payload.alert]; // Just add new alert
+        
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          alerts: newAlerts,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.CLEAR_FRAUD_ALERTS:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          alerts: [],
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.RESET_FRAUD_SESSION:
+      // Clear all session data (alerts and anomalies) but preserve settings and last check results
+      const resetChecks = {};
+      Object.keys(state.fraudDetection.checks).forEach(checkType => {
+        resetChecks[checkType] = {
+          ...state.fraudDetection.checks[checkType],
+          anomalies: [], // Clear anomalies
+        };
+      });
+      
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          alerts: [], // Clear alerts
+          checks: resetChecks,
+          // Keep riskScore, overallStatus, and lastCheck from previous session
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.ODOMETER_ANOMALY_DETECTED:
+      const checkType = action.payload.checkType;
+      const anomaly = action.payload.anomaly;
+      
+      // Only add anomaly if both checkType and anomaly are valid
+      if (!checkType || !anomaly || typeof anomaly !== 'object') {
+        console.warn('⚠️ Invalid anomaly data received:', action.payload);
+        return state;
+      }
+      
+      // Ensure the check type exists in state
+      if (!state.fraudDetection.checks[checkType]) {
+        console.warn('⚠️ Unknown check type:', checkType);
+        return state;
+      }
+      
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          checks: {
+            ...state.fraudDetection.checks,
+            [checkType]: {
+              ...state.fraudDetection.checks[checkType],
+              anomalies: [
+                ...(state.fraudDetection.checks[checkType].anomalies || []),
+                anomaly,
+              ],
+            },
+          },
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.UPDATE_FRAUD_SETTINGS:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          ...action.payload.settings,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.TOGGLE_FRAUD_DETECTION:
+      return {
+        ...state,
+        fraudDetection: {
+          ...state.fraudDetection,
+          isEnabled: action.payload.enabled,
+        },
+      };
+
+    case FRAUD_DETECTION_TYPES.CLEAR_FRAUD_ANOMALIES:
+      if (action.payload.checkType) {
+        // Clear anomalies for specific check type
+        return {
+          ...state,
+          fraudDetection: {
+            ...state.fraudDetection,
+            checks: {
+              ...state.fraudDetection.checks,
+              [action.payload.checkType]: {
+                ...state.fraudDetection.checks[action.payload.checkType],
+                anomalies: [],
+              },
+            },
+          },
+        };
+      } else {
+        // Clear all anomalies
+        const clearedChecks = {};
+        Object.keys(state.fraudDetection.checks).forEach(checkType => {
+          clearedChecks[checkType] = {
+            ...state.fraudDetection.checks[checkType],
+            anomalies: [],
+          };
+        });
+        return {
+          ...state,
+          fraudDetection: {
+            ...state.fraudDetection,
+            checks: clearedChecks,
+          },
+        };
+      }
 
     // Reset
     case 'RESET_VEHICLE_STATE':

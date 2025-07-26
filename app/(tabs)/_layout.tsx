@@ -7,6 +7,7 @@ import {
   Search,
   Settings,
   IceCream,
+  Terminal,
 } from 'lucide-react-native';
 import React from 'react';
 import { useColorScheme } from 'react-native';
@@ -82,6 +83,21 @@ export default function TabLayout() {
           headerTitle: 'System Diagnostics',
           tabBarIcon: ({ color, size, focused }) => (
             <Search
+              size={focused ? size + 2 : size}
+              color={color}
+              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="terminal"
+        options={{
+          title: 'Terminal',
+          headerTitle: 'ELM327 Terminal',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Terminal
               size={focused ? size + 2 : size}
               color={color}
               strokeWidth={focused ? 2.5 : 2}

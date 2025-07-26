@@ -15,7 +15,7 @@ const initialState = {
     o2Voltage: 0, // Renamed from oxygenSensor1 to match VehicleData interface
     oxygenSensor2: 0,
     timing: 0, // Added timing advance
-    batteryVoltage: 12.0,
+    batteryVoltage: null, // Will show dashes until real data received
     calculatedEngineLoad: 0,
     absoluteThrottlePosition: 0,
     ambientAirTemp: 0,
@@ -27,6 +27,13 @@ const initialState = {
     barometricPressure: 0,
     catalystTemp: 0,
     evapSystemVaporPressure: 0,
+    // Odometer and related fields for fraud detection
+    odometer: null, // Will show dashes until real data received
+    tripOdometer: null, // Trip distance in km  
+    engineHours: null, // Engine runtime in hours
+    distanceSinceCodesCleared: null, // Distance since codes cleared
+    distanceWithMILOn: null, // Distance with MIL on
+    runtimeSinceEngineStart: null, // Runtime since engine start
     lastUpdate: null,
   },
 
@@ -387,9 +394,31 @@ const dataReducer = (state = initialState, action) => {
 
     // Simulation Mode
     case 'TOGGLE_SIMULATION_MODE':
+      const newSimulationMode = !state.isSimulationMode;
       return {
         ...state,
-        isSimulationMode: !state.isSimulationMode,
+        isSimulationMode: newSimulationMode,
+        // Set simulation default values when entering simulation mode
+        liveData: newSimulationMode ? {
+          ...state.liveData,
+          odometer: 45231, // Default simulation odometer value
+          tripOdometer: 0,
+          engineHours: 150,
+          batteryVoltage: 12.0,
+          distanceSinceCodesCleared: 0,
+          distanceWithMILOn: 0,
+          runtimeSinceEngineStart: 0,
+        } : {
+          // Reset to null values when exiting simulation mode
+          ...state.liveData,
+          odometer: null,
+          tripOdometer: null,
+          engineHours: null,
+          batteryVoltage: null,
+          distanceSinceCodesCleared: null,
+          distanceWithMILOn: null,
+          runtimeSinceEngineStart: null,
+        },
       };
 
     case 'SET_SIMULATION_SCENARIO':

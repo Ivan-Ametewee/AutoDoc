@@ -48,23 +48,8 @@ class SimulationService {
     // Initialize vehicle state. Assuming initialize method exists on VehicleSimulator
     // this.vehicleSimulator.initialize(); 
     
-    // Start the engine for realistic data
-    mockDataGenerator.startEngine();
-    
-    // Add some test DTCs randomly when starting simulation
-    if (Math.random() < 0.7) { // 70% chance of having DTCs
-      mockDataGenerator.addTestDTCs();
-    }
-    
-    // Check initial MIL status
-    const initialDTCs = mockDataGenerator.generateDTCs();
-    const hasActiveDTCs = initialDTCs.some(dtc => 
-      (dtc.severity === 'critical' || dtc.severity === 'moderate') && dtc.status === 'active'
-    );
-    this.milActive = hasActiveDTCs;
-    if (hasActiveDTCs) {
-      this.notifyCallbacks('mil_status', { active: true });
-    }
+    // Send initial data immediately for better UX
+    this.updateSimulation();
     
     // Start the simulation loop
     this.simulationInterval = setInterval(() => {
@@ -280,6 +265,76 @@ class SimulationService {
     }
     
     this.notifyCallbacks('simulation_reset', { timestamp: Date.now() });
+  }
+
+  /**
+   * Generate historical data for fraud detection testing
+   */
+  public generateHistoricalData(daysBack: number = 30): any[] {
+    console.log(`🗂️ Generating ${daysBack} days of historical data for fraud detection`);
+    
+    const historicalData = [];
+    const now = new Date();
+    const currentData = this.getCurrentData();
+    
+    // Get base odometer from current simulation data
+    const baseOdometer = currentData.odometer || mockDataGenerator.distance || 45000;
+    const baseEngineHours = currentData.engineHours || mockDataGenerator.engineHours || 150;
+    
+    for (let i = daysBack; i >= 0; i--) {
+      const timestamp = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+      
+      // Calculate realistic odometer progression (30-80 km per day average)
+      const dailyDistance = 30 + Math.random() * 50; // 30-80 km
+      const totalDistanceBack = i * dailyDistance;
+      
+      // Calculate engine hours (assuming 1-3 hours of driving per day)
+      const dailyEngineHours = 1 + Math.random() * 2; // 1-3 hours
+      const totalEngineHoursBack = i * dailyEngineHours;
+      
+      historicalData.push({
+        id: `historical_${i}`,
+        timestamp: timestamp.toISOString(),
+        odometer: Math.max(0, baseOdometer - totalDistanceBack),
+        mileage: Math.max(0, baseOdometer - totalDistanceBack),
+        source: 'obd',
+        engineHours: Math.max(0, baseEngineHours - totalEngineHoursBack),
+        vehicleSpeed: i === 0 ? (currentData.speed || 0) : Math.random() * 60, // Random historical speeds
+        engineRPM: i === 0 ? (currentData.rpm || 0) : 800 + Math.random() * 2000,
+        distanceSinceCodesCleared: Math.max(0, 5000 - totalDistanceBack),
+        distanceWithMILOn: 0,
+        fuelLevel: 20 + Math.random() * 60, // 20-80% fuel level
+        raw: `historical_simulation_${i}`
+      });
+    }
+    
+    // Sort by timestamp (oldest first)
+    historicalData.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    console.log(`✅ Generated ${historicalData.length} historical data points`);
+    return historicalData;
+  }
+
+  /**
+   * Set up fraud demo scenarios (delegates to MockDataGenerator)
+   */
+  public setupFraudDemoScenario(scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated'): void {
+    console.log(`🎯 SimulationService: Setting up fraud demo scenario: ${scenario}`);
+    
+    // Delegate to MockDataGenerator which has the actual implementation
+    if (mockDataGenerator && typeof mockDataGenerator.setupFraudDemoScenario === 'function') {
+      mockDataGenerator.setupFraudDemoScenario(scenario);
+      
+      // Notify callbacks about the fraud scenario change
+      this.notifyCallbacks('fraud_scenario_changed', {
+        scenario,
+        timestamp: Date.now(),
+        fraudStatus: mockDataGenerator.getFraudSimulationStatus()
+      });
+    } else {
+      console.error('❌ MockDataGenerator.setupFraudDemoScenario method not available');
+      throw new Error('Fraud demo scenario setup not available in MockDataGenerator');
+    }
   }
 
   /**

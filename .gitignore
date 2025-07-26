@@ -38,6 +38,10 @@ yarn-error.*
 
 app-example
 
+# Development files
+error-images/
+logs.txt
+
 # Project reports and documentation
 PROJECT_PROGRESS_REPORT.md
 *.docx

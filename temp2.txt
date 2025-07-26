@@ -1,0 +1,13 @@
+[{
+	"resource": "/c:/Users/hp/VscodeProjects/ReactNativeProjects/simulate/services/bluetooth/BluetoothService.ts",
+	"owner": "typescript",
+	"code": "2339",
+	"severity": 8,
+	"message": "Property 'connectionState' does not exist on type 'BluetoothService'.",
+	"source": "ts",
+	"startLineNumber": 361,
+	"startColumn": 41,
+	"endLineNumber": 361,
+	"endColumn": 56,
+	"origin": "extHost1"
+}]

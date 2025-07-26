@@ -1,0 +1,104 @@
+How do I get odometer readings for toyota vehicles? Which command do I need to send?
+
+Of course. Getting odometer readings is a common goal, but it's more complex than reading standard data like RPM or speed. Here’s a detailed explanation and the code you need.
+
+There is **no universal, standard command** to get the odometer reading from all vehicles. The standard OBD-II specification did not originally require it. While a standard PID for odometer (`01A6`) was added later, very few vehicles, especially older ones, support it.
+
+For most vehicles, and especially for Toyota, you need to use a **manufacturer-specific or non-standard command**.
+
+### The Command You Need to Send
+
+For many modern Toyota vehicles, the odometer reading can be accessed using a **Mode 22** command. This is a special diagnostic mode that goes beyond the standard real-time data.
+
+The most common command for Toyota is:
+
+  * **Command**: `2225AE`
+  * **Mode**: `22` (Enhanced Diagnostic Data)
+  * **PID**: `25AE` (Toyota's proprietary PID for Odometer)
+
+### How to Parse the Response
+
+When you send `2225AE`, the adapter will return a multi-byte response. The important part of the response will look something like this:
+
+`62 25 AE 00 07 A1 2B`
+
+  * **`62 25 AE`**: This is the response header, confirming it's a reply to your `2225AE` request.
+  * **`00 07 A1 2B`**: These are the four data bytes (A, B, C, and D) that hold the odometer value in kilometers.
+
+To get the final value, you need to combine these four bytes using a standard formula:
+
+  * **Formula**: `(A * 16777216) + (B * 65536) + (C * 256) + D`
+  * **Your Data**:
+      * `A` = `00` (hex) = 0 (decimal)
+      * `B` = `07` (hex) = 7 (decimal)
+      * `C` = `A1` (hex) = 161 (decimal)
+      * `D` = `2B` (hex) = 43 (decimal)
+  * **Calculation**:
+      * `(0 * 16777216) + (7 * 65536) + (161 * 256) + 43`
+      * `0 + 458752 + 41216 + 43` = `500011`
+  * **Result**: The odometer reading is **500,011 km**.
+
+### Updating Your Code
+
+To use this new command, you need to add its definition to your `PIDDefinitions.ts` file. This will allow your `OBDIIService` to request and parse the odometer reading just like any other PID.
+
+#### `ivan-ametewee/simulate/simulate-49518065f50e3124dcf0920fdb34286600f703ab/services/obdii/PIDDefinitions.ts` (Updated)
+
+```typescript
+// services/obdii/PIDDefinitions.ts
+
+export interface PIDDefinition {
+  name: string;
+  pid: string;
+  mode: string;
+  bytes: number;
+  description: string;
+  unit?: string;
+  parse: (bytes: number[]) => number | string;
+  // ... other properties
+}
+
+export class PIDDefinitions {
+  private static pids: Map<string, PIDDefinition> = new Map([
+    // --- (Keep all your existing PID definitions) ---
+    ['ENGINE_RPM', {
+      name: 'ENGINE_RPM',
+      pid: '0C',
+      mode: '01',
+      bytes: 2,
+      description: 'Engine RPM',
+      unit: 'rpm',
+      parse: (bytes) => ((bytes[0] * 256) + bytes[1]) / 4,
+    }],
+    // ... other standard PIDs
+
+    /**
+     * **NEW**: Added the proprietary PID for Toyota Odometer.
+     * This uses Mode 22 instead of the standard Mode 01.
+     */
+    ['ODOMETER_TOYOTA', {
+      name: 'ODOMETER_TOYOTA',
+      pid: '25AE', // The proprietary PID
+      mode: '22',    // The special diagnostic mode
+      bytes: 4,      // The response has 4 data bytes
+      description: 'Odometer Reading (Toyota)',
+      unit: 'km',
+      parse: (bytes) => {
+        // Formula: (A * 2^24) + (B * 2^16) + (C * 2^8) + D
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
+      },
+    }],
+  ]);
+
+  public static getPID(name: string): PIDDefinition | undefined {
+    return this.pids.get(name);
+  }
+
+  public static getAllPIDs(): PIDDefinition[] {
+    return Array.from(this.pids.values());
+  }
+}
+```
+
+With this change, you can now get the odometer reading by simply calling `OBDIIService.queryPID('ODOMETER_TOYOTA')`. Your service will handle sending the correct Mode `22` command and parsing the multi-byte response automatically.

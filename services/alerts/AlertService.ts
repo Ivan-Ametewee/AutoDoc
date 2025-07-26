@@ -2,7 +2,7 @@
 // src/services/alerts/AlertService.ts
 import { EventEmitter } from 'events';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NotificationService } from './NotificationService';
+import { NotificationService } from './NotificationService.js';
 import DatabaseService from '../database/DatabaseService';
 
 type Threshold = {

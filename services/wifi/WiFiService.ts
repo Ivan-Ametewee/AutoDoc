@@ -461,24 +461,55 @@ class WiFiService extends EventEmitter {
 
     this.readBuffer += data;
 
+    // Enhanced parsing to handle concatenated responses and malformed data
+    this.parseAndEmitResponses();
+  }
+
+  /**
+   * Enhanced response parsing to handle ELM327 concatenated responses
+   */
+  private parseAndEmitResponses(): void {
+    let processedData = false;
+    
+    // First, try to split by proper ELM327 terminators
     const messages = this.readBuffer.split(/[\r\n]+/);
-
-    this.readBuffer = messages.pop() || '';
-
-    messages.forEach(message => {
-      if (message.trim()) {
-        this.emit('dataReceived', {
-          data: message.trim(),
-          timestamp: new Date().toISOString()
+    
+    if (messages.length > 1) {
+      // Keep the last incomplete message in buffer
+      this.readBuffer = messages.pop() || '';
+      
+      messages.forEach(message => {
+        if (message.trim()) {
+          this.emit('dataReceived', {
+            data: message.trim(),
+            timestamp: new Date().toISOString()
+          });
+          processedData = true;
+        }
+      });
+    }
+    
+    // Handle concatenated responses without proper line terminators
+    // Look for ELM327 prompt patterns: >RESPONSE
+    if (!processedData && this.readBuffer.includes('>')) {
+      const promptResponses = this.extractPromptResponses();
+      if (promptResponses.length > 0) {
+        promptResponses.forEach(response => {
+          this.emit('dataReceived', {
+            data: response,
+            timestamp: new Date().toISOString()
+          });
         });
+        processedData = true;
       }
-    });
-
-    // Handle responses without line terminators (like "OK")
-    if (this.readBuffer.length > 0) {
+    }
+    
+    // Handle responses without line terminators (like "OK", "ERROR")
+    if (!processedData && this.readBuffer.length > 0) {
       const trimmedBuffer = this.readBuffer.trim();
-      // Check if buffer contains common ELM327 responses
-      if (trimmedBuffer === 'OK' || trimmedBuffer.includes('ELM327') || trimmedBuffer.includes('ERROR') || trimmedBuffer === '?') {
+      
+      // Check for complete ELM327 responses
+      if (this.isCompleteResponse(trimmedBuffer)) {
         this.emit('dataReceived', {
           data: trimmedBuffer,
           timestamp: new Date().toISOString()
@@ -486,6 +517,82 @@ class WiFiService extends EventEmitter {
         this.readBuffer = ''; // Clear the buffer
       }
     }
+  }
+  
+  /**
+   * Extract responses from concatenated data using ELM327 prompt patterns
+   */
+  private extractPromptResponses(): string[] {
+    const responses: string[] = [];
+    const promptPattern = />([^>]+)/g;
+    let match;
+    
+    while ((match = promptPattern.exec(this.readBuffer)) !== null) {
+      const response = match[1].trim();
+      if (response.length > 0) {
+        responses.push(response);
+      }
+    }
+    
+    // Update buffer to keep only the last incomplete part
+    if (responses.length > 0) {
+      const lastPromptIndex = this.readBuffer.lastIndexOf('>');
+      if (lastPromptIndex !== -1) {
+        const afterLastPrompt = this.readBuffer.substring(lastPromptIndex + 1);
+        // Only keep incomplete responses
+        if (!this.isCompleteResponse(afterLastPrompt.trim())) {
+          this.readBuffer = '>' + afterLastPrompt;
+        } else {
+          this.readBuffer = '';
+        }
+      }
+    }
+    
+    return responses;
+  }
+  
+  /**
+   * Check if a response appears to be complete
+   */
+  private isCompleteResponse(response: string): boolean {
+    const trimmed = response.trim();
+    if (!trimmed) return false;
+    
+    // Common ELM327 complete responses
+    const completeResponses = [
+      'OK', 'ERROR', '?', 'NO DATA', 'UNABLE TO CONNECT',
+      'SEARCHING...', 'STOPPED', 'BUS INIT: OK', 'BUS INIT: ERROR'
+    ];
+    
+    // Check for exact matches
+    if (completeResponses.includes(trimmed.toUpperCase())) {
+      return true;
+    }
+    
+    // Check for ELM327 version info
+    if (trimmed.toUpperCase().includes('ELM327')) {
+      return true;
+    }
+    
+    // Check for hex data (OBD responses) - should be even length hex
+    const hexPattern = /^[0-9A-F\s]+$/i;
+    if (hexPattern.test(trimmed) && trimmed.replace(/\s/g, '').length >= 4) {
+      const cleanHex = trimmed.replace(/\s/g, '');
+      return cleanHex.length % 2 === 0; // Valid hex data should be even length
+    }
+    
+    // Check for protocol descriptions
+    const protocolKeywords = ['ISO', 'SAE', 'CAN', 'KWP', 'PWM', 'AUTO'];
+    if (protocolKeywords.some(keyword => trimmed.toUpperCase().includes(keyword))) {
+      return true;
+    }
+    
+    // Check for voltage readings
+    if (trimmed.match(/^\d+\.\d+V?$/)) {
+      return true;
+    }
+    
+    return false;
   }
 
   private handleDisconnection(): void {
