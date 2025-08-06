@@ -1,52 +1,76 @@
- LOG  Bluetooth service is ready.
- LOG  🔗 [BT-INIT] Starting Bluetooth connection to device: OBDII
- LOG  🔗 [BT-INIT] Device details: {"name":"OBDII","address":"00:1D:A5:06:4C:E4"}
- LOG  🔗 [BT-INIT] Setting connection state to connecting...
- LOG  🔗 [BT-INIT] Initiating connection to: OBDII
- LOG  ✅ [BT-INIT] Bluetooth connection successful in 297ms
- LOG  🔗 [BT-INIT] Attaching data listener for incoming ELM327 data...
- LOG  ✅ [BT-INIT] Data listener attached successfully
- LOG  🎉 [BT-INIT] Successfully connected to: OBDII
- LOG  🧪 [BT-INIT] Waiting for ELM327 adapter to stabilize...
- LOG  🧪 [BT-INIT] Testing adapter responsiveness...
- LOG  ✅ [BT-INIT] Wake-up signals sent to adapter
- LOG  ✅ [BT-INIT] Bluetooth connection established - ready for OBD commands
- LOG  🔗 [BT-INIT] All ELM327 commands will be handled by OBDIIService
- LOG  🔗 [BT-INIT] Emitting deviceConnected event for: OBDII
- LOG  🔧 [INIT] Starting ELM327 adapter initialization following datasheet specifications...
- LOG  🔧 [INIT] Connection type: bluetooth
- LOG  🔧 [INIT] Device info: {"_bluetoothModule":{"_nativeModule":{},"_eventEmitter":{"_nativeModule":{}}},"_nativeDevice":{"extra":{},"bonded":true,"type":"CLASSIC","id":"00:1D:A5:06:4C:E4","deviceClass":{"majorClass":7936,"deviceClass":7936},"address":"00:1D:A5:06:4C:E4","name":"OBDII"},"name":"OBDII","address":"00:1D:A5:06:4C:E4","id":"00:1D:A5:06:4C:E4","bonded":true,"deviceClass":{"majorClass":7936,"deviceClass":7936},"type":"CLASSIC","extra":{}}
- LOG  ⏳ [INIT] Additional stabilization delay for Bluetooth adapter...
- LOG  🔍 [INIT] Running adapter diagnostic tests...
- LOG  🔍 [DIAG] Testing different command formats to wake up adapter...
- LOG  🔍 [DIAG] Testing command: "\r\n"
- LOG  Sending data to ELM327: "\r\n"
- LOG  🔍 [DIAG] Testing command: "ATI\r\n"
- LOG  Sending data to ELM327: "ATI\r\n"
- LOG  🔍 [DIAG] Testing command: "AT\r\n"
- LOG  Sending data to ELM327: "AT\r\n"
- LOG  🔍 [DIAG] Testing command: "ATZ\r\n"
- LOG  Sending data to ELM327: "ATZ\r\n"
- LOG  🔍 [DIAG] Diagnostic tests completed - check logs for any received data
- LOG  🔧 [INIT] Initialization sequence has 8 commands
- LOG  🔧 [INIT] Step 1/8: Executing ATZ - Reset ELM327
- LOG  🔧 [INIT] Command timeout: 3000ms, expects data: true
- LOG  📤 [CMD] Sending ELM327 command: ATZ (Reset ELM327)
- LOG  📤 [CMD] Expects data: true, Timeout: 3000ms, Retries: 3
- LOG  🎯 [CMD] Command priority: MEDIUM, category: other
- LOG  🔍 [CMD] Validating command: ATZ
- LOG  ✅ [CMD] Command validation passed: ATZ
- LOG  ⏳ [CMD] Adding command to queue (current queue length: 0)
- LOG  📋 [CMD] Created command queue item: {"command":"ATZ","expectedResponseType":"DATA","isMode22":false,"retries":3}
- LOG  📋 [CMD] Command added to queue, new length: 1
- LOG  🚀 [CMD] Starting queue processing...
- LOG  🔄 [QUEUE] Starting queue processing with 1 commands
- LOG  🔄 [QUEUE] Processing MEDIUM priority command: ATZ (0 remaining)
- LOG  📡 [QUEUE] Sending ELM327 command to adapter: ATZ
- LOG  📡 [QUEUE] Command details: expectedResponse=DATA, isMode22=false
- LOG  🧹 [QUEUE] Response buffer cleared for command: ATZ
- LOG  ⏰ [QUEUE] Command timeout set to: 3000ms for ATZ
- LOG  Sending data to ELM327: "ATZ\r\n"
- LOG  ELM327 command timeout: ATZ
- LOG  Retrying ELM327 command: ATZ, retries left: 2
- LOG  ELM327 clearing response buffer for retry
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoViewEventEmitter.cpp
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoViewComponentDescriptor.cpp
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoModulesHostObject.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoModulesCore-dummy.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoFabricViewObjC.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » ExpoBridgeModule.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EventEmitter.cpp
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXUtilities.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXSingletonModule.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXSharedObjectUtils.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXReactNativeUserNotificationCenterProxy.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXReactNativeEventEmitter.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXReactNativeAdapter.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXReactLogHandler.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXReactDelegateWrapper.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXRawJavaScriptFunction.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXPermissionsService.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXPermissionsMethodsDelegate.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXNativeModulesProxy.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXModuleRegistryProvider.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXModuleRegistryHolderReactModule.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXModuleRegistryAdapter.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXModuleRegistry.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXLogManager.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptWeakObject.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptValue.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptTypedArray.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptSharedObjectBinding.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptRuntime.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJavaScriptObject.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJSIUtils.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJSIInstaller.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXJSIConversions.mm
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXExportedModule.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » EXAppDefines.m
+› Compiling expo-modules-core Pods/ExpoModulesCore » CoreModuleHelper.m
+› Packaging expo-modules-core Pods/ExpoModulesCore » libExpoModulesCore.a
+› Executing expo-modules-core Pods/ExpoModulesCore » Copy generated compatibility header
+
+❌  (node_modules/expo-notifications/ios/EXNotifications/Notifications/Categories/CategoriesModule.swift:11:53)
+
+   9 |     Name("ExpoNotificationCategoriesModule")
+  10 | 
+> 11 |     AsyncFunction("getNotificationCategoriesAsync") {
+     |                                                     ^ cannot infer return type for closure with multiple statements; add explicit type to disambiguate
+  12 |       let categories = await UNUserNotificationCenter.current().notificationCategories()
+  13 |       return filterAndSerializeCategories(categories)
+  14 |     }
+
+
+❌  (node_modules/expo-notifications/ios/EXNotifications/Notifications/Presenting/PresentationModule.swift:12:53)
+
+  10 |     Name("ExpoNotificationPresenter")
+  11 | 
+> 12 |     AsyncFunction("getPresentedNotificationsAsync") {
+     |                                                     ^ cannot infer return type for closure with multiple statements; add explicit type to disambiguate
+  13 |       let notifications = await UNUserNotificationCenter.current().deliveredNotifications()
+  14 |       return self.serializeNotifications(notifications)
+  15 |     }
+
+
+❌  (node_modules/expo-notifications/ios/EXNotifications/Notifications/Scheduling/SchedulerModule.swift:27:56)
+
+  25 |     Name("ExpoNotificationScheduler")
+  26 | 
+> 27 |     AsyncFunction("getAllScheduledNotificationsAsync") {
+     |                                                        ^ cannot infer return type for closure with multiple statements; add explicit type to disambiguate
+  28 |       let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+  29 |       return serializedNotificationRequests(requests)
+  30 |     }
+
+
+› 3 error(s), and 0 warning(s)
+
+CommandError: Failed to build iOS project. "xcodebuild" exited with error code 65.
+macbookpro@MACBOOKs-MacBook-Pro simulate % 

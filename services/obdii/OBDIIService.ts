@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { Platform } from 'react-native';
 import BluetoothService from '../bluetooth/BluetoothService';
 import OdometerFraudDetectionService from '../fraud/OdometerFraudDetectionService';
 import WiFiManager from '../wifi/WiFiManager';
@@ -218,6 +219,14 @@ class OBDIIService extends EventEmitter {
   // --- Connection & State Management ---
 
   public async connect(device: any, type: 'bluetooth' | 'wifi'): Promise<boolean> {
+    // Disable Bluetooth functionality on iOS devices
+    if (type === 'bluetooth' && Platform.OS === 'ios') {
+      const errorMessage = 'Bluetooth functionality is not available on iOS devices. Please use WiFi or Simulation mode instead.';
+      console.warn(errorMessage);
+      this.updateConnectionInfo('error', null, null, errorMessage);
+      throw new Error(errorMessage);
+    }
+
     if (this.connectionInfo.status === 'connected' || this.connectionInfo.status === 'connecting') {
       console.log('Already connected or connecting');
       return false;
@@ -345,6 +354,18 @@ class OBDIIService extends EventEmitter {
 
   public getConnectionStatus(): ConnectionInfo {
     return this.connectionInfo;
+  }
+
+  public static isBluetoothSupported(): boolean {
+    return Platform.OS !== 'ios';
+  }
+
+  public static getSupportedConnectionTypes(): ConnectionType[] {
+    const types: ConnectionType[] = ['wifi', 'simulation'];
+    if (Platform.OS !== 'ios') {
+      types.unshift('bluetooth'); // Add bluetooth as first option on non-iOS
+    }
+    return types;
   }
 
   private notifySubscribers(event: string, data: any): void {
