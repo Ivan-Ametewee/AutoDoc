@@ -127,6 +127,35 @@ export function useLiveOBDData() {
       } else if (eventType === 'connectionStatus') {
         console.log('Connection status update:', data);
         
+        // **FIX**: Dispatch connection status to Redux store for PID test screen
+        const { status, type, device, error } = data;
+        
+        if (status === 'connected') {
+          dispatch({
+            type: 'CONNECTION_SUCCESS',
+            payload: {
+              device,
+              connectionType: type,
+              supportedProtocols: [],
+              activeProtocol: null,
+              protocolVersion: null
+            }
+          });
+        } else if (status === 'connecting') {
+          dispatch({
+            type: 'START_CONNECTION'
+          });
+        } else if (status === 'disconnected') {
+          dispatch({
+            type: 'DISCONNECT_DEVICE'
+          });
+        } else if (status === 'error') {
+          dispatch({
+            type: 'CONNECTION_FAILED',
+            payload: { error, device }
+          });
+        }
+        
         // Log odometer PID information when connected
         if (data.status === 'connected') {
           const activeOdometerPID = OBDIIService.getActiveOdometerPID();

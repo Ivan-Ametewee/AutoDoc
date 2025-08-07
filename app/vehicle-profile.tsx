@@ -12,10 +12,14 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
+  Linking,
+  AppState,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+
+// Note: Image picker and camera functionality has been removed
 
 interface VehicleProfile {
   id: string;
@@ -51,19 +55,70 @@ interface EditField {
 
 const VehicleProfileScreen: React.FC = () => {
   const router = useRouter();
+  
   const [vehicle, setVehicle] = useState<VehicleProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedField, setSelectedField] = useState<EditField | null>(null);
   const [inputValue, setInputValue] = useState('');
+  
+  // Enhanced features state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
+  const [tempDate, setTempDate] = useState(new Date());
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showVinScanner, setShowVinScanner] = useState(false);
+  const [hasPermissions, setHasPermissions] = useState(false);
 
   useEffect(() => {
     loadVehicleProfile();
+    requestPermissions();
   }, []);
 
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        setTimeout(() => {
+          requestPermissions();
+        }, 500);
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  const requestPermissions = async () => {
+    try {
+      let cameraStatus = 'granted';
+      let imageStatus = 'granted';
+
+      // Request camera permissions (both for camera scanning and image picker)
+      // if (ImagePicker) {
+      //   try {
+      //     const { status: imgStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      //     const { status: libStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      //     cameraStatus = imgStatus;
+      //     imageStatus = libStatus === 'granted' ? 'granted' : 'denied';
+      //   } catch (error) {
+      //     console.log('Image picker permission request failed:', error);
+      //     cameraStatus = 'denied';
+      //     imageStatus = 'denied';
+      //   }
+      // }
+
+      setHasPermissions(cameraStatus === 'granted' && imageStatus === 'granted');
+    } catch (error) {
+      console.log('Permission request failed:', error);
+      setHasPermissions(false);
+    }
+  };
+
   const loadVehicleProfile = async () => {
-    // Mock API call - replace with actual data fetching
     setTimeout(() => {
       setVehicle({
         id: '1',
@@ -113,8 +168,39 @@ const VehicleProfileScreen: React.FC = () => {
     
     setSelectedField(field);
     const currentValue = vehicle[field.key];
-    setInputValue(currentValue?.toString() || '');
-    setModalVisible(true);
+    
+    if (field.type === 'date') {
+      const dateValue = currentValue ? new Date(currentValue as string) : new Date();
+      setTempDate(dateValue);
+      setShowDatePicker(true);
+    } else {
+      setInputValue(currentValue?.toString() || '');
+      setModalVisible(true);
+    }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    
+    if (selectedDate && selectedField && vehicle) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setVehicle({
+        ...vehicle,
+        [selectedField.key]: formattedDate,
+      });
+      
+      if (Platform.OS === 'ios') {
+        setShowDatePicker(false);
+      }
+      setSelectedField(null);
+    }
+  };
+
+  const closeDatePicker = () => {
+    setShowDatePicker(false);
+    setSelectedField(null);
   };
 
   const saveFieldValue = () => {
@@ -140,7 +226,6 @@ const VehicleProfileScreen: React.FC = () => {
     if (!vehicle) return;
 
     try {
-      // Mock API call - replace with actual save logic
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       Alert.alert(
@@ -154,12 +239,106 @@ const VehicleProfileScreen: React.FC = () => {
     }
   };
 
-  const scanVIN = () => {
-    Alert.alert(
-      'VIN Scanner',
-      'VIN scanning feature coming soon! You can manually enter your VIN for now.',
-      [{ text: 'OK' }]
-    );
+  const scanVIN = async () => {
+    // if (!Camera) {
+    if (true) {
+      Alert.alert(
+        'Feature Not Available',
+        'VIN scanning requires camera functionality. Please ensure expo-camera is available.',
+        [
+          { text: 'OK' },
+          { 
+            text: 'Manual Entry', 
+            onPress: () => {
+              const vinField = editableFields.find(f => f.key === 'vin');
+              if (vinField) handleFieldEdit(vinField);
+            }
+          }
+        ]
+      );
+      return;
+    }
+    
+    if (!hasPermissions) {
+      Alert.alert(
+        'Permission Required',
+        'Camera permission is required to scan VIN codes. Please enable it in your device settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: openAppSettings },
+          { text: 'Check Again', onPress: async () => {
+            await requestPermissions();
+            if (hasPermissions) {
+              setShowVinScanner(true);
+            }
+          }}
+        ]
+      );
+      return;
+    }
+    setShowVinScanner(true);
+  };
+
+  const handleVinScan = (data: string) => {
+    setShowVinScanner(false);
+    if (vehicle) {
+      setVehicle({ ...vehicle, vin: data });
+      Alert.alert('VIN Scanned', `VIN: ${data} has been added to your profile.`);
+    }
+  };
+
+  const openAppSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:');
+    } else {
+      Linking.openSettings();
+    }
+  };
+
+  const handlePhotoUpload = async () => {
+    // if (!ImagePicker) {
+    if (true) {
+      Alert.alert(
+        'Feature Not Available',
+        'Photo upload requires the expo-image-picker package. Please install it first:\n\nnpx expo install expo-image-picker'
+      );
+      return;
+    }
+
+    if (!hasPermissions) {
+      Alert.alert(
+        'Permission Required',
+        'Camera and photo library permissions are required. Please enable them in your device settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: openAppSettings },
+          { text: 'Check Again', onPress: async () => {
+            await requestPermissions();
+            if (hasPermissions) {
+              setShowPhotoModal(true);
+            }
+          }}
+        ]
+      );
+      return;
+    }
+    setShowPhotoModal(true);
+  };
+
+  const takePicture = async () => {
+    setShowPhotoModal(false);
+    Alert.alert('Feature Removed', 'Camera functionality has been removed');
+  };
+
+  const pickFromGallery = async () => {
+    setShowPhotoModal(false);
+    Alert.alert('Feature Removed', 'Image picker functionality has been removed');
+  };
+
+  const updateVehiclePhoto = (uri: string) => {
+    if (vehicle) {
+      setVehicle({ ...vehicle, photo: uri });
+    }
   };
 
   const deleteProfile = () => {
@@ -172,7 +351,6 @@ const VehicleProfileScreen: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            // Implement delete logic
             router.back();
           },
         },
@@ -201,18 +379,18 @@ const VehicleProfileScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading vehicle profile...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!vehicle) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="car" size={64} color="#ccc" />
           <Text style={styles.errorText}>No vehicle profile found</Text>
@@ -220,14 +398,14 @@ const VehicleProfileScreen: React.FC = () => {
             <Text style={styles.createButtonText}>Create New Profile</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const maintenanceStatus = getMaintenanceStatus();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
       <View style={styles.header}>
@@ -258,7 +436,10 @@ const VehicleProfileScreen: React.FC = () => {
               </View>
             )}
             {editing && (
-              <TouchableOpacity style={styles.photoEditButton}>
+              <TouchableOpacity 
+                style={styles.photoEditButton}
+                onPress={handlePhotoUpload}
+              >
                 <Ionicons name="camera" size={20} color="#007AFF" />
               </TouchableOpacity>
             )}
@@ -472,14 +653,128 @@ const VehicleProfileScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      {/* Photo Upload Modal */}
+      <Modal
+        visible={showPhotoModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPhotoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.photoModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Photo</Text>
+              <TouchableOpacity
+                onPress={() => setShowPhotoModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.photoOptions}>
+              <TouchableOpacity style={styles.photoOption} onPress={takePicture}>
+                <Ionicons name="camera" size={32} color="#007AFF" />
+                <Text style={styles.photoOptionText}>Take Photo</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.photoOption} onPress={pickFromGallery}>
+                <Ionicons name="image" size={32} color="#007AFF" />
+                <Text style={styles.photoOptionText}>Choose from Gallery</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* VIN Scanner Modal */}
+      <Modal
+        visible={showVinScanner}
+        animationType="slide"
+        onRequestClose={() => setShowVinScanner(false)}
+      >
+        <View style={styles.scannerContainer}>
+          <View style={styles.scannerHeader}>
+            <TouchableOpacity
+              onPress={() => setShowVinScanner(false)}
+              style={styles.scannerCloseButton}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.scannerTitle}>Scan VIN Code</Text>
+          </View>
+          
+          <View style={styles.scannerViewport}>
+            {/* Camera ? (
+              <Camera
+                style={StyleSheet.absoluteFillObject}
+                facing="back"
+                barcodeScannerSettings={{
+                  barcodeTypes: ["code128", "code39", "code93", "ean13", "ean8", "qr", "datamatrix", "pdf417"],
+                }}
+                onBarcodeScanned={({ data }: { data: string }) => {
+                  if (data && data.length >= 17) { // VIN codes are 17 characters
+                    handleVinScan(data);
+                  }
+                }}
+              />
+            ) : ( */}
+              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
+                  VIN scanner not available.{"\n"}Camera functionality has been disabled
+                </Text>
+              </View>
+            {/* ) */}
+            <View style={styles.scannerOverlay}>
+              <View style={styles.scannerFrame} />
+              <Text style={styles.scannerInstructions}>
+                Position the VIN code within the frame
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date Picker functionality removed */}
+      {showDatePicker && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={showDatePicker}
+          onRequestClose={closeDatePicker}
+        >
+          <View style={styles.datePickerOverlay}>
+            <View style={styles.datePickerContainer}>
+              <View style={styles.datePickerHeader}>
+                <TouchableOpacity onPress={closeDatePicker}>
+                  <Text style={styles.datePickerCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.datePickerTitle}>
+                  Select {selectedField?.title}
+                </Text>
+                <TouchableOpacity onPress={() => handleDateChange(null, tempDate)}>
+                  <Text style={styles.datePickerDone}>Done</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.datePicker}>
+                <Text style={{ textAlign: 'center', padding: 20, color: '#333' }}>
+                  Date picker not available.{"\n"}Please install @react-native-community/datetimepicker
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
@@ -522,7 +817,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 8,
@@ -581,7 +876,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e9ecef',
+    borderColor: '#e0e0e0',
   },
   section: {
     marginBottom: 16,
@@ -840,6 +1135,124 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  
+  // Photo Modal Styles
+  photoModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    minHeight: 200,
+  },
+  photoOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 32,
+  },
+  photoOption: {
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    minWidth: 120,
+  },
+  photoOptionText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  
+  // VIN Scanner Styles
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  scannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  scannerCloseButton: {
+    position: 'absolute',
+    left: 16,
+    padding: 8,
+  },
+  scannerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  scannerViewport: {
+    flex: 1,
+    position: 'relative',
+  },
+  scannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 250,
+    height: 100,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+  },
+  scannerInstructions: {
+    marginTop: 24,
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  
+  // Date Picker Styles
+  datePickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  datePickerContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#666',
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  datePicker: {
+    backgroundColor: '#fff',
+    minHeight: 200,
   },
 });
 

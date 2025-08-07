@@ -10,7 +10,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -250,7 +250,7 @@ export default function AlertsScreen() {
   const unreadCount = alerts.filter(alert => !alert.isRead).length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -401,7 +401,7 @@ export default function AlertsScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowRuleModal(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
@@ -460,9 +460,9 @@ export default function AlertsScreen() {
               </View>
             </ScrollView>
           )}
-        </SafeAreaView>
+        </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -155,15 +155,15 @@ class DatabaseService {
   async addDataPoint(dataPoint: DataPoint): Promise<void> {
     const { pid, value, unit, raw_data, session_id } = dataPoint;
     const query = `INSERT INTO data_points (pid, value, unit, raw_data, session_id) VALUES (?, ?, ?, ?, ?)`;
-    await this.database!.runAsync(query, [pid, value, unit, raw_data, session_id]);
+    await this.database!.runAsync(query, [pid, value, unit || null, raw_data || null, session_id || null]);
   }
 
   // --- Vehicle Profile Operations ---
   async createVehicleProfile(profile: VehicleProfile): Promise<number> {
     const query = `INSERT INTO vehicle_profiles (name, make, model, year, vin, engine_type, transmission, fuel_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     const result = await this.database!.runAsync(query, [
-      profile.name, profile.make, profile.model, profile.year,
-      profile.vin, profile.engine_type, profile.transmission, profile.fuel_type,
+      profile.name, profile.make || null, profile.model || null, profile.year || null,
+      profile.vin || null, profile.engine_type || null, profile.transmission || null, profile.fuel_type || null,
     ]);
     return result.lastInsertRowId;
   }
@@ -417,15 +417,15 @@ class DatabaseService {
     
     // Count total anomalies across all checks
     const anomaliesCount = Object.values(result.checkResults || {})
-      .reduce((total: number, check: any) => total + (check?.anomalies?.length || 0), 0);
+      .reduce((total: number, check: any) => total + (check?.anomalies?.length || 0), 0) as number;
     
     await this.database!.runAsync(query, [
-      result.odometerReading,
-      result.riskScore,
-      result.overallStatus,
-      JSON.stringify(result.checkResults),
+      result.odometerReading || null,
+      result.riskScore || null,
+      result.overallStatus || null,
+      JSON.stringify(result.checkResults || {}),
       anomaliesCount,
-      result.dataSource,
+      result.dataSource || null,
       vehicleId
     ]);
     
@@ -575,8 +575,8 @@ class DatabaseService {
    async addDTC(dtc: DtcCode): Promise<void> {
     const query = `INSERT OR REPLACE INTO dtc_codes (code, description, severity, freeze_frame_data, vehicle_id) VALUES (?, ?, ?, ?, ?)`;
     await this.database!.runAsync(query, [
-        dtc.code, dtc.description, dtc.severity, 
-        JSON.stringify(dtc.freeze_frame_data || {}), dtc.vehicle_id
+        dtc.code, dtc.description || null, dtc.severity || null, 
+        JSON.stringify(dtc.freeze_frame_data || {}), dtc.vehicle_id || null
       ]);
   }
 
@@ -602,6 +602,71 @@ class DatabaseService {
       this.database = null;
       this.isInitialized = false;
       console.log('Database connection closed');
+    }
+  }
+
+  // --- Export Helper Methods ---
+  async getDiagnosticHistory(): Promise<any[]> {
+    // Return DTC history and alert history combined
+    try {
+      const dtcs = await this.getDTCs();
+      const alerts = await this.getAlertHistory();
+      
+      return [
+        ...dtcs.map(dtc => ({
+          type: 'DTC',
+          code: dtc.code,
+          description: dtc.description,
+          severity: dtc.severity,
+          status: dtc.status,
+          first_detected: dtc.first_detected,
+          last_detected: dtc.last_detected,
+          cleared_at: dtc.cleared_at
+        })),
+        ...alerts.map(alert => ({
+          type: 'Alert',
+          code: alert.alert_type,
+          description: alert.message,
+          severity: alert.severity,
+          status: alert.resolved ? 'cleared' : 'active',
+          first_detected: alert.timestamp,
+          last_detected: alert.timestamp,
+          cleared_at: alert.resolved ? alert.timestamp : null
+        }))
+      ];
+    } catch (error) {
+      console.warn('Failed to get diagnostic history:', error);
+      return [];
+    }
+  }
+
+  async getVehicleDataHistory(): Promise<any[]> {
+    // Return data points history
+    try {
+      const query = 'SELECT * FROM data_points ORDER BY timestamp DESC LIMIT 1000';
+      const results = await this.database!.getAllAsync(query);
+      return results as any[];
+    } catch (error) {
+      console.warn('Failed to get vehicle data history:', error);
+      return [];
+    }
+  }
+
+  async getStoredDTCs(): Promise<any[]> {
+    // Alias for getDTCs for export compatibility
+    try {
+      const dtcs = await this.getDTCs();
+      return dtcs.map(dtc => ({
+        code: dtc.code,
+        description: dtc.description,
+        status: dtc.status,
+        detectedAt: dtc.first_detected,
+        clearedAt: dtc.cleared_at,
+        freezeFrameData: dtc.freeze_frame_data ? JSON.parse(dtc.freeze_frame_data) : null
+      }));
+    } catch (error) {
+      console.warn('Failed to get stored DTCs:', error);
+      return [];
     }
   }
 }

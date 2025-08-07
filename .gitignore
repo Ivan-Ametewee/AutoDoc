@@ -41,8 +41,65 @@ app-example
 # Development files
 error-images/
 logs.txt
+temp*.txt
+test-*.js
+clean-android.js
+react-native-safe-area-context-shim.js
+mode6.csv
+mode6.xlsx
+~$*.xlsx
 
 # Project reports and documentation
 PROJECT_PROGRESS_REPORT.md
 *.docx
 reports/
+DTC_SCANNING_ANALYSIS.md
+ELM327_REFACTOR_SUMMARY.md
+build-instructions.md
+
+# Android build artifacts  
+android/build/
+android/app/build/
+android/.gradle/
+android/app/.cxx/
+android/gradlew.bat
+android/gradle/
+android/local.properties
+
+# iOS build artifacts
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+ios/*.xcodeproj
+ios/Podfile.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cache directories
+.metro/
+.cache/
+.tmp/
+tmp/
+
+# Logs
+*.log
+*.logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+.Spotlight-V100
+.Trashes
+
+# Package manager
+package-lock.json.bak
+yarn.lock.bak

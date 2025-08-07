@@ -1,33 +1,23 @@
 //tabs/_layout.tsx
 import { Tabs } from 'expo-router';
-import {
-  AlertTriangle,
-  Gauge,
-  History,
-  Search,
-  Settings,
-  IceCream,
-  Terminal,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  const isDark = colorScheme === 'dark';
+  const { theme, isDark } = useTheme();
 
   const tabBarStyle = {
-    backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-    borderTopColor: isDark ? '#2a2a2a' : '#e5e5e5',
+    backgroundColor: theme.colors.tabBarBackground,
+    borderTopColor: theme.colors.tabBarBorder,
     borderTopWidth: 1,
     height: 85,
     paddingBottom: 8,
     paddingTop: 8,
   };
 
-  const activeColor = '#3b82f6';
-  const inactiveColor = isDark ? '#6b7280' : '#9ca3af';
+  const activeColor = theme.colors.tabBarActive;
+  const inactiveColor = theme.colors.tabBarInactive;
 
   return (
     <Tabs
@@ -41,12 +31,12 @@ export default function TabLayout() {
           marginTop: 4,
         },
         headerStyle: {
-          backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
-          borderBottomColor: isDark ? '#2a2a2a' : '#e5e5e5',
+          backgroundColor: theme.colors.headerBackground,
+          borderBottomColor: theme.colors.border,
           elevation: 0,
           shadowOpacity: 0,
         },
-        headerTintColor: isDark ? '#ffffff' : '#000000',
+        headerTintColor: theme.colors.headerText,
         headerTitleStyle: {
           fontWeight: 'bold',
           fontSize: 18,
@@ -60,14 +50,15 @@ export default function TabLayout() {
           title: 'Dashboard',
           headerTitle: 'Vehicle Dashboard',
           tabBarIcon: ({ color, size, focused }) => (
-            <Gauge
+            <Ionicons
+              name="speedometer"
               size={focused ? size + 2 : size}
               color={color}
-              strokeWidth={focused ? 2.5 : 2}
             />
           ),
           headerRight: () => (
-            <AlertTriangle
+            <Ionicons
+              name="warning"
               size={24}
               color={activeColor}
               style={{ marginRight: 16 }}
@@ -82,10 +73,10 @@ export default function TabLayout() {
           title: 'Diagnostics',
           headerTitle: 'System Diagnostics',
           tabBarIcon: ({ color, size, focused }) => (
-            <Search
+            <Ionicons
+              name="search"
               size={focused ? size + 2 : size}
               color={color}
-              strokeWidth={focused ? 2.5 : 2}
             />
           ),
         }}
@@ -97,10 +88,25 @@ export default function TabLayout() {
           title: 'Terminal',
           headerTitle: 'ELM327 Terminal',
           tabBarIcon: ({ color, size, focused }) => (
-            <Terminal
+            <Ionicons
+              name="terminal"
               size={focused ? size + 2 : size}
               color={color}
-              strokeWidth={focused ? 2.5 : 2}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="pid-test"
+        options={{
+          title: 'PID Test',
+          headerTitle: 'PID Discovery',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name="flask"
+              size={focused ? size + 2 : size}
+              color={color}
             />
           ),
         }}
@@ -112,10 +118,10 @@ export default function TabLayout() {
           title: 'History',
           headerTitle: 'Diagnostic History',
           tabBarIcon: ({ color, size, focused }) => (
-            <History
+            <Ionicons
+              name="time"
               size={focused ? size + 2 : size}
               color={color}
-              strokeWidth={focused ? 2.5 : 2}
             />
           ),
         }}
@@ -127,10 +133,10 @@ export default function TabLayout() {
           title: 'Settings',
           headerTitle: 'App Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Settings
+            <Ionicons
+              name="settings"
               size={focused ? size + 2 : size}
               color={color}
-              strokeWidth={focused ? 2.5 : 2}
             />
           ),
         }}

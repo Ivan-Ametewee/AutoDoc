@@ -55,7 +55,7 @@ class MockDataGenerator extends EventEmitter {
     this.tripDistance = 0;
     this.totalDistance = 45231;
     this.faults = [];
-    this.faultProbability = 0.001;
+    this.faultProbability = 0.8;
     this.fraudSimulation = {
       enabled: false,
       mode: 'none',
@@ -229,6 +229,11 @@ class MockDataGenerator extends EventEmitter {
         timestamp: new Date(),
         pending: Math.random() < 0.3 // 30% chance of being pending
       });
+      
+      // Capture freeze frame data at the moment this DTC is generated
+      const freezeFrame = this.generateFreezeFrame();
+      this.freezeFrameCache.set(fault.code, freezeFrame);
+      console.log(`🔒 Captured freeze frame for ${fault.code} at DTC detection:`, freezeFrame);
     }
   }
 
@@ -242,6 +247,12 @@ class MockDataGenerator extends EventEmitter {
         timestamp: new Date(),
         pending: false
       });
+      
+      // Capture freeze frame data at the moment this DTC is generated
+      const freezeFrame = this.generateFreezeFrame();
+      this.freezeFrameCache.set(fault.code, freezeFrame);
+      console.log(`🔒 Captured freeze frame for ${fault.code} at DTC detection:`, freezeFrame);
+      
       this.emit('faultsChanged', this.faults);
       this.emit('alertsChanged', this.getActiveAlerts());
       this.emit('riskChanged', this.getRiskScoreAndStatus());
@@ -320,27 +331,37 @@ class MockDataGenerator extends EventEmitter {
   }
 
   generateFreezeFrame() {
-    // Generate realistic freeze frame data (when the DTC was recorded)
+    // Capture actual current engine state as freeze frame data (snapshot of live data)
+    const currentReadings = this.getCurrentReadings();
+    
     return {
-      rpm: Math.floor(Math.random() * 1000) + 1500, // 1500-2500 RPM
-      speed: Math.floor(Math.random() * 60) + 20, // 20-80 mph
-      engineLoad: Math.floor(Math.random() * 40) + 30, // 30-70%
-      coolantTemp: Math.floor(Math.random() * 30) + 85, // 85-115°C
-      throttlePosition: Math.floor(Math.random() * 30) + 15, // 15-45%
-      timestamp: new Date(Date.now() - Math.random() * 86400000) // Random time in last 24h
+      rpm: Math.round(currentReadings.ENGINE_RPM || this.engineState.rpm),
+      speed: Math.round(currentReadings.VEHICLE_SPEED || this.engineState.speed),
+      engineLoad: Math.round(currentReadings.ENGINE_LOAD || this.engineState.engineLoad),
+      coolantTemp: Math.round(currentReadings.ENGINE_COOLANT_TEMP || this.engineState.coolantTemp),
+      throttlePosition: Math.round(currentReadings.THROTTLE_POSITION || this.engineState.throttlePosition),
+      // Additional freeze frame parameters that may be useful for diagnostics
+      fuelLevel: Math.round(currentReadings.FUEL_LEVEL || this.engineState.fuelLevel),
+      intakeAirTemp: Math.round(currentReadings.INTAKE_AIR_TEMP || this.engineState.intakeAirTemp),
+      maf: Number((currentReadings.MAF_RATE || this.engineState.mafRate).toFixed(1)),
+      timestamp: new Date() // Actual time when DTC was detected (not random backdated time)
     };
   }
 
   // Get freeze frame data for a specific DTC (cached)
   getFreezeFrameForDTC(dtcCode: string) {
     if (!this.freezeFrameCache.has(dtcCode)) {
-      // Generate and cache freeze frame data for this DTC
+      // If no freeze frame exists, this DTC may have been created before the freeze frame capture was implemented
+      // Generate one using current state as fallback, but log this as unusual
+      console.warn(`⚠️ No freeze frame found for ${dtcCode}, generating fallback using current state`);
       const freezeFrame = this.generateFreezeFrame();
       this.freezeFrameCache.set(dtcCode, freezeFrame);
-      console.log(`Generated freeze frame for ${dtcCode}:`, freezeFrame);
+      return freezeFrame;
     }
     
-    return this.freezeFrameCache.get(dtcCode);
+    const freezeFrame = this.freezeFrameCache.get(dtcCode);
+    console.log(`📋 Retrieved freeze frame for ${dtcCode}:`, freezeFrame);
+    return freezeFrame;
   }
 
   // Generate vehicle information

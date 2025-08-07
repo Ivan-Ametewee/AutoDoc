@@ -1,0 +1,96 @@
+# Development and testing files
+*.log
+*.logs
+logs/
+temp*.txt
+test-*.js
+build-instructions.md
+error-images/
+mode6.csv
+mode6.xlsx
+~$*.xlsx
+clean-android.js
+react-native-safe-area-context-shim.js
+
+# Documentation
+*.md
+!README.md
+DTC_SCANNING_ANALYSIS.md
+ELM327_REFACTOR_SUMMARY.md
+CLAUDE.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Node modules (handled by package.json)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+*.tgz
+*.tar.gz
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.tmp
+
+# Development configs
+.env.local
+.env.development
+.env.test
+
+# Linting and formatting
+.eslintcache
+.prettierignore
+
+# Expo local files
+.expo/
+expo-env.d.ts
+
+# React Native
+.react-native/
+
+# Android/iOS build artifacts
+android/build/
+ios/build/
+android/.gradle/
+android/app/build/
+android/app/.cxx/
+ios/Pods/
+ios/*.xcworkspace
+ios/*.xcodeproj
+
+# Unnecessary image files
+assets/images/notification_icon.jpg
+assets/images/partial-react-logo.png
+assets/images/react-logo*.png
+
+# Local development scripts
+scripts/
+
+# Package manager lock files (optional - can help with consistency)
+# package-lock.json
+# yarn.lock

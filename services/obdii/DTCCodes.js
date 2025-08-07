@@ -8,89 +8,89 @@
  * - Second character: 0=Generic, 1=Manufacturer specific, 2/3=Reserved
  */
 
-import { comprehensiveDTCCodes } from './ComprehensiveDTCCodes.js';
+import { unifiedDTCService } from './UnifiedDTCService';
 
 export class DTCCodes {
   constructor() {
-    // Use the comprehensive database
-    this.comprehensiveDB = comprehensiveDTCCodes;
+    // Use the unified database
+    this.unifiedDB = unifiedDTCService;
   }
 
   /**
-   * Get DTC information by code - delegates to comprehensive database
+   * Get DTC information by code - delegates to unified database
    */
   getDTCInfo(code) {
-    return this.comprehensiveDB.getDTCInfo(code);
+    return this.unifiedDB.getDTCInfo(code);
   }
 
   /**
    * Get system type from code prefix
    */
   getSystemType(code) {
-    return this.comprehensiveDB.getSystemType(code);
+    return this.unifiedDB.getSystemType(code);
   }
 
   /**
    * Get code type (Generic/Manufacturer specific)
    */
   getCodeType(code) {
-    return this.comprehensiveDB.getCodeType(code);
+    return this.unifiedDB.getCodeType(code);
   }
 
   /**
    * Get all codes for a specific system
    */
   getCodesBySystem(system) {
-    return this.comprehensiveDB.getCodesBySystem(system);
+    return this.unifiedDB.getCodesBySystem(system);
   }
 
   /**
    * Get codes by severity level
    */
   getCodesBySeverity(severity) {
-    return this.comprehensiveDB.getCodesBySeverity(severity);
+    return this.unifiedDB.getCodesBySeverity(severity);
   }
 
   /**
    * Search codes by description or symptoms
    */
   searchCodes(searchTerm) {
-    return this.comprehensiveDB.searchCodes(searchTerm);
+    return this.unifiedDB.searchCodes(searchTerm);
   }
 
   /**
    * Get random DTC for testing
    */
   getRandomDTC() {
-    return this.comprehensiveDB.getRandomDTC();
+    return this.unifiedDB.getRandomDTC();
   }
 
   /**
    * Get all available codes
    */
   getAllCodes() {
-    return this.comprehensiveDB.getAllCodes();
+    return this.unifiedDB.getAllCodes();
   }
 
   /**
    * Get system statistics
    */
   getSystemStatistics() {
-    return this.comprehensiveDB.getSystemStatistics();
+    return this.unifiedDB.getSystemStatistics();
   }
 
   /**
    * Get codes by subsystem
    */
   getCodesBySubsystem(subsystem) {
-    return this.comprehensiveDB.getCodesBySubsystem(subsystem);
+    return this.unifiedDB.getCodesBySubsystem(subsystem);
   }
 
   /**
    * Get total number of codes in database
    */
   getTotalCodeCount() {
-    return this.comprehensiveDB.getTotalCodeCount();
+    return this.unifiedDB.getTotalCodeCount();
   }
 
   /**
@@ -110,8 +110,7 @@ export class DTCCodes {
       'fuel_system': ['P0171', 'P0172', 'P0174', 'P0175']
     };
     
-    const codes = scenarioDTCs[scenario] || [];
-    return codes.map(code => this.getDTCInfo(code));
+    return this.unifiedDB.getDTCsForScenario(scenario);
   }
 }
 

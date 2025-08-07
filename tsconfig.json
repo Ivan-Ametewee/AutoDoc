@@ -11,7 +11,8 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "index.js", "store/index.ts", "services/alerts/NotificationService.js"  ]
+    "index.js",
+    "store/index.ts",
+    "services/alerts/NotificationService.js"
+  ]
 }

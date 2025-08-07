@@ -11,10 +11,14 @@ import {
   TextInput,
   Platform,
   StatusBar,
+  Share,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import SettingsService, { AppSettings, SettingKey } from '../../services/settings/SettingsService';
+import ExportService from '../../services/export/ExportService';
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 interface SettingsSection {
   title: string;
@@ -35,16 +39,51 @@ interface SettingsItem {
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter();
+  const { theme, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [settings, setSettings] = useState<SettingsSection[]>([]);
+  const [appSettings, setAppSettings] = useState<AppSettings>(SettingsService.getAllSettings());
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState<SettingsItem | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    loadAppSettings();
+    setupSettingsListeners();
+    
+    return () => {
+      // Cleanup listeners
+      SettingsService.removeAllListeners('settingChanged');
+      SettingsService.removeAllListeners('settingsLoaded');
+    };
   }, []);
+  
+  useEffect(() => {
+    buildSettingsData();
+  }, [appSettings]);
+  
+  const loadAppSettings = async () => {
+    try {
+      const loadedSettings = await SettingsService.loadSettings();
+      setAppSettings(loadedSettings);
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
+  
+  const setupSettingsListeners = () => {
+    SettingsService.on('settingChanged', ({ key, value }) => {
+      console.log(`Setting ${key} changed to:`, value);
+      setAppSettings(SettingsService.getAllSettings());
+    });
+    
+    SettingsService.on('settingsLoaded', (loadedSettings) => {
+      setAppSettings(loadedSettings);
+    });
+  };
 
-  const loadSettings = () => {
+  const buildSettingsData = () => {
     const settingsData: SettingsSection[] = [
       {
         title: 'Vehicle',
@@ -52,25 +91,25 @@ const SettingsScreen: React.FC = () => {
           {
             id: 'vehicle_profile',
             title: 'Vehicle Profile',
-            subtitle: '2020 Toyota Camry',
+            subtitle: getVehicleProfileText(),
             type: 'navigation',
             icon: 'car',
-            action: () => router.push('/vehicle-profile'),
+            action: () => router.navigate('/vehicle-profile' as any),
           },
           {
             id: 'auto_connect',
             title: 'Auto Connect',
             subtitle: 'Automatically connect to last used adapter',
             type: 'toggle',
-            value: true,
+            value: appSettings.auto_connect,
             icon: 'bluetooth',
           },
           {
             id: 'connection_timeout',
             title: 'Connection Timeout',
-            subtitle: '30 seconds',
+            subtitle: `${appSettings.connection_timeout} seconds`,
             type: 'selection',
-            value: '30',
+            value: appSettings.connection_timeout.toString(),
             icon: 'time',
             options: ['10', '20', '30', '60', '120'],
           },
@@ -84,24 +123,24 @@ const SettingsScreen: React.FC = () => {
             title: 'Real-time Data Collection',
             subtitle: 'Continuously monitor vehicle parameters',
             type: 'toggle',
-            value: true,
+            value: appSettings.data_collection,
             icon: 'pulse',
           },
           {
             id: 'logging_frequency',
             title: 'Data Logging Frequency',
-            subtitle: 'Every 5 seconds',
+            subtitle: `Every ${appSettings.logging_frequency} seconds`,
             type: 'selection',
-            value: '5',
+            value: appSettings.logging_frequency.toString(),
             icon: 'timer',
             options: ['1', '2', '5', '10', '15', '30'],
           },
           {
             id: 'storage_limit',
             title: 'Local Storage Limit',
-            subtitle: '500 MB',
+            subtitle: `${appSettings.storage_limit} MB`,
             type: 'selection',
-            value: '500',
+            value: appSettings.storage_limit.toString(),
             icon: 'server',
             options: ['100', '250', '500', '1000', '2000'],
           },
@@ -110,7 +149,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Auto Backup Data',
             subtitle: 'Backup data to cloud storage',
             type: 'toggle',
-            value: false,
+            value: appSettings.auto_backup,
             icon: 'cloud-upload',
           },
         ],
@@ -123,7 +162,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Push Notifications',
             subtitle: 'Receive alerts on your device',
             type: 'toggle',
-            value: true,
+            value: appSettings.push_notifications,
             icon: 'notifications',
           },
           {
@@ -131,7 +170,7 @@ const SettingsScreen: React.FC = () => {
             title: 'DTC Code Alerts',
             subtitle: 'Immediate notification for new error codes',
             type: 'toggle',
-            value: true,
+            value: appSettings.dtc_alerts,
             icon: 'warning',
           },
           {
@@ -139,7 +178,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Performance Alerts',
             subtitle: 'Notify when parameters exceed thresholds',
             type: 'toggle',
-            value: false,
+            value: appSettings.performance_alerts,
             icon: 'speedometer',
           },
           {
@@ -147,7 +186,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Maintenance Reminders',
             subtitle: 'Scheduled maintenance notifications',
             type: 'toggle',
-            value: true,
+            value: appSettings.maintenance_reminders,
             icon: 'construct',
           },
         ],
@@ -158,36 +197,36 @@ const SettingsScreen: React.FC = () => {
           {
             id: 'theme',
             title: 'Theme',
-            subtitle: 'Light',
+            subtitle: appSettings.theme.charAt(0).toUpperCase() + appSettings.theme.slice(1),
             type: 'selection',
-            value: 'light',
+            value: appSettings.theme,
             icon: 'color-palette',
             options: ['light', 'dark', 'auto'],
           },
           {
             id: 'temperature_unit',
             title: 'Temperature Unit',
-            subtitle: 'Celsius (°C)',
+            subtitle: appSettings.temperature_unit === 'celsius' ? 'Celsius (°C)' : 'Fahrenheit (°F)',
             type: 'selection',
-            value: 'celsius',
+            value: appSettings.temperature_unit,
             icon: 'thermometer',
             options: ['celsius', 'fahrenheit'],
           },
           {
             id: 'distance_unit',
             title: 'Distance Unit',
-            subtitle: 'Kilometers',
+            subtitle: appSettings.distance_unit === 'km' ? 'Kilometers' : 'Miles',
             type: 'selection',
-            value: 'km',
+            value: appSettings.distance_unit,
             icon: 'speedometer',
             options: ['km', 'miles'],
           },
           {
             id: 'language',
             title: 'Language',
-            subtitle: 'English',
+            subtitle: getLanguageName(appSettings.language),
             type: 'selection',
-            value: 'en',
+            value: appSettings.language,
             icon: 'language',
             options: ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja'],
           },
@@ -201,7 +240,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Advanced Diagnostic Mode',
             subtitle: 'Enable professional diagnostic features',
             type: 'toggle',
-            value: false,
+            value: appSettings.diagnostic_mode,
             icon: 'settings-outline',
           },
           {
@@ -209,15 +248,15 @@ const SettingsScreen: React.FC = () => {
             title: 'Debug Mode',
             subtitle: 'Show technical diagnostic information',
             type: 'toggle',
-            value: false,
+            value: appSettings.debug_mode,
             icon: 'bug',
           },
           {
             id: 'export_format',
             title: 'Export Format',
-            subtitle: 'CSV',
+            subtitle: appSettings.export_format.toUpperCase(),
             type: 'selection',
-            value: 'csv',
+            value: appSettings.export_format,
             icon: 'document-text',
             options: ['csv', 'json', 'pdf'],
           },
@@ -226,7 +265,7 @@ const SettingsScreen: React.FC = () => {
             title: 'Demo/Simulation Mode',
             subtitle: 'Use simulated data for testing',
             type: 'toggle',
-            value: false,
+            value: appSettings.simulation_mode,
             icon: 'flask',
           },
         ],
@@ -298,14 +337,53 @@ const SettingsScreen: React.FC = () => {
 
     setSettings(settingsData);
   };
+  
+  const getVehicleProfileText = (): string => {
+    const profile = appSettings.vehicle_profile;
+    if (profile.make && profile.model && profile.year) {
+      return `${profile.year} ${profile.make} ${profile.model}`;
+    } else if (profile.make && profile.model) {
+      return `${profile.make} ${profile.model}`;
+    } else if (profile.make) {
+      return profile.make;
+    }
+    return 'Not configured';
+  };
+  
+  const getLanguageName = (code: string): string => {
+    const languages: { [key: string]: string } = {
+      en: 'English', es: 'Spanish', fr: 'French', de: 'German',
+      it: 'Italian', pt: 'Portuguese', zh: 'Chinese', ja: 'Japanese'
+    };
+    return languages[code] || code;
+  };
 
-  const updateSetting = (sectionIndex: number, itemIndex: number, newValue: any) => {
-    const updatedSettings = [...settings];
-    updatedSettings[sectionIndex].items[itemIndex].value = newValue;
-    setSettings(updatedSettings);
+  const updateSetting = async (sectionIndex: number, itemIndex: number, newValue: any) => {
+    const settingId = settings[sectionIndex].items[itemIndex].id as SettingKey;
     
-    // Here you would typically save to persistent storage
-    // await AsyncStorage.setItem('settings', JSON.stringify(updatedSettings));
+    try {
+      setLoading(true);
+      
+      // Convert string values to appropriate types
+      let convertedValue: any = newValue;
+      if (settingId === 'connection_timeout' || settingId === 'logging_frequency' || settingId === 'storage_limit') {
+        convertedValue = parseInt(newValue, 10);
+      }
+      
+      const success = await SettingsService.updateSetting(settingId, convertedValue);
+      
+      if (success) {
+        console.log(`Setting ${settingId} updated to:`, convertedValue);
+        // Settings will be updated via the listener
+      } else {
+        Alert.alert('Error', 'Failed to update setting. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error updating setting:', error);
+      Alert.alert('Error', `Failed to update ${settingId}: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSettingPress = (setting: SettingsItem, sectionIndex: number, itemIndex: number) => {
@@ -324,7 +402,7 @@ const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleSelectionChange = (value: string) => {
+  const handleSelectionChange = async (value: string) => {
     if (selectedSetting) {
       const sectionIndex = settings.findIndex(section =>
         section.items.some(item => item.id === selectedSetting.id)
@@ -332,7 +410,7 @@ const SettingsScreen: React.FC = () => {
       const itemIndex = settings[sectionIndex].items.findIndex(
         item => item.id === selectedSetting.id
       );
-      updateSetting(sectionIndex, itemIndex, value);
+      await updateSetting(sectionIndex, itemIndex, value);
     }
     setModalVisible(false);
     setSelectedSetting(null);
@@ -347,9 +425,20 @@ const SettingsScreen: React.FC = () => {
         {
           text: 'Clear',
           style: 'destructive',
-          onPress: () => {
-            // Implement cache clearing logic
-            Alert.alert('Success', 'Cache cleared successfully!');
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const success = await SettingsService.clearCache();
+              if (success) {
+                Alert.alert('Success', 'Cache cleared successfully!');
+              } else {
+                Alert.alert('Error', 'Failed to clear cache.');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to clear cache: ${error.message}`);
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -364,9 +453,49 @@ const SettingsScreen: React.FC = () => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Export',
-          onPress: () => {
-            // Implement data export logic
-            Alert.alert('Success', 'Data exported successfully!');
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              // Show options for export type
+              Alert.alert(
+                'Export Data',
+                'What would you like to export?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Settings Only',
+                    onPress: async () => {
+                      try {
+                        const settingsData = await ExportService.exportSettings();
+                        const filename = ExportService.generateFilename('settings', 'json');
+                        await ExportService.shareExportedData(settingsData, filename);
+                        Alert.alert('Success', 'Settings exported successfully!');
+                      } catch (error: any) {
+                        Alert.alert('Error', `Failed to export settings: ${error.message}`);
+                      }
+                    },
+                  },
+                  {
+                    text: 'Complete Data',
+                    onPress: async () => {
+                      try {
+                        const completeData = await ExportService.exportCompleteData();
+                        const filename = ExportService.generateFilename('complete', 'json');
+                        await ExportService.shareExportedData(completeData, filename);
+                        Alert.alert('Success', 'Complete data exported successfully!');
+                      } catch (error: any) {
+                        Alert.alert('Error', `Failed to export complete data: ${error.message}`);
+                      }
+                    },
+                  },
+                ],
+              );
+            } catch (error: any) {
+              Alert.alert('Error', `Export failed: ${error.message}`);
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -382,9 +511,20 @@ const SettingsScreen: React.FC = () => {
         {
           text: 'Reset',
           style: 'destructive',
-          onPress: () => {
-            loadSettings(); // Reload default settings
-            Alert.alert('Success', 'Settings reset to defaults!');
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const success = await SettingsService.resetToDefaults();
+              if (success) {
+                Alert.alert('Success', 'Settings reset to defaults!');
+              } else {
+                Alert.alert('Error', 'Failed to reset settings.');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', `Failed to reset settings: ${error.message}`);
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -420,12 +560,12 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <View style={styles.container}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.headerBackground} />
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.headerSpacer} />
@@ -450,7 +590,7 @@ const SettingsScreen: React.FC = () => {
                     <Ionicons 
                       name={item.icon as any} 
                       size={20} 
-                      color={item.destructive ? "#dc3545" : "#007AFF"} 
+                      color={item.destructive ? theme.colors.error : theme.colors.primary} 
                     />
                   </View>
                   <View style={styles.settingContent}>
@@ -471,12 +611,13 @@ const SettingsScreen: React.FC = () => {
                       <Switch
                         value={item.value as boolean}
                         onValueChange={(value) => updateSetting(sectionIndex, itemIndex, value)}
-                        trackColor={{ false: '#e9ecef', true: '#007AFF' }}
-                        thumbColor={Platform.OS === 'android' ? '#fff' : ''}
+                        trackColor={{ false: theme.colors.disabled, true: theme.colors.primary }}
+                        thumbColor={Platform.OS === 'android' ? theme.colors.surface : ''}
+                        disabled={loading}
                       />
                     )}
                     {(item.type === 'navigation' || item.type === 'selection' || item.type === 'action') && (
-                      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                      <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -503,7 +644,7 @@ const SettingsScreen: React.FC = () => {
                 onPress={() => setModalVisible(false)}
                 style={styles.modalCloseButton}
               >
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
             
@@ -525,7 +666,7 @@ const SettingsScreen: React.FC = () => {
                       {getOptionDisplayText(selectedSetting.id, option)}
                     </Text>
                     {selectedSetting.value === option && (
-                      <Ionicons name="checkmark" size={20} color="#007AFF" />
+                      <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -552,7 +693,7 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 
   function getOptionDisplayText(settingId: string, option: string): string {
@@ -583,19 +724,19 @@ const SettingsScreen: React.FC = () => {
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.headerBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
     padding: 8,
@@ -603,7 +744,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.headerText,
     marginLeft: 16,
   },
   headerSpacer: {
@@ -618,22 +759,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
     marginHorizontal: 16,
   },
   sectionContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.card,
     marginHorizontal: 16,
     borderRadius: 12,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: theme.colors.shadow,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: theme.dark ? 0.3 : 0.1,
         shadowRadius: 4,
       },
       android: {
@@ -647,7 +788,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.divider,
   },
   lastItem: {
     borderBottomWidth: 0,
@@ -656,7 +797,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f0f8ff',
+    backgroundColor: theme.colors.gaugeBackground,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -667,15 +808,15 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 2,
   },
   destructiveText: {
-    color: '#dc3545',
+    color: theme.colors.error,
   },
   settingSubtitle: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   settingControl: {
     alignItems: 'center',
@@ -683,11 +824,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.colors.modalBackground,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.card,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '70%',
@@ -699,12 +840,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: theme.colors.border,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   modalCloseButton: {
     padding: 8,
@@ -719,17 +860,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.divider,
   },
   selectedOption: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: theme.colors.gaugeBackground,
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text,
   },
   selectedOptionText: {
-    color: '#007AFF',
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   inputContainer: {
@@ -737,20 +878,22 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.inputBorder,
+    backgroundColor: theme.colors.inputBackground,
+    color: theme.colors.inputText,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.buttonPrimary,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: '#fff',
+    color: theme.colors.buttonText,
     fontSize: 16,
     fontWeight: '600',
   },

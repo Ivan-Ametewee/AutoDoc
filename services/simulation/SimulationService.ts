@@ -201,6 +201,114 @@ class SimulationService {
   }
 
   /**
+   * Generate mock system readiness status for simulation
+   */
+  public getSystemReadinessStatus(): any {
+    // Generate realistic system readiness data based on current scenario  
+    // Updated to match Mode 05/06 format with descriptions
+    const baseReadiness = {
+      misfireMonitor: { 
+        supported: true, 
+        ready: true,
+        description: 'Misfire Monitor General Data',
+        testResults: { passed: true, rawData: 'SIMULATED' }
+      },
+      fuelSystemMonitor: { 
+        supported: true, 
+        ready: true,
+        description: 'Fuel System Monitor Bank 1',
+        testResults: { passed: true, rawData: 'SIMULATED' }
+      },
+      catalystMonitor: { 
+        supported: true, 
+        ready: this.currentScenario !== this.scenarios.ENGINE_TROUBLE,
+        description: 'Catalyst Monitor Bank 1',
+        testResults: { 
+          passed: this.currentScenario !== this.scenarios.ENGINE_TROUBLE, 
+          rawData: 'SIMULATED' 
+        }
+      },
+      heatedCatalystMonitor: { 
+        supported: true, 
+        ready: true,
+        description: 'Heated Catalyst Monitor Bank 1',
+        testResults: { passed: true, rawData: 'SIMULATED' }
+      },
+      evaporativeSystemMonitor: { 
+        supported: true, 
+        ready: this.currentScenario !== this.scenarios.COLD_START,
+        description: 'EVAP Monitor (Cap Off / 0.150")',
+        testResults: { 
+          passed: this.currentScenario !== this.scenarios.COLD_START, 
+          rawData: 'SIMULATED' 
+        }
+      },
+      secondaryAirSystemMonitor: { 
+        supported: false, 
+        ready: false,
+        description: 'Secondary Air Monitor 1',
+        testResults: null
+      },
+      oxygenSensorMonitor: { 
+        supported: true, 
+        ready: true,
+        description: 'O2 Sensor Monitor Bank 1 - Sensor 1',
+        testResults: { passed: true, rawData: 'SIMULATED' }
+      },
+      oxygenSensorHeaterMonitor: { 
+        supported: true, 
+        ready: true,
+        description: 'O2 Sensor Heater Monitor Bank 1 - Sensor 1',
+        testResults: { passed: true, rawData: 'SIMULATED' }
+      },
+      egrSystemMonitor: { 
+        supported: true, 
+        ready: this.currentScenario !== this.scenarios.OVERHEATING,
+        description: 'EGR Monitor Bank 1',
+        testResults: { 
+          passed: this.currentScenario !== this.scenarios.OVERHEATING, 
+          rawData: 'SIMULATED' 
+        }
+      }
+    };
+
+    // Modify readiness based on current scenario
+    switch (this.currentScenario) {
+      case this.scenarios.COLD_START:
+        // During cold start, some monitors may not be ready
+        baseReadiness.catalystMonitor.ready = false;
+        baseReadiness.evaporativeSystemMonitor.ready = false;
+        baseReadiness.oxygenSensorMonitor.ready = false;
+        break;
+        
+      case this.scenarios.ENGINE_TROUBLE:
+        // Engine trouble affects multiple systems
+        baseReadiness.misfireMonitor.ready = false;
+        baseReadiness.catalystMonitor.ready = false;
+        baseReadiness.fuelSystemMonitor.ready = false;
+        break;
+        
+      case this.scenarios.OVERHEATING:
+        // Overheating affects temperature-sensitive systems
+        baseReadiness.catalystMonitor.ready = false;
+        baseReadiness.egrSystemMonitor.ready = false;
+        break;
+        
+      default:
+        // Normal scenarios - most systems ready
+        break;
+    }
+
+    // If MIL is active, some monitors might not be ready
+    if (this.milActive) {
+      baseReadiness.misfireMonitor.ready = false;
+    }
+
+    console.log('🔧 Generated system readiness status for scenario:', this.currentScenario);
+    return baseReadiness;
+  }
+
+  /**
    * Simulate connection events
    */
   public simulateConnectionEvent(eventType: string): void {
@@ -278,8 +386,9 @@ class SimulationService {
     const currentData = this.getCurrentData();
     
     // Get base odometer from current simulation data
-    const baseOdometer = currentData.odometer || mockDataGenerator.distance || 45000;
-    const baseEngineHours = currentData.engineHours || mockDataGenerator.engineHours || 150;
+    const mockReadings = mockDataGenerator.getCurrentReadings();
+    const baseOdometer = currentData.odometer || mockReadings.TOTAL_DISTANCE || 45000;
+    const baseEngineHours = currentData.engineHours || 150; // TODO: Add engineHours property to MockDataGenerator
     
     for (let i = daysBack; i >= 0; i--) {
       const timestamp = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));

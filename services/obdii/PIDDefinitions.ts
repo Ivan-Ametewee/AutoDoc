@@ -184,6 +184,51 @@ export class PIDDefinitions {
       },
     }],
 
+    ['INTAKE_AIR_TEMP', {
+      name: 'INTAKE_AIR_TEMP',
+      pid: '0F',
+      mode: '01',
+      bytes: 1,
+      description: 'Intake Air Temperature',
+      unit: '°C',
+      min: -40,
+      max: 215,
+      parse: (bytes) => {
+        if (bytes.length < 1) return -40;
+        return bytes[0] - 40;
+      },
+    }],
+
+    ['MAF_RATE', {
+      name: 'MAF_RATE',
+      pid: '10',
+      mode: '01',
+      bytes: 2,
+      description: 'Mass Air Flow Rate',
+      unit: 'g/s',
+      min: 0,
+      max: 655.35,
+      parse: (bytes) => {
+        if (bytes.length < 2) return 0;
+        return Math.round(((bytes[0] * 256) + bytes[1]) / 100 * 10) / 10;
+      },
+    }],
+
+    ['CONTROL_MODULE_VOLTAGE', {
+      name: 'CONTROL_MODULE_VOLTAGE',
+      pid: '42',
+      mode: '01',  
+      bytes: 2,
+      description: 'Control Module Voltage',
+      unit: 'V',
+      min: 0,
+      max: 65.535,
+      parse: (bytes) => {
+        if (bytes.length < 2) return 0;
+        return Math.round(((bytes[0] * 256) + bytes[1]) / 1000 * 100) / 100;
+      },
+    }],
+
     // --- Mode 22: Manufacturer-Specific Diagnostic Data ---
     
     /**
@@ -358,7 +403,13 @@ export class PIDDefinitions {
       'ENGINE_COOLANT_TEMP',
       'ENGINE_LOAD',
       'THROTTLE_POSITION',
-      'FUEL_LEVEL'
+      'FUEL_LEVEL',
+      'INTAKE_AIR_TEMP',
+      'MAF_RATE',
+      'CONTROL_MODULE_VOLTAGE',
+      'ODOMETER_STANDARD', // For vehicles that support standard odometer PID
+      'DISTANCE_SINCE_CODES_CLEARED', // Alternative distance reading
+      'DISTANCE_WITH_MIL_ON' // Alternative distance reading
     ];
     
     return dashboardPIDNames

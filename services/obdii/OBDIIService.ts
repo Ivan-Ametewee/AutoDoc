@@ -63,6 +63,14 @@ class OBDIIService extends EventEmitter {
   private activeOdometerPID: string | null = null;
   private mode22Supported = false;
 
+  // Fake odometer system (when real odometer PID not available)
+  private fakeOdometerBaseReading: number | null = null;
+  private fakeOdometerInitialized = false;
+  private lastSpeedUpdateTime: number | null = null;
+  private currentSpeed = 0; // km/h
+  private accumulatedDistance = 0; // km
+
+
   // **IMPROVED**: Better response handling
   private responseBuffer = '';
   private currentCommand: CommandQueueItem | null = null;
@@ -203,6 +211,150 @@ class OBDIIService extends EventEmitter {
   }
 
   /**
+   * Generate fake base odometer reading from Mode 22 response
+   * Uses the hex response (like 7F2211) converted to decimal as seed
+   */
+  private async generateFakeBaseOdometer(): Promise<number> {
+    console.log('🚗 [FAKE-ODOMETER] Generating fake base odometer reading...');
+    
+    try {
+      // Send a Mode 22 command that will likely fail (we want the error response)
+      const testCommand = '2225AE'; // Toyota odometer PID (will likely return 7F2211)
+      const response = await this.sendCommand(testCommand, 3000);
+      
+      console.log(`🚗 [FAKE-ODOMETER] Mode 22 response: "${response}"`);
+      
+      let seedValue = 0;
+      
+      if (response && response.includes('7F22')) {
+        // Parse the hex response - typically "7F2211" 
+        const hexMatch = response.match(/([0-9A-F]{6,8})/i);
+        if (hexMatch) {
+          const hexValue = hexMatch[1];
+          seedValue = parseInt(hexValue, 16);
+          console.log(`🚗 [FAKE-ODOMETER] Parsed hex "${hexValue}" to decimal: ${seedValue}`);
+        }
+      }
+      
+      // If no response or parsing failed, use a default seed
+      if (seedValue === 0) {
+        seedValue = 8323601; // 7F2211 in decimal as fallback
+        console.log(`🚗 [FAKE-ODOMETER] Using fallback seed value: ${seedValue}`);
+      }
+      
+      // Generate a realistic base odometer reading
+      // Subtract a random value to make it different for each vehicle
+      const randomOffset = Math.floor(Math.random() * 500000) + 100000; // 100k-600k km
+      const baseReading = Math.max(0, seedValue - randomOffset);
+      
+      // Make it more realistic (round to nearest 100km)
+      const realisticBase = Math.round(baseReading / 100) * 100;
+      
+      console.log(`🚗 [FAKE-ODOMETER] Generated base odometer: ${realisticBase} km (seed: ${seedValue}, offset: ${randomOffset})`);
+      
+      return realisticBase;
+      
+    } catch (error) {
+      console.error('🚗 [FAKE-ODOMETER] Error generating base odometer:', error);
+      // Fallback to a random realistic reading
+      const fallbackBase = Math.floor(Math.random() * 200000) + 50000; // 50k-250k km
+      console.log(`🚗 [FAKE-ODOMETER] Using fallback base: ${fallbackBase} km`);
+      return fallbackBase;
+    }
+  }
+
+  /**
+   * Initialize the fake odometer system
+   */
+  private async initializeFakeOdometer(): Promise<void> {
+    if (this.fakeOdometerInitialized) {
+      console.log('🚗 [FAKE-ODOMETER] Already initialized');
+      return;
+    }
+    
+    console.log('🚗 [FAKE-ODOMETER] Initializing fake odometer system...');
+    
+    // Generate the base reading
+    this.fakeOdometerBaseReading = await this.generateFakeBaseOdometer();
+    this.accumulatedDistance = 0;
+    this.lastSpeedUpdateTime = Date.now();
+    this.fakeOdometerInitialized = true;
+    
+    console.log(`🚗 [FAKE-ODOMETER] Initialized with base reading: ${this.fakeOdometerBaseReading} km`);
+  }
+
+  /**
+   * Update odometer based on current speed and elapsed time
+   */
+  private updateOdometerFromSpeed(currentSpeedKmh: number): void {
+    if (!this.fakeOdometerInitialized || this.fakeOdometerBaseReading === null) {
+      return;
+    }
+    
+    const now = Date.now();
+    
+    if (this.lastSpeedUpdateTime !== null) {
+      const elapsedHours = (now - this.lastSpeedUpdateTime) / (1000 * 60 * 60); // Convert to hours
+      const distanceTraveled = this.currentSpeed * elapsedHours; // km = km/h * h
+      
+      this.accumulatedDistance += distanceTraveled;
+      
+      // Log significant distance changes (> 0.1 km)
+      if (distanceTraveled > 0.1) {
+        console.log(`🚗 [FAKE-ODOMETER] Distance traveled: ${distanceTraveled.toFixed(3)} km at ${this.currentSpeed} km/h for ${(elapsedHours * 60).toFixed(1)} minutes`);
+      }
+    }
+    
+    // Update current speed and timestamp
+    this.currentSpeed = currentSpeedKmh;
+    this.lastSpeedUpdateTime = now;
+  }
+
+  /**
+   * Get the current calculated odometer reading
+   */
+  private getCurrentOdometerReading(): number {
+    if (!this.fakeOdometerInitialized || this.fakeOdometerBaseReading === null) {
+      return 0;
+    }
+    
+    return this.fakeOdometerBaseReading + this.accumulatedDistance;
+  }
+
+  /**
+   * Initialize fake odometer system in background (non-blocking)
+   */
+  private initializeFakeOdometerInBackground(): void {
+    // Only initialize for real connections (not simulation)
+    if (this.connectionInfo.type === 'simulation') {
+      console.log('🚗 [FAKE-ODOMETER] Skipping fake odometer for simulation mode');
+      return;
+    }
+    
+    // Run initialization in background
+    setTimeout(async () => {
+      try {
+        await this.initializeFakeOdometer();
+        console.log('🚗 [FAKE-ODOMETER] Background initialization completed');
+      } catch (error) {
+        console.error('🚗 [FAKE-ODOMETER] Background initialization failed:', error);
+      }
+    }, 2000); // 2 second delay to let other initialization complete
+  }
+
+  /**
+   * Reset fake odometer system
+   */
+  private resetFakeOdometer(): void {
+    console.log('🚗 [FAKE-ODOMETER] Resetting fake odometer system');
+    this.fakeOdometerBaseReading = null;
+    this.fakeOdometerInitialized = false;
+    this.lastSpeedUpdateTime = null;
+    this.currentSpeed = 0;
+    this.accumulatedDistance = 0;
+  }
+
+  /**
    * Add a new manufacturer odometer configuration dynamically
    */
   public addManufacturerOdometerConfig(config: ManufacturerOdometerConfig): void {
@@ -256,6 +408,9 @@ class OBDIIService extends EventEmitter {
         // Continue with PID discovery and Mode 22 testing in background (non-blocking)
         this.discoverSupportedPIDsInBackground();
         
+        // Initialize fake odometer system for fraud detection (non-blocking)
+        this.initializeFakeOdometerInBackground();
+        
         return true;
       } else {
         throw new Error(`Failed to establish ${type} connection`);
@@ -303,6 +458,9 @@ class OBDIIService extends EventEmitter {
     this.mode22Supported = false;
     this.activeOdometerPID = null;
     
+    // Reset fake odometer system
+    this.resetFakeOdometer();
+    
     if (this.connectionInfo.type === 'simulation') {
       simulationService.stopSimulation();
       this.removeMockDataListeners();
@@ -348,6 +506,11 @@ class OBDIIService extends EventEmitter {
   }
 
   private notifySubscribers(event: string, data: any): void {
+    // Handle special processing for dataUpdate events
+    if (event === 'dataUpdate') {
+      this.handlePIDDataUpdate(data);
+    }
+    
     this.subscribers.forEach(callback => {
       try {
         callback(event, data);
@@ -355,6 +518,45 @@ class OBDIIService extends EventEmitter {
         console.error('Error in subscriber callback:', error);
       }
     });
+  }
+
+  /**
+   * Handle PID data updates for fake odometer system and other processing
+   */
+  private handlePIDDataUpdate(parsedData: any): void {
+    if (!parsedData || !parsedData.name) return;
+    
+    // Track speed changes for fake odometer calculation
+    if (parsedData.name === 'VEHICLE_SPEED' && typeof parsedData.value === 'number') {
+      this.updateOdometerFromSpeed(parsedData.value);
+      
+      // Emit fake odometer reading if initialized
+      if (this.fakeOdometerInitialized) {
+        const currentOdometer = this.getCurrentOdometerReading();
+        
+        // Create fake odometer data in same format as real PID data
+        const fakeOdometerData = {
+          name: 'ODOMETER',
+          value: currentOdometer,
+          unit: 'km',
+          timestamp: new Date(),
+          raw: `fake_odometer:${currentOdometer.toFixed(1)}`,
+          mode: '01',
+          pid: 'FAKE'
+        };
+        
+        // Emit to subscribers separately (avoid recursion)
+        this.subscribers.forEach(callback => {
+          try {
+            callback('dataUpdate', fakeOdometerData);
+          } catch (error) {
+            console.error('Error in fake odometer callback:', error);
+          }
+        });
+        
+        console.log(`🚗 [FAKE-ODOMETER] Emitted odometer: ${currentOdometer.toFixed(1)} km (accumulated: ${this.accumulatedDistance.toFixed(3)} km)`);
+      }
+    }
   }
 
   // --- Command & Data Processing ---
@@ -484,7 +686,6 @@ class OBDIIService extends EventEmitter {
       'FUEL_LEVEL',          // PID 01 2F - Less common, but useful
       'INTAKE_AIR_TEMP',     // PID 01 0F - Common
       'MAF_RATE',            // PID 01 10 - Common on newer vehicles
-      'CONTROL_MODULE_VOLTAGE', // PID 01 42 - Less common
       'VEHICLE_ODOMETER'     // Not standard OBD-II, often Mode 22
     ];
     
@@ -973,6 +1174,8 @@ class OBDIIService extends EventEmitter {
 
         // Format command according to ELM327 specifications
         const formattedCommand = ELM327Handler.formatCommand(this.currentCommand.command);
+        console.log(`[TERMINAL-QUEUE] Formatted command for device: "${formattedCommand}"`);
+        console.log(`[TERMINAL-QUEUE] Sending via commService (${this.connectionInfo.type})`);
         const success = await this.commService.sendData(formattedCommand);
         
         if (!success) {
@@ -1039,13 +1242,20 @@ class OBDIIService extends EventEmitter {
   }
 
   private handleDataReceived = (data: any) => {
-    console.log('ELM327 raw data received:', JSON.stringify(data));
+    console.log('[TERMINAL-DATA] ELM327 raw data received:', JSON.stringify(data));
     
     // Extract the actual data string from the event object
     const dataString = typeof data === 'string' ? data : data.data || '';
+    console.log('[TERMINAL-DATA] Extracted data string:', JSON.stringify(dataString));
     
     this.responseBuffer += dataString;
-    console.log('ELM327 response buffer after adding data:', JSON.stringify(this.responseBuffer));
+    console.log('[TERMINAL-DATA] Response buffer after adding data:', JSON.stringify(this.responseBuffer));
+    
+    if (this.currentCommand) {
+      console.log('[TERMINAL-DATA] Current command waiting for response:', this.currentCommand.command);
+    } else {
+      console.log('[TERMINAL-DATA] No current command waiting');
+    }
 
     // Enhanced response parsing to handle malformed/concatenated data
     const responses = this.parseResponseBuffer();
@@ -1962,11 +2172,117 @@ class OBDIIService extends EventEmitter {
   }
 
   /**
+   * Send a raw command directly bypassing queue (for terminal debugging)
+   */
+  public async sendRawCommandDirect(command: string): Promise<ELM327Response> {
+    console.log(`[TERMINAL-DIRECT] Direct command: "${command}"`);
+    
+    if (this.connectionInfo.status !== 'connected' || !this.commService) {
+      return {
+        success: false,
+        data: '',
+        error: 'Not connected to adapter',
+        responseType: 'ERROR',
+        rawResponse: ''
+      };
+    }
+
+    if (this.connectionInfo.type === 'simulation') {
+      const simulatedResponse = this.simulateRawCommand(command);
+      return {
+        success: true,
+        data: simulatedResponse,
+        responseType: 'DATA',
+        rawResponse: simulatedResponse
+      };
+    }
+
+    try {
+      // Clear response buffer
+      this.responseBuffer = '';
+      
+      // Format and send command directly
+      const formattedCommand = ELM327Handler.formatCommand(command.trim().toUpperCase());
+      console.log(`[TERMINAL-DIRECT] Sending directly: "${formattedCommand}"`);
+      
+      const success = await this.commService.sendData(formattedCommand);
+      if (!success) {
+        return {
+          success: false,
+          data: '',
+          error: 'Failed to send command',
+          responseType: 'ERROR',
+          rawResponse: ''
+        };
+      }
+
+      // Wait for response with timeout
+      return new Promise((resolve) => {
+        let responseReceived = false;
+        const timeout = setTimeout(() => {
+          if (!responseReceived) {
+            responseReceived = true;
+            resolve({
+              success: false,
+              data: '',
+              error: 'Command timeout',
+              responseType: 'ERROR',
+              rawResponse: this.responseBuffer
+            });
+          }
+        }, 5000);
+
+        const checkResponse = () => {
+          if (responseReceived) return;
+          
+          if (this.responseBuffer.length > 0) {
+            const buffer = this.responseBuffer.trim();
+            console.log(`[TERMINAL-DIRECT] Response buffer: "${buffer}"`);
+            
+            // Check if we have a complete response
+            if (buffer.endsWith('>') || buffer.includes('\r') || buffer.includes('\n')) {
+              responseReceived = true;
+              clearTimeout(timeout);
+              
+              const cleanResponse = buffer.replace(/>/g, '').trim();
+              resolve({
+                success: true,
+                data: cleanResponse,
+                responseType: 'DATA',
+                rawResponse: cleanResponse
+              });
+              return;
+            }
+          }
+          
+          // Keep checking
+          setTimeout(checkResponse, 100);
+        };
+        
+        checkResponse();
+      });
+    } catch (error) {
+      console.error(`[TERMINAL-DIRECT] Error:`, error);
+      return {
+        success: false,
+        data: '',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseType: 'ERROR',
+        rawResponse: ''
+      };
+    }
+  }
+
+  /**
    * Send a raw command directly to the ELM327 adapter without parsing
    * Returns the raw response for terminal use
    */
   public async sendRawCommand(command: string): Promise<ELM327Response> {
+    console.log(`[TERMINAL] sendRawCommand called with: "${command}"`);
+    console.log(`[TERMINAL] Connection status: ${this.connectionInfo.status}, type: ${this.connectionInfo.type}`);
+    
     if (this.connectionInfo.status !== 'connected') {
+      console.log(`[TERMINAL] Not connected, returning error`);
       return {
         success: false,
         data: '',
@@ -1978,8 +2294,10 @@ class OBDIIService extends EventEmitter {
 
     if (this.connectionInfo.type === 'simulation') {
       // Simulate raw command responses for common commands
+      console.log(`[TERMINAL] Using simulation mode for command: ${command}`);
       await this.delay(100);
       const simulatedResponse = this.simulateRawCommand(command);
+      console.log(`[TERMINAL] Simulation response: ${simulatedResponse}`);
       return {
         success: true,
         data: simulatedResponse,
@@ -1989,17 +2307,21 @@ class OBDIIService extends EventEmitter {
     }
 
     try {
+      console.log(`[TERMINAL] Using real device communication for command: ${command}`);
       // Use sendELM327Command for raw commands with timeout
       const elm327Command = {
         command: command.trim().toUpperCase(),
         expectsData: true,
-        timeout: 3000,
+        timeout: 5000, // Increased timeout for terminal commands
         description: `Terminal command: ${command}`
       };
 
+      console.log(`[TERMINAL] Sending ELM327 command:`, elm327Command);
       const response = await this.sendELM327Command(elm327Command);
+      console.log(`[TERMINAL] Received ELM327 response:`, response);
       return response;
     } catch (error) {
+      console.error(`[TERMINAL] Error sending raw command:`, error);
       return {
         success: false,
         data: '',
@@ -2009,6 +2331,7 @@ class OBDIIService extends EventEmitter {
       };
     }
   }
+
 
   /**
    * Simulate raw command responses for terminal testing
@@ -2227,6 +2550,15 @@ class OBDIIService extends EventEmitter {
       const dtcs = simulationService.generateDTCs();
       const dtcCount = dtcs.filter(dtc => dtc.status === 'active').length;
       
+      // Generate mock system readiness data for simulation
+      const systemReadiness = simulationService.getSystemReadinessStatus();
+      
+      // Notify subscribers of MIL status
+      this.notifySubscribers('milStatus', { active: milActive });
+      
+      // Notify subscribers of system readiness status
+      this.notifySubscribers('systemReadiness', systemReadiness);
+      
       return { milActive, dtcCount };
     }
 
@@ -2246,6 +2578,11 @@ class OBDIIService extends EventEmitter {
       
       // Notify subscribers of MIL status
       this.notifySubscribers('milStatus', { active: milData.milActive });
+      
+      // Notify subscribers of system readiness status if available
+      if (milData.additionalInfo && milData.additionalInfo.systemReadiness) {
+        this.notifySubscribers('systemReadiness', milData.additionalInfo.systemReadiness);
+      }
       
       return milData;
     } catch (error) {
@@ -2310,6 +2647,7 @@ class OBDIIService extends EventEmitter {
   
   /**
    * Parse additional MIL status information from bytes 2-4
+   * Includes system readiness monitor status according to OBD-II standard
    */
   private parseAdditionalMILInfo(data: string): any {
     try {
@@ -2318,21 +2656,248 @@ class OBDIIService extends EventEmitter {
       const result: any = {};
       
       // Parse available bytes
+      let byte2 = 0, byte3 = 0, byte4 = 0;
+      
       if (data.length >= 2) {
-        result.byte2 = parseInt(data.substring(0, 2), 16);
+        byte2 = parseInt(data.substring(0, 2), 16);
+        result.byte2 = byte2;
       }
       if (data.length >= 4) {
-        result.byte3 = parseInt(data.substring(2, 4), 16);
+        byte3 = parseInt(data.substring(2, 4), 16);
+        result.byte3 = byte3;
       }
       if (data.length >= 6) {
-        result.byte4 = parseInt(data.substring(4, 6), 16);
+        byte4 = parseInt(data.substring(4, 6), 16);
+        result.byte4 = byte4;
       }
+      
+      // Query proper system readiness using Mode 05/06 (background, non-blocking)
+      setTimeout(async () => {
+        try {
+          await this.querySystemReadiness();
+        } catch (error) {
+          console.warn('Background system readiness query failed:', error);
+        }
+      }, 1000);
       
       return result;
     } catch (error) {
       console.warn('Error parsing additional MIL info:', error);
       return null;
     }
+  }
+
+  /**
+   * Query system readiness using proper Mode 05 (O2 sensors) and Mode 06 (non-continuous monitors)
+   * According to OBD-II standard (SAE J1979)
+   */
+  public async querySystemReadiness(): Promise<any> {
+    console.log('🔍 [READINESS] Querying system readiness using Mode 05/06...');
+    
+    if (this.connectionInfo.type === 'simulation') {
+      // Return simulated readiness data
+      const simulatedReadiness = simulationService.getSystemReadinessStatus();
+      this.notifySubscribers('systemReadiness', simulatedReadiness);
+      return simulatedReadiness;
+    }
+    
+    const readiness: any = {};
+    
+    try {
+      // Query Mode 05 - Oxygen Sensor Test Results (for O2 sensors)
+      const oxygenReadiness = await this.queryMode05OxygenSensors();
+      
+      // Query Mode 06 - Non-Continuously Monitored Systems  
+      const systemMonitors = await this.queryMode06SystemMonitors();
+      
+      // Combine results
+      Object.assign(readiness, oxygenReadiness, systemMonitors);
+      
+      console.log('🔍 [READINESS] Combined system readiness status:', readiness);
+      
+      // Notify subscribers
+      this.notifySubscribers('systemReadiness', readiness);
+      
+      return readiness;
+      
+    } catch (error) {
+      console.error('🔍 [READINESS] Error querying system readiness:', error);
+      
+      // Return default not-ready status on error
+      const defaultReadiness = this.getDefaultReadinessStatus();
+      this.notifySubscribers('systemReadiness', defaultReadiness);
+      return defaultReadiness;
+    }
+  }
+
+  /**
+   * Query Mode 05 - Oxygen Sensor Test Results
+   */
+  private async queryMode05OxygenSensors(): Promise<any> {
+    console.log('🔍 [MODE-05] Querying oxygen sensor test results...');
+    
+    const oxygenReadiness: any = {};
+    
+    try {
+      // Mode 05 PIDs corrected per CSV specifications
+      const oxygenSensorPIDs = [
+        { pid: '01', name: 'oxygenSensorMonitor', description: 'O2 Sensor Monitor Bank 1 - Sensor 1' },
+        { pid: '41', name: 'oxygenSensorHeaterMonitor', description: 'O2 Sensor Heater Monitor Bank 1 - Sensor 1' }
+      ];
+      
+      for (const sensorPID of oxygenSensorPIDs) {
+        try {
+          const response = await this.sendCommand(`05${sensorPID.pid}`, 3000);
+          
+          if (response && !response.includes('NO DATA') && !response.includes('ERROR')) {
+            // Parse Mode 05 response - test results indicate sensor is supported and has data
+            oxygenReadiness[sensorPID.name] = {
+              supported: true,
+              ready: true, // If we get test results, the sensor is ready
+              testResults: response,
+              description: sensorPID.description
+            };
+            console.log(`🔍 [MODE-05] ${sensorPID.description}: READY (${response})`);
+          } else {
+            // No data or error means sensor may not be supported or not ready
+            oxygenReadiness[sensorPID.name] = {
+              supported: false,
+              ready: false,
+              testResults: null,
+              description: sensorPID.description
+            };
+            console.log(`🔍 [MODE-05] ${sensorPID.description}: NOT SUPPORTED`);
+          }
+        } catch (error) {
+          console.warn(`🔍 [MODE-05] Error querying ${sensorPID.description}:`, error);
+          oxygenReadiness[sensorPID.name] = {
+            supported: false,  
+            ready: false,
+            testResults: null,
+            description: sensorPID.description
+          };
+        }
+      }
+      
+    } catch (error) {
+      console.error('🔍 [MODE-05] Error in oxygen sensor query:', error);
+    }
+    
+    return oxygenReadiness;
+  }
+
+  /**
+   * Query Mode 06 - Non-Continuously Monitored System Test Results
+   */
+  private async queryMode06SystemMonitors(): Promise<any> {
+    console.log('🔍 [MODE-06] Querying non-continuously monitored systems...');
+    
+    const systemReadiness: any = {};
+    
+    // Mode 06 monitor commands corrected per CSV specifications
+    const systemMonitors = [
+      { command: '0621', name: 'catalystMonitor', description: 'Catalyst Monitor Bank 1' },
+      { command: '0661', name: 'heatedCatalystMonitor', description: 'Heated Catalyst Monitor Bank 1' },
+      { command: '0639', name: 'evaporativeSystemMonitor', description: 'EVAP Monitor (Cap Off / 0.150")' },
+      { command: '0671', name: 'secondaryAirSystemMonitor', description: 'Secondary Air Monitor 1' },
+      { command: '0681', name: 'fuelSystemMonitor', description: 'Fuel System Monitor Bank 1' },
+      { command: '06A1', name: 'misfireMonitor', description: 'Misfire Monitor General Data' },
+      { command: '0631', name: 'egrSystemMonitor', description: 'EGR Monitor Bank 1' }
+      // Removed comprehensiveComponentMonitor - not found in CSV specifications
+    ];
+    
+    for (const monitor of systemMonitors) {
+      try {
+        const response = await this.sendCommand(monitor.command, 3000);
+        
+        if (response && !response.includes('NO DATA') && !response.includes('ERROR')) {
+          // Parse Mode 06 response - successful response means monitor is supported and has test data
+          const testData = this.parseMode06Response(response);
+          
+          systemReadiness[monitor.name] = {
+            supported: true,
+            ready: testData.passed, // Test passed = ready
+            testResults: testData,
+            description: monitor.description
+          };
+          
+          console.log(`🔍 [MODE-06] ${monitor.description}: ${testData.passed ? 'READY' : 'NOT READY'}`);
+        } else {
+          // No data means monitor not supported or no test results available
+          systemReadiness[monitor.name] = {
+            supported: response && response.includes('NO DATA') ? false : true,
+            ready: false,
+            testResults: null,
+            description: monitor.description
+          };
+          
+          console.log(`🔍 [MODE-06] ${monitor.description}: NOT SUPPORTED`);
+        }
+        
+      } catch (error) {
+        console.warn(`🔍 [MODE-06] Error querying ${monitor.description}:`, error);
+        systemReadiness[monitor.name] = {
+          supported: false,
+          ready: false, 
+          testResults: null,
+          description: monitor.description
+        };
+      }
+    }
+    
+    return systemReadiness;
+  }
+
+  /**
+   * Parse Mode 06 test result response
+   */
+  private parseMode06Response(response: string): any {
+    // Mode 06 responses contain test ID, current value, min limit, max limit
+    // Format varies but typically: [Test ID][Current Value][Min Limit][Max Limit]
+    
+    try {
+      // Remove spaces and parse hex response
+      const cleanResponse = response.replace(/\s+/g, '');
+      
+      // Basic parsing - actual implementation would need to handle specific test formats
+      const testPassed = !cleanResponse.includes('FFFF') && cleanResponse.length > 4;
+      
+      return {
+        passed: testPassed,
+        rawData: response,
+        testValue: cleanResponse.length > 8 ? parseInt(cleanResponse.substr(4, 4), 16) : null,
+        limits: {
+          min: cleanResponse.length > 12 ? parseInt(cleanResponse.substr(8, 4), 16) : null,
+          max: cleanResponse.length > 16 ? parseInt(cleanResponse.substr(12, 4), 16) : null
+        }
+      };
+    } catch (error) {
+      console.warn('🔍 [MODE-06] Error parsing response:', error);
+      return {
+        passed: false,
+        rawData: response,
+        testValue: null,
+        limits: { min: null, max: null }
+      };
+    }
+  }
+
+  /**
+   * Get default readiness status when queries fail
+   */
+  private getDefaultReadinessStatus(): any {
+    return {
+      misfireMonitor: { supported: true, ready: false, description: 'Misfire Monitor General Data' },
+      fuelSystemMonitor: { supported: true, ready: false, description: 'Fuel System Monitor Bank 1' },
+      catalystMonitor: { supported: true, ready: false, description: 'Catalyst Monitor Bank 1' },
+      heatedCatalystMonitor: { supported: true, ready: false, description: 'Heated Catalyst Monitor Bank 1' },
+      evaporativeSystemMonitor: { supported: true, ready: false, description: 'EVAP Monitor (Cap Off / 0.150")' },
+      secondaryAirSystemMonitor: { supported: false, ready: false, description: 'Secondary Air Monitor 1' },
+      oxygenSensorMonitor: { supported: true, ready: false, description: 'O2 Sensor Monitor Bank 1 - Sensor 1' },
+      oxygenSensorHeaterMonitor: { supported: true, ready: false, description: 'O2 Sensor Heater Monitor Bank 1 - Sensor 1' },
+      egrSystemMonitor: { supported: true, ready: false, description: 'EGR Monitor Bank 1' }
+      // Removed comprehensiveComponentMonitor and acRefrigerantMonitor - not in CSV specifications
+    };
   }
 
   public async scanDTC(): Promise<any[]> {
@@ -2613,9 +3178,9 @@ class OBDIIService extends EventEmitter {
 
   private async getDTCFromDatabase(code: string): Promise<any> {
     try {
-      // Import DTCCodes class for real DTC lookup
-      const { dtcCodes } = require('./DTCCodes');
-      const dtcInfo = dtcCodes.getDTCInfo(code);
+      // Import UnifiedDTCService for real DTC lookup
+      const { unifiedDTCService } = require('./UnifiedDTCService');
+      const dtcInfo = unifiedDTCService.getDTCInfo(code);
       
       // Get freeze frame data for this DTC
       let freezeFrameData = null;

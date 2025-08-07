@@ -34,6 +34,10 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   
+  <!-- Camera permissions for VIN scanning and photo upload -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  
   <!-- USB permissions for direct OBD connection -->
   <uses-permission android:name="android.permission.USB_PERMISSION" />
   
@@ -49,6 +53,12 @@
       android:required="false" />
   <uses-feature
       android:name="android.hardware.usb.host"
+      android:required="false" />
+  <uses-feature
+      android:name="android.hardware.camera"
+      android:required="false" />
+  <uses-feature
+      android:name="android.hardware.camera.autofocus"
       android:required="false" />
   
   <queries>
@@ -85,10 +95,10 @@
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
     
     <!-- Notification configuration -->
-    <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
-               android:resource="@drawable/notification_icon" />
+    <!-- <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+               android:resource="@drawable/ic_launcher" />
     <meta-data android:name="com.google.firebase.messaging.default_notification_color"
-               android:resource="@color/notification_color" />
+               android:resource="@color/notification_color" /> -->
     
     <!-- Main Activity -->
     <activity android:name=".MainActivity" 

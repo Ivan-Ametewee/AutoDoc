@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import OBDIIService from '../../services/obdii/OBDIIService';
 
 interface TerminalEntry {
@@ -11,6 +12,9 @@ interface TerminalEntry {
 }
 
 export default function TerminalScreen() {
+  const { theme, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  
   const [command, setCommand] = useState('');
   const [entries, setEntries] = useState<TerminalEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -37,9 +41,11 @@ export default function TerminalScreen() {
   }, []);
 
   useEffect(() => {
-    // Add welcome message
+    // Add welcome messages with a small delay to ensure different timestamps
     addEntry('response', 'ELM327 Terminal - Send raw commands to the adapter');
-    addEntry('response', 'Connection status will be shown above');
+    setTimeout(() => {
+      addEntry('response', 'Connection status will be shown above');
+    }, 10);
     
     // Listen for raw responses from OBDIIService
     const handleRawResponse = (response: any) => {
@@ -58,8 +64,10 @@ export default function TerminalScreen() {
   }, []);
 
   const addEntry = (type: 'command' | 'response' | 'error', content: string) => {
+    // Generate a more unique ID using timestamp, random number, and a counter
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${Math.floor(Math.random() * 10000)}`;
     const newEntry: TerminalEntry = {
-      id: Date.now().toString(),
+      id: uniqueId,
       type,
       content,
       timestamp: new Date(),
@@ -84,19 +92,46 @@ export default function TerminalScreen() {
     const trimmedCommand = command.trim().toUpperCase();
     addEntry('command', `> ${trimmedCommand}`);
     
+    // Add debug info about connection
+    const connInfo = OBDIIService.getConnectionStatus();
+    addEntry('response', `[DEBUG] Connection type: ${connInfo.type}, Status: ${connInfo.status}`);
+    
     try {
-      // Send raw command through OBDIIService
+      // Try both methods for comparison
+      addEntry('response', `[DEBUG] Testing direct method first...`);
+      
+      // Test direct method (bypasses queue)
+      if (OBDIIService.sendRawCommandDirect) {
+        try {
+          const directResponse = await OBDIIService.sendRawCommandDirect(trimmedCommand);
+          addEntry('response', `[DIRECT] Response: ${JSON.stringify(directResponse)}`);
+          if (directResponse.rawResponse) {
+            addEntry('response', `[DIRECT] Raw: ${directResponse.rawResponse}`);
+          }
+        } catch (directError) {
+          addEntry('error', `[DIRECT] Error: ${directError}`);
+        }
+      }
+      
+      addEntry('response', `[DEBUG] Now testing queue method...`);
+      
+      // Send raw command through normal queue system
       const response = await OBDIIService.sendRawCommand(trimmedCommand);
       
+      addEntry('response', `[QUEUE] Full response: ${JSON.stringify(response)}`);
+      
       if (response && response.rawResponse) {
-        addEntry('response', response.rawResponse);
+        addEntry('response', `[QUEUE] Raw: ${response.rawResponse}`);
+      } else if (response && response.data) {
+        addEntry('response', `[QUEUE] Data: ${response.data}`);
       } else if (response && response.error) {
-        addEntry('error', `Error: ${response.error}`);
+        addEntry('error', `[QUEUE] Error: ${response.error}`);
       } else {
-        addEntry('error', 'No response received');
+        addEntry('error', 'No response received from queue method');
       }
     } catch (error) {
       addEntry('error', `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      addEntry('error', `[DEBUG] Error details: ${JSON.stringify(error)}`);
     }
     
     setCommand('');
@@ -123,7 +158,7 @@ export default function TerminalScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Connection Status */}
       <View style={[styles.statusBar, isConnected ? styles.connected : styles.disconnected]}>
         <Text style={styles.statusText}>
@@ -197,32 +232,32 @@ export default function TerminalScreen() {
           ))}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.background,
   },
   statusBar: {
     padding: 10,
     alignItems: 'center',
   },
   connected: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.success || '#4CAF50',
   },
   disconnected: {
-    backgroundColor: '#f44336',
+    backgroundColor: theme.colors.error || '#f44336',
   },
   statusText: {
-    color: '#fff',
+    color: theme.colors.white || '#fff',
     fontWeight: 'bold',
   },
   terminal: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.card,
     padding: 10,
   },
   entryContainer: {
@@ -231,7 +266,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   timestamp: {
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontSize: 10,
     width: 60,
     marginRight: 10,
@@ -243,75 +278,75 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   commandEntry: {
-    color: '#00ff00',
+    color: theme.colors.success || '#00ff00',
     fontWeight: 'bold',
   },
   responseEntry: {
-    color: '#fff',
+    color: theme.colors.text,
   },
   errorEntry: {
-    color: '#ff6b6b',
+    color: theme.colors.error || '#ff6b6b',
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.headerBackground,
     alignItems: 'center',
   },
   commandInput: {
     flex: 1,
-    backgroundColor: '#222',
-    color: '#fff',
+    backgroundColor: theme.colors.cardSecondary,
+    color: theme.colors.text,
     padding: 10,
     borderRadius: 5,
     fontFamily: 'monospace',
     fontSize: 14,
   },
   sendButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.success || '#4CAF50',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 5,
     marginLeft: 10,
   },
   sendButtonText: {
-    color: '#fff',
+    color: theme.colors.white || '#fff',
     fontWeight: 'bold',
   },
   clearButton: {
-    backgroundColor: '#ff9800',
+    backgroundColor: theme.colors.warning || '#ff9800',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 5,
     marginLeft: 5,
   },
   clearButtonText: {
-    color: '#fff',
+    color: theme.colors.white || '#fff',
     fontWeight: 'bold',
   },
   disabledButton: {
-    backgroundColor: '#666',
+    backgroundColor: theme.colors.disabled || '#666',
   },
   quickCommands: {
-    backgroundColor: '#111',
+    backgroundColor: theme.colors.headerBackground,
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#333',
+    borderTopColor: theme.colors.border,
   },
   quickCommandsTitle: {
-    color: '#fff',
+    color: theme.colors.text,
     fontSize: 12,
     marginBottom: 5,
   },
   quickCommandButton: {
-    backgroundColor: '#333',
+    backgroundColor: theme.colors.cardSecondary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 3,
     marginRight: 5,
   },
   quickCommandText: {
-    color: '#fff',
+    color: theme.colors.text,
     fontSize: 10,
     fontFamily: 'monospace',
   },

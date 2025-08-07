@@ -10,11 +10,14 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import OBDIIService from '../../services/obdii/OBDIIService';
-import { comprehensiveDTCCodes } from '../../services/obdii/ComprehensiveDTCCodes';
+import { unifiedDTCService } from '../../services/obdii/UnifiedDTCService';
+import SettingsService from '../../services/settings/SettingsService';
+import { UnitConverter } from '../../utils/unitConversion';
 
 interface DiagnosticTroubleCode {
   code: string;
@@ -28,6 +31,9 @@ interface DiagnosticTroubleCode {
     engineLoad: number;
     coolantTemp: number;
     throttlePosition?: number;
+    fuelLevel?: number;
+    intakeAirTemp?: number;
+    maf?: number;
     timestamp: Date;
   };
 }
@@ -47,32 +53,39 @@ interface LiveData {
 }
 
 export default function DiagnosticsScreen() {
+  const { theme, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const [dtcCodes, setDtcCodes] = useState<DiagnosticTroubleCode[]>([]);
+  
+  // Unit preferences state
+  const [tempUnit, setTempUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
+  const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
 
+  // Initialize with default states - will be updated from OBD-II data
   const [systemStatuses, setSystemStatuses] = useState<SystemStatus[]>([
-    { system: 'Misfire Monitor', status: 'ready', icon: 'flash' },
-    { system: 'Fuel System Monitor', status: 'ready', icon: 'water' },
-    { system: 'Comprehensive Component Monitor', status: 'ready', icon: 'checkmark-circle' },
+    { system: 'Misfire Monitor', status: 'not_ready', icon: 'flash' },
+    { system: 'Fuel System Monitor', status: 'not_ready', icon: 'water' },
     { system: 'Catalyst Monitor', status: 'not_ready', icon: 'leaf' },
-    { system: 'Heated Catalyst Monitor', status: 'ready', icon: 'thermometer' },
-    { system: 'Evaporative Emission Monitor', status: 'incomplete', icon: 'cloud' },
+    { system: 'Heated Catalyst Monitor', status: 'not_ready', icon: 'thermometer' },
+    { system: 'Evaporative System Monitor', status: 'not_ready', icon: 'cloud' },
     { system: 'Secondary Air System Monitor', status: 'unsupported', icon: 'radio' },
-    { system: 'A/C System Refrigerant Monitor', status: 'ready', icon: 'snow' },
-    { system: 'Oxygen Sensor Monitor', status: 'ready', icon: 'analytics' },
-    { system: 'Oxygen Sensor Heater Monitor', status: 'ready', icon: 'thermometer-outline' },
-    { system: 'EGR System Monitor', status: 'ready', icon: 'repeat' },
+    { system: 'Oxygen Sensor Monitor', status: 'not_ready', icon: 'analytics' },
+    { system: 'Oxygen Sensor Heater Monitor', status: 'not_ready', icon: 'thermometer-outline' },
+    { system: 'EGR System Monitor', status: 'not_ready', icon: 'repeat' },
   ]);
 
   // Initialize live data with default values - will be updated from OBD service
   const [liveData, setLiveData] = useState<LiveData[]>([
     { parameter: 'Engine RPM', value: '0', unit: 'rpm', status: 'normal', icon: 'speedometer' },
-    { parameter: 'Vehicle Speed', value: '0', unit: 'mph', status: 'normal', icon: 'car' },
+    { parameter: 'Vehicle Speed', value: '0', unit: 'km/h', status: 'normal', icon: 'car' },
     { parameter: 'Engine Load', value: '15', unit: '%', status: 'normal', icon: 'bar-chart' },
     { parameter: 'Coolant Temperature', value: '89', unit: '°C', status: 'normal', icon: 'thermometer' },
     { parameter: 'Intake Air Temperature', value: '23', unit: '°C', status: 'normal', icon: 'thermometer-outline' },
     { parameter: 'Throttle Position', value: '0', unit: '%', status: 'normal', icon: 'options' },
     { parameter: 'Fuel Level', value: '0', unit: '%', status: 'normal', icon: 'battery-charging' },
-    { parameter: 'Total Distance', value: '0', unit: 'km', status: 'normal', icon: 'speedometer-outline' },
+    { parameter: 'MAF Rate', value: '0', unit: 'g/s', status: 'normal', icon: 'logo-buffer' },
+    { parameter: 'Battery Voltage', value: '0', unit: 'V', status: 'normal', icon: 'battery-half' },
+    { parameter: 'Odometer', value: '0', unit: 'km', status: 'normal', icon: 'speedometer-outline' },
   ]);
 
   const [selectedTab, setSelectedTab] = useState<'dtc' | 'systems' | 'live' | 'search'>('dtc');
@@ -83,6 +96,58 @@ export default function DiagnosticsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
+
+  // Helper function to convert Mode 05/06 readiness data to UI system status format
+  const convertReadinessToSystemStatus = (readiness: any): SystemStatus[] => {
+    const monitorMapping = [
+      { key: 'misfireMonitor', name: 'Misfire Monitor', icon: 'flash' as const },
+      { key: 'fuelSystemMonitor', name: 'Fuel System Monitor', icon: 'water' as const },
+      { key: 'catalystMonitor', name: 'Catalyst Monitor', icon: 'leaf' as const },
+      { key: 'heatedCatalystMonitor', name: 'Heated Catalyst Monitor', icon: 'thermometer' as const },
+      { key: 'evaporativeSystemMonitor', name: 'Evaporative System Monitor', icon: 'cloud' as const },
+      { key: 'secondaryAirSystemMonitor', name: 'Secondary Air System Monitor', icon: 'radio' as const },
+      { key: 'oxygenSensorMonitor', name: 'Oxygen Sensor Monitor', icon: 'analytics' as const },
+      { key: 'oxygenSensorHeaterMonitor', name: 'Oxygen Sensor Heater Monitor', icon: 'thermometer-outline' as const },
+      { key: 'egrSystemMonitor', name: 'EGR System Monitor', icon: 'repeat' as const },
+    ];
+
+    return monitorMapping.map(monitor => {
+      const monitorData = readiness[monitor.key];
+      let status: SystemStatus['status'] = 'not_ready';
+      let displayName = monitor.name;
+
+      if (monitorData) {
+        // Use the description from Mode 05/06 if available
+        if (monitorData.description) {
+          displayName = monitorData.description;
+        }
+        
+        if (!monitorData.supported) {
+          status = 'unsupported';
+        } else if (monitorData.ready) {
+          status = 'ready';
+        } else {
+          // Monitor is supported but test not complete or failed
+          status = 'not_ready';
+        }
+
+        // For Mode 06 monitors with test results, check if test passed
+        if (monitorData.testResults && typeof monitorData.testResults === 'object') {
+          if (monitorData.testResults.passed) {
+            status = 'ready';
+          } else {
+            status = 'incomplete'; // Test ran but failed
+          }
+        }
+      }
+
+      return {
+        system: displayName,
+        status,
+        icon: monitor.icon
+      };
+    });
+  };
 
   // Helper function to determine parameter status based on value
   const getParameterStatus = (parameter: string, value: number): LiveData['status'] => {
@@ -101,6 +166,13 @@ export default function DiagnosticsScreen() {
         if (value < 10) return 'critical';
         if (value < 25) return 'warning';
         return 'normal';
+      case 'Battery Voltage':
+        if (value < 11.5) return 'critical';
+        if (value < 12.0) return 'warning';
+        return 'normal';
+      case 'MAF Rate':
+        if (value > 100) return 'warning'; // High MAF rate could indicate issues
+        return 'normal';
       default:
         return 'normal';
     }
@@ -110,11 +182,73 @@ export default function DiagnosticsScreen() {
   useEffect(() => {
     loadDTCs();
     
+    // Initialize unit preferences from settings
+    const initializeSettings = async () => {
+      const loadedSettings = await SettingsService.loadSettings();
+      setTempUnit(loadedSettings.temperature_unit);
+      setDistanceUnit(loadedSettings.distance_unit);
+      
+      // Update live data units based on settings
+      setLiveData(prev => prev.map(item => {
+        switch (item.parameter) {
+          case 'Vehicle Speed':
+            return { ...item, unit: loadedSettings.distance_unit === 'miles' ? 'mph' : 'km/h' };
+          case 'Coolant Temperature':
+          case 'Intake Air Temperature':
+            return { ...item, unit: loadedSettings.temperature_unit === 'fahrenheit' ? '°F' : '°C' };
+          case 'Odometer':
+            return { ...item, unit: loadedSettings.distance_unit === 'miles' ? 'mi' : 'km' };
+          default:
+            return item;
+        }
+      }));
+    };
+    
+    initializeSettings();
+    
     // Start live data polling if connected
     const connectionStatus = OBDIIService.getConnectionStatus();
     if (connectionStatus.status === 'connected') {
       OBDIIService.startLiveData();
+      
+      // Query initial system readiness status using Mode 05/06
+      const initialReadinessQuery = async () => {
+        try {
+          console.log('Diagnostics: Querying initial system readiness status using Mode 05/06...');
+          await OBDIIService.querySystemReadiness();
+        } catch (error) {
+          console.error('Diagnostics: Failed to query initial system readiness:', error);
+        }
+      };
+      
+      initialReadinessQuery();
     }
+    
+    // Listen for settings changes
+    const handleSettingsChange = () => {
+      const newTempUnit = SettingsService.getTemperatureUnit();
+      const newDistanceUnit = SettingsService.getDistanceUnit();
+      setTempUnit(newTempUnit);
+      setDistanceUnit(newDistanceUnit);
+      
+      // Update live data units
+      setLiveData(prev => prev.map(item => {
+        switch (item.parameter) {
+          case 'Vehicle Speed':
+            return { ...item, unit: newDistanceUnit === 'miles' ? 'mph' : 'km/h' };
+          case 'Coolant Temperature':
+          case 'Intake Air Temperature':
+            return { ...item, unit: newTempUnit === 'fahrenheit' ? '°F' : '°C' };
+          case 'Odometer':
+            return { ...item, unit: newDistanceUnit === 'miles' ? 'mi' : 'km' };
+          default:
+            return item;
+        }
+      }));
+    };
+    
+    SettingsService.on('settingChanged:temperature_unit', handleSettingsChange);
+    SettingsService.on('settingChanged:distance_unit', handleSettingsChange);
     
     // Subscribe to DTC events and live data from OBDIIService
     const unsubscribe = OBDIIService.subscribe((event, data) => {
@@ -132,12 +266,41 @@ export default function DiagnosticsScreen() {
         setLiveData(prev => prev.map(item => {
           let newValue = item.value;
           let newStatus: LiveData['status'] = 'normal';
+          let convertedValue = data.value;
           
-          // Map OBD-II PID names to display parameter names
+          // Map OBD-II PID names to display parameter names and apply unit conversions
           switch (data.name) {
             case 'ENGINE_RPM':
               if (item.parameter === 'Engine RPM') {
                 newValue = Math.round(data.value).toString();
+              }
+              break;
+            case 'VEHICLE_SPEED':
+              if (item.parameter === 'Vehicle Speed') {
+                convertedValue = UnitConverter.convertSpeed(data.value, true);
+                newValue = Math.round(convertedValue).toString();
+                newStatus = getParameterStatus(item.parameter, convertedValue);
+              }
+              break;
+            case 'ENGINE_COOLANT_TEMP':
+              if (item.parameter === 'Coolant Temperature') {
+                convertedValue = UnitConverter.convertTemperature(data.value, true);
+                newValue = Math.round(convertedValue).toString();
+                newStatus = getParameterStatus(item.parameter, convertedValue);
+              }
+              break;
+            case 'INTAKE_AIR_TEMP':
+            case 'AIR_INTAKE_TEMP':
+              if (item.parameter === 'Intake Air Temperature') {
+                convertedValue = UnitConverter.convertTemperature(data.value, true);
+                newValue = Math.round(convertedValue).toString();
+                newStatus = getParameterStatus(item.parameter, convertedValue);
+              }
+              break;
+            case 'ENGINE_LOAD':
+              if (item.parameter === 'Engine Load') {
+                newValue = Math.round(data.value).toString();
+                newStatus = getParameterStatus(item.parameter, data.value);
               }
               break;
             case 'THROTTLE_POSITION':
@@ -152,10 +315,26 @@ export default function DiagnosticsScreen() {
                 newStatus = getParameterStatus(item.parameter, data.value);
               }
               break;
-            case 'TOTAL_DISTANCE':
-              if (item.parameter === 'Total Distance') {
-                newValue = Math.round(data.value).toString();
+            case 'MAF_RATE':
+              if (item.parameter === 'MAF Rate') {
+                newValue = data.value.toFixed(1);
                 newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'CONTROL_MODULE_VOLTAGE':
+              if (item.parameter === 'Battery Voltage') {
+                newValue = data.value.toFixed(1);
+                newStatus = getParameterStatus(item.parameter, data.value);
+              }
+              break;
+            case 'TOTAL_DISTANCE':
+            case 'ODOMETER':
+            case 'VEHICLE_ODOMETER':
+            case 'TOTAL_DISTANCE_TRAVELED':
+              if (item.parameter === 'Odometer') {
+                convertedValue = UnitConverter.convertDistance(data.value, true);
+                newValue = Math.round(convertedValue).toString();
+                newStatus = getParameterStatus(item.parameter, convertedValue);
               }
               break;
             default:
@@ -166,10 +345,19 @@ export default function DiagnosticsScreen() {
         }));
       } else if (event === 'connectionStatus') {
         setConnectionStatus(data.status);
+      } else if (event === 'systemReadiness') {
+        // Update system readiness status from OBD-II data
+        console.log('Diagnostics: Received system readiness update:', data);
+        const updatedSystemStatuses = convertReadinessToSystemStatus(data);
+        setSystemStatuses(updatedSystemStatuses);
       }
     });
     
     return () => {
+      // Remove settings listeners
+      SettingsService.removeListener('settingChanged:temperature_unit', handleSettingsChange);
+      SettingsService.removeListener('settingChanged:distance_unit', handleSettingsChange);
+      
       if (unsubscribe) unsubscribe();
       OBDIIService.stopLiveData();
     };
@@ -186,14 +374,36 @@ export default function DiagnosticsScreen() {
         console.log('Diagnostics: Starting live data...');
         OBDIIService.startLiveData();
         
+        // Query system readiness status using proper Mode 05/06 methods
+        const querySystemReadiness = async () => {
+          try {
+            console.log('Diagnostics: Querying system readiness status using Mode 05/06...');
+            await OBDIIService.querySystemReadiness();
+          } catch (error) {
+            console.error('Diagnostics: Failed to query system readiness:', error);
+          }
+        };
+        
+        // Query immediately and then periodically
+        querySystemReadiness();
+        const readinessInterval = setInterval(querySystemReadiness, 10000); // Every 10 seconds
+        
         // Check which PIDs are being polled
         setTimeout(() => {
           const activePIDs = OBDIIService.getActivePollingPIDs();
           console.log('Diagnostics: Active polling PIDs:', activePIDs);
         }, 1000);
+        
+        // Store interval ID for cleanup
+        (useFocusEffect as any).readinessInterval = readinessInterval;
       }
       
       return () => {
+        // Clean up readiness query interval
+        if ((useFocusEffect as any).readinessInterval) {
+          clearInterval((useFocusEffect as any).readinessInterval);
+        }
+        
         // Don't stop live data here as other screens might need it
         // The dashboard will manage the global live data state
       };
@@ -515,7 +725,7 @@ export default function DiagnosticsScreen() {
     }
 
     try {
-      const results = comprehensiveDTCCodes.searchCodes(query);
+      const results = unifiedDTCService.searchCodes(query);
       setSearchResults(results);
     } catch (error) {
       console.error('Search failed:', error);
@@ -595,7 +805,7 @@ export default function DiagnosticsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -651,7 +861,7 @@ export default function DiagnosticsScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>DTC Details</Text>
             <TouchableOpacity onPress={() => setShowDTCModal(false)}>
@@ -682,9 +892,9 @@ export default function DiagnosticsScreen() {
                 </Text>
               </View>
               
-              {/* Additional DTC Information from comprehensive database */}
+              {/* Additional DTC Information from unified database */}
               {(() => {
-                const dtcInfo = comprehensiveDTCCodes.getDTCInfo(selectedDTC.code);
+                const dtcInfo = unifiedDTCService.getDTCInfo(selectedDTC.code);
                 return dtcInfo ? (
                   <>
                     {dtcInfo.causes && dtcInfo.causes.length > 0 && (
@@ -730,32 +940,60 @@ export default function DiagnosticsScreen() {
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>RPM</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.rpm || 'N/A'}
+                          {selectedDTC.freezeFrameData.rpm !== null && selectedDTC.freezeFrameData.rpm !== undefined ? selectedDTC.freezeFrameData.rpm : 'N/A'}
                         </Text>
                       </View>
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>Speed</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.speed ? `${selectedDTC.freezeFrameData.speed} mph` : 'N/A'}
+                          {selectedDTC.freezeFrameData.speed !== null && selectedDTC.freezeFrameData.speed !== undefined ? 
+                            `${Math.round(UnitConverter.convertSpeed(selectedDTC.freezeFrameData.speed, true))} ${distanceUnit === 'miles' ? 'mph' : 'km/h'}` : 
+                            'N/A'}
                         </Text>
                       </View>
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>Load</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.engineLoad ? `${selectedDTC.freezeFrameData.engineLoad}%` : 'N/A'}
+                          {selectedDTC.freezeFrameData.engineLoad !== null && selectedDTC.freezeFrameData.engineLoad !== undefined ? `${selectedDTC.freezeFrameData.engineLoad}%` : 'N/A'}
                         </Text>
                       </View>
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>Coolant</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.coolantTemp ? `${selectedDTC.freezeFrameData.coolantTemp}°C` : 'N/A'}
+                          {selectedDTC.freezeFrameData.coolantTemp !== null && selectedDTC.freezeFrameData.coolantTemp !== undefined ? 
+                            `${Math.round(UnitConverter.convertTemperature(selectedDTC.freezeFrameData.coolantTemp, true))}${tempUnit === 'fahrenheit' ? '°F' : '°C'}` : 
+                            'N/A'}
                         </Text>
                       </View>
-                      {selectedDTC.freezeFrameData.throttlePosition && (
+                      {selectedDTC.freezeFrameData.throttlePosition !== undefined && selectedDTC.freezeFrameData.throttlePosition !== null && (
                         <View style={styles.freezeFrameItem}>
                           <Text style={styles.freezeFrameLabel}>Throttle</Text>
                           <Text style={styles.freezeFrameValue}>
-                            {selectedDTC.freezeFrameData.throttlePosition}%
+                            {`${selectedDTC.freezeFrameData.throttlePosition}%`}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedDTC.freezeFrameData.fuelLevel !== undefined && selectedDTC.freezeFrameData.fuelLevel !== null && (
+                        <View style={styles.freezeFrameItem}>
+                          <Text style={styles.freezeFrameLabel}>Fuel Level</Text>
+                          <Text style={styles.freezeFrameValue}>
+                            {`${selectedDTC.freezeFrameData.fuelLevel}%`}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedDTC.freezeFrameData.intakeAirTemp !== undefined && selectedDTC.freezeFrameData.intakeAirTemp !== null && (
+                        <View style={styles.freezeFrameItem}>
+                          <Text style={styles.freezeFrameLabel}>Intake Air</Text>
+                          <Text style={styles.freezeFrameValue}>
+                            {`${Math.round(UnitConverter.convertTemperature(selectedDTC.freezeFrameData.intakeAirTemp, true))}${tempUnit === 'fahrenheit' ? '°F' : '°C'}`}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedDTC.freezeFrameData.maf !== undefined && selectedDTC.freezeFrameData.maf !== null && (
+                        <View style={styles.freezeFrameItem}>
+                          <Text style={styles.freezeFrameLabel}>MAF Rate</Text>
+                          <Text style={styles.freezeFrameValue}>
+                            {`${selectedDTC.freezeFrameData.maf} g/s`}
                           </Text>
                         </View>
                       )}
@@ -772,16 +1010,16 @@ export default function DiagnosticsScreen() {
               </View>
             </ScrollView>
           )}
-        </SafeAreaView>
+        </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -789,20 +1027,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.headerBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,

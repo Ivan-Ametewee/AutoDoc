@@ -15,7 +15,8 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 interface DiagnosticSession {
   id: string;
@@ -134,6 +135,9 @@ interface Styles {
 }
 
 export default function HistoryScreen() {
+  const { theme, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  
   const [sessions, setSessions] = useState<DiagnosticSession[]>([
     {
       id: '1',
@@ -487,7 +491,7 @@ export default function HistoryScreen() {
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Filter History</Text>
           <TouchableOpacity onPress={() => setShowFilterModal(false)}>
@@ -602,7 +606,7 @@ export default function HistoryScreen() {
             <Text style={styles.clearFiltersButtonText}>Clear All</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 
@@ -612,7 +616,7 @@ export default function HistoryScreen() {
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Edit Notes</Text>
           <TouchableOpacity onPress={() => setShowNotesModal(false)}>
@@ -639,7 +643,7 @@ export default function HistoryScreen() {
             <Text style={styles.saveNotesButtonText}>Save Notes</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 
@@ -649,7 +653,7 @@ export default function HistoryScreen() {
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Session Details</Text>
           <TouchableOpacity onPress={() => setShowSessionModal(false)}>
@@ -795,12 +799,12 @@ export default function HistoryScreen() {
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -916,14 +920,14 @@ export default function HistoryScreen() {
       {renderFilterModal()}
       {renderSessionModal()}
       {renderNotesModal()}
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create<Styles>({
+const createStyles = (theme: any) => StyleSheet.create<Styles>({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -931,37 +935,37 @@ const styles = StyleSheet.create<Styles>({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.headerBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text,
   },
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   statItem: {
     flex: 1,
@@ -975,7 +979,7 @@ const styles = StyleSheet.create<Styles>({
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -985,7 +989,7 @@ const styles = StyleSheet.create<Styles>({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 10,
   },
   sessionsList: {
@@ -993,7 +997,7 @@ const styles = StyleSheet.create<Styles>({
     padding: 20,
   },
   sessionItem: {
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -1008,21 +1012,21 @@ const styles = StyleSheet.create<Styles>({
   sessionDate: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   sessionDuration: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   sessionVehicle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   sessionSummary: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 12,
   },
   sessionFooter: {
@@ -1035,7 +1039,7 @@ const styles = StyleSheet.create<Styles>({
     gap: 8,
   },
   sessionTag: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.cardSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -1043,7 +1047,7 @@ const styles = StyleSheet.create<Styles>({
   sessionTagText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   emptyState: {
     flex: 1,
@@ -1054,33 +1058,33 @@ const styles = StyleSheet.create<Styles>({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
     marginTop: 20,
     marginBottom: 8,
   },
   emptyStateMessage: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.background,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: theme.colors.border,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   modalContent: {
     flex: 1,
@@ -1090,9 +1094,9 @@ const styles = StyleSheet.create<Styles>({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     padding: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: theme.colors.border,
   },
   filterSection: {
     marginBottom: 24,
@@ -1100,7 +1104,7 @@ const styles = StyleSheet.create<Styles>({
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 12,
   },
   filterOptions: {
@@ -1112,14 +1116,14 @@ const styles = StyleSheet.create<Styles>({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.cardSecondary,
   },
   activeFilterOption: {
     backgroundColor: '#007AFF',
   },
   filterOptionText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   activeFilterOptionText: {
     color: '#FFF',
@@ -1128,7 +1132,7 @@ const styles = StyleSheet.create<Styles>({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.cardSecondary,
   },
   clearFiltersButtonText: {
     fontSize: 16,
@@ -1137,7 +1141,8 @@ const styles = StyleSheet.create<Styles>({
   },
   notesInput: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
+    color: theme.colors.text,
     padding: 16,
     borderRadius: 8,
     fontSize: 16,
@@ -1155,23 +1160,23 @@ const styles = StyleSheet.create<Styles>({
     fontWeight: '500',
   },
   sessionDetailHeader: {
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     padding: 20,
     borderRadius: 8,
     marginBottom: 16,
   },
   sessionDetailDate: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   sessionDetailVehicle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   sessionDetailSection: {
-    backgroundColor: '#FFF',
+    backgroundColor: theme.colors.card,
     padding: 20,
     borderRadius: 8,
     marginBottom: 16,
@@ -1179,7 +1184,7 @@ const styles = StyleSheet.create<Styles>({
   sessionDetailSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 16,
   },
   vehicleInfoGrid: {
@@ -1193,16 +1198,16 @@ const styles = StyleSheet.create<Styles>({
   },
   vehicleInfoLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   vehicleInfoValue: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text,
     fontWeight: '500',
   },
   dtcCodeItem: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.colors.cardSecondary,
     padding: 16,
     borderRadius: 8,
     marginBottom: 12,
@@ -1216,7 +1221,7 @@ const styles = StyleSheet.create<Styles>({
   dtcCodeNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   dtcCodeStatus: {
     flexDirection: 'row',
@@ -1234,16 +1239,16 @@ const styles = StyleSheet.create<Styles>({
   },
   dtcCodeDescription: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 8,
   },
   dtcCodeSystem: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   noDtcCodes: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
   },
   readinessGrid: {
@@ -1253,20 +1258,20 @@ const styles = StyleSheet.create<Styles>({
   },
   readinessItem: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.colors.cardSecondary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   readinessLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   readinessValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   liveDataGrid: {
     flexDirection: 'row',
@@ -1276,20 +1281,20 @@ const styles = StyleSheet.create<Styles>({
   liveDataItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.colors.cardSecondary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   liveDataLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   liveDataValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   notesHeader: {
     flexDirection: 'row',
@@ -1299,7 +1304,7 @@ const styles = StyleSheet.create<Styles>({
   },
   notesText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
     lineHeight: 20,
   },
   exportButton: {
@@ -1309,7 +1314,7 @@ const styles = StyleSheet.create<Styles>({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: theme.colors.cardSecondary,
   },
   exportButtonText: {
     fontSize: 16,

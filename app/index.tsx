@@ -13,7 +13,7 @@
 //   TouchableOpacity,
 //   View,
 // } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
+// // SafeAreaView removed - using View instead
 // import { useDispatch } from 'react-redux';
 // import BluetoothManager from '../services/bluetooth/BluetoothManager';
 // import WiFiManager from '../services/wifi/WiFiManager';
@@ -798,7 +798,7 @@
 //     (showWifiNetworks && wifiInitialized);
 
 //   return (
-//     <SafeAreaView style={styles.container}>
+//     <View style={styles.container}>
 //       <View style={styles.header}>
 //         {(showBluetoothDevices || showWifiNetworks) && (
 //           <TouchableOpacity style={styles.backButton} onPress={handleBackToOptions}>
@@ -980,7 +980,7 @@
 //           </View>
 //         </View>
 //       </Modal>
-//     </SafeAreaView>
+//     </View>
 //   );
 // }
 
@@ -1204,12 +1204,30 @@
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Wifi, Bluetooth, PlayCircle, ChevronLeft, ServerCrash } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-// Import all necessary services
-import OBDIIService from '../services/obdii/OBDIIService';
-import WiFiService from '../services/wifi/WiFiService';
-import BluetoothService from '../services/bluetooth/BluetoothService';
+// Import services with error handling
+let OBDIIService: any = null;
+let WiFiService: any = null;
+let BluetoothService: any = null;
+
+try {
+  OBDIIService = require('../services/obdii/OBDIIService').default;
+} catch (error) {
+  console.warn('OBDIIService not available:', error);
+}
+
+try {
+  WiFiService = require('../services/wifi/WiFiService').default;
+} catch (error) {
+  console.warn('WiFiService not available:', error);
+}
+
+try {
+  BluetoothService = require('../services/bluetooth/BluetoothService').default;
+} catch (error) {
+  console.warn('BluetoothService not available:', error);
+}
 
 // Define types for discovered devices to be used in the list
 interface DiscoveredDevice {
@@ -1231,31 +1249,47 @@ export default function ConnectionScreen() {
 
   // --- Service Subscription ---
   useEffect(() => {
-    // Listen for the final connection status from the central service
-    const unsubscribe = OBDIIService.subscribe((event, data) => {
-      console.log('OBDIIService event:', event, data);
-      if (event === 'connectionStatus') {
-        if (data.status === 'connected') {
-          // On successful connection, navigate to the dashboard
-          console.log('Connected, navigating to dashboard');
+    let unsubscribe: (() => void) | null = null;
+
+    try {
+      if (OBDIIService) {
+        // Listen for the final connection status from the central service
+        unsubscribe = OBDIIService.subscribe((event, data) => {
+          console.log('OBDIIService event:', event, data);
+          if (event === 'connectionStatus') {
+            if (data.status === 'connected') {
+              // On successful connection, navigate to the dashboard
+              console.log('Connected, navigating to dashboard');
+              router.replace('/(tabs)/dashboard');
+            } else if (data.status === 'error') {
+              setError(data.error || 'An unknown connection error occurred.');
+              setView('initial'); // Go back to the initial screen on error
+            } else if (data.status === 'connecting') {
+              setView('connecting');
+            }
+          }
+        });
+
+        // Check if already connected on mount
+        const connectionInfo = OBDIIService.getConnectionStatus();
+        if (connectionInfo && connectionInfo.status === 'connected') {
+          console.log('Already connected on mount, navigating to dashboard');
           router.replace('/(tabs)/dashboard');
-        } else if (data.status === 'error') {
-          setError(data.error || 'An unknown connection error occurred.');
-          setView('initial'); // Go back to the initial screen on error
-        } else if (data.status === 'connecting') {
-          setView('connecting');
         }
       }
-    });
-
-    // Check if already connected on mount
-    const connectionInfo = OBDIIService.getConnectionStatus();
-    if (connectionInfo.status === 'connected') {
-      console.log('Already connected on mount, navigating to dashboard');
-      router.replace('/(tabs)/dashboard');
+    } catch (error) {
+      console.warn('Service subscription failed:', error);
     }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.warn('Error during service unsubscribe:', error);
+        }
+      }
+    };
   }, []);
 
   // --- Action Handlers ---
@@ -1268,6 +1302,9 @@ export default function ConnectionScreen() {
     try {
       let foundDevices: DiscoveredDevice[] = [];
       if (type === 'wifi') {
+        if (!WiFiService) {
+          throw new Error('WiFi service not available');
+        }
         await WiFiService.requestPermissions();
         const { obd: obdNetworks } = await WiFiService.scanNetworks();
         foundDevices = obdNetworks.map((net, index) => ({
@@ -1277,6 +1314,9 @@ export default function ConnectionScreen() {
           raw: net,
         }));
       } else { // Bluetooth
+        if (!BluetoothService) {
+          throw new Error('Bluetooth service not available');
+        }
         await BluetoothService.requestPermissions();
         // Getting bonded (already paired) devices is usually faster and more reliable
         const bondedDevices = await BluetoothService.getBondedDevices();
@@ -1289,6 +1329,7 @@ export default function ConnectionScreen() {
       }
       setDevices(foundDevices);
     } catch (e: any) {
+      console.warn(`Discovery failed for ${type}:`, e);
       setError(`Failed to scan for ${type} devices. Please check permissions and try again.`);
       setView('initial');
     }
@@ -1298,10 +1339,14 @@ export default function ConnectionScreen() {
     setError(null);
     setView('connecting');
     try {
+      if (!OBDIIService) {
+        throw new Error('OBD service not available');
+      }
       // For Wi-Fi, we need the SSID. For Bluetooth, we pass the whole device object.
       const connectionTarget = device.type === 'wifi' ? { ssid: device.address, password: '' } : device.raw;
       await OBDIIService.connect(connectionTarget, device.type);
     } catch (e: any) {
+      console.warn('Device connection failed:', e);
       setError(e.message || 'Failed to connect.');
       setView('initial');
     }
@@ -1310,26 +1355,35 @@ export default function ConnectionScreen() {
   const handleStartDemo = async () => {
     setError(null);
     setView('connecting');
-    OBDIIService.enableSimulation();
+    
+    try {
+      if (!OBDIIService) {
+        throw new Error('OBD service not available');
+      }
       
-    // try {
-    //   // Add a small delay to ensure subscription is active
-    //   await new Promise(resolve => setTimeout(resolve, 100));
-    //   OBDIIService.enableSimulation();
+      OBDIIService.enableSimulation();
       
-    //   // Add a timeout to catch if navigation doesn't happen
-    //   setTimeout(() => {
-    //     const connectionInfo = OBDIIService.getConnectionInfo();
-    //     if (connectionInfo.status === 'connected' && connectionInfo.type === 'simulation') {
-    //       console.log('Demo mode connected, navigating to dashboard');
-    //       router.replace('/(tabs)/dashboard');
-    //     }
-    //   }, 1000);
-    // } catch (error) {
-    //   console.error('Demo mode error:', error);
-    //   setError('Failed to start demo mode');
-    //   setView('initial');
-    // }
+      // Add a fallback timeout in case the subscription doesn't work
+      setTimeout(() => {
+        try {
+          const connectionInfo = OBDIIService.getConnectionStatus();
+          if (connectionInfo && connectionInfo.status === 'connected') {
+            console.log('Demo mode connected, navigating to dashboard');
+            router.replace('/(tabs)/dashboard');
+          } else {
+            console.log('Demo mode navigation fallback');
+            router.replace('/(tabs)/dashboard');
+          }
+        } catch (error) {
+          console.warn('Demo mode fallback failed:', error);
+          router.replace('/(tabs)/dashboard');
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('Demo mode error:', error);
+      setError('Failed to start demo mode');
+      setView('initial');
+    }
   };
 
   const resetView = () => {
@@ -1349,9 +1403,9 @@ export default function ConnectionScreen() {
         <Text style={styles.subtitle}>Connect to your vehicle to get started</Text>
       </View>
       <View style={styles.buttonContainer}>
-        <ConnectionButton icon={Wifi} label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
-        <ConnectionButton icon={Bluetooth} label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
-        <ConnectionButton icon={PlayCircle} label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
+        <ConnectionButton iconName="wifi" label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
+        <ConnectionButton iconName="bluetooth" label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
+        <ConnectionButton iconName="play-circle" label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
       </View>
     </>
   );
@@ -1360,7 +1414,7 @@ export default function ConnectionScreen() {
     <>
       <View style={styles.listHeader}>
         <TouchableOpacity onPress={resetView} style={styles.backButton}>
-          <ChevronLeft color={isDark ? '#fff' : '#000'} size={28} />
+          <Ionicons name="chevron-back" color={isDark ? '#fff' : '#000'} size={28} />
         </TouchableOpacity>
         <Text style={styles.title}>Select a {discoveryType === 'wifi' ? 'Wi-Fi' : 'Bluetooth'} Device</Text>
       </View>
@@ -1381,7 +1435,7 @@ export default function ConnectionScreen() {
           )}
           ListEmptyComponent={() => (
             <View style={styles.centeredMessage}>
-                <ServerCrash color={isDark ? '#888' : '#666'} size={48} />
+                <Ionicons name="server" color={isDark ? '#888' : '#666'} size={48} />
                 <Text style={styles.statusText}>No devices found.</Text>
                 <Text style={styles.statusSubtext}>Ensure the OBD-II adapter is powered on and in range.</Text>
             </View>
@@ -1424,11 +1478,11 @@ export default function ConnectionScreen() {
 }
 
 // --- Helper Components & Styles ---
-const ConnectionButton = ({ icon: Icon, label, onPress, isDark }: any) => {
+const ConnectionButton = ({ iconName, label, onPress, isDark }: any) => {
     const styles = getStyles(isDark);
     return (
       <TouchableOpacity style={styles.button} onPress={onPress}>
-        <Icon color={isDark ? '#fff' : '#000'} size={24} />
+        <Ionicons name={iconName} color={isDark ? '#fff' : '#000'} size={24} />
         <Text style={styles.buttonText}>{label}</Text>
       </TouchableOpacity>
     );

@@ -11,10 +11,13 @@ import {
   View,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// SafeAreaView removed - using View instead
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 // Import the single source of truth for all OBD interactions
 import OBDIIService from '../../services/obdii/OBDIIService';
+import SettingsService from '../../services/settings/SettingsService';
+import { UnitConverter } from '../../utils/unitConversion';
 
 const { width } = Dimensions.get('window');
 
@@ -28,19 +31,27 @@ interface LiveDataState {
   fuelLevel: number;
   throttlePosition: number;
   maf: number;
+  intakeAirTemp: number;
   odometer: number; // Odometer reading in miles/km
 }
 
 export default function DashboardScreen() {
+  const { theme, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
+  
   // --- State Management ---
   const [liveData, setLiveData] = useState<LiveDataState>({
     rpm: 0, speed: 0, coolantTemp: 0, engineLoad: 0, batteryVoltage: 0,
-    fuelLevel: 0, throttlePosition: 0, maf: 0, odometer: 0,
+    fuelLevel: 0, throttlePosition: 0, maf: 0, intakeAirTemp: 0, odometer: 0,
   });
   
   const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [milActive, setMilActive] = useState(false);
+  
+  // Unit preferences state
+  const [tempUnit, setTempUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
+  const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
 
   const quickActions = [
  {
@@ -85,6 +96,24 @@ export default function DashboardScreen() {
   // --- Data Subscription and Live Polling ---
   useFocusEffect(
     useCallback(() => {
+      // Initialize unit preferences from settings
+      const initializeSettings = async () => {
+        const loadedSettings = await SettingsService.loadSettings();
+        setTempUnit(loadedSettings.temperature_unit);
+        setDistanceUnit(loadedSettings.distance_unit);
+      };
+      
+      initializeSettings();
+      
+      // Listen for settings changes
+      const handleSettingsChange = () => {
+        setTempUnit(SettingsService.getTemperatureUnit());
+        setDistanceUnit(SettingsService.getDistanceUnit());
+      };
+      
+      SettingsService.on('settingChanged:temperature_unit', handleSettingsChange);
+      SettingsService.on('settingChanged:distance_unit', handleSettingsChange);
+      
       const onDataUpdate = (event: string, data: any) => {
         console.log(`[Dashboard] Received Event: ${event}`, JSON.stringify(data)); 
         if (event === 'connectionStatus') {
@@ -119,6 +148,10 @@ export default function DashboardScreen() {
                   break;
               case 'MAF_RATE':
                   newData.maf = data.value;
+                  break;
+              case 'INTAKE_AIR_TEMP':
+              case 'AIR_INTAKE_TEMP':
+                  newData.intakeAirTemp = data.value;
                   break;
               // Note: A real PID for battery voltage would be needed here
               case 'CONTROL_MODULE_VOLTAGE':
@@ -179,6 +212,10 @@ export default function DashboardScreen() {
           clearInterval((unsubscribe as any).milInterval);
         }
         
+        // Remove settings listeners
+        SettingsService.removeListener('settingChanged:temperature_unit', handleSettingsChange);
+        SettingsService.removeListener('settingChanged:distance_unit', handleSettingsChange);
+        
         unsubscribe();
       };
     }, [])
@@ -206,15 +243,15 @@ export default function DashboardScreen() {
   // --- Render Logic ---
   if (connectionStatus !== 'connected') {
     return (
-      <SafeAreaView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.statusText}>Connection lost. Reconnecting...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Dashboard</Text>
@@ -243,8 +280,8 @@ export default function DashboardScreen() {
             </View>
             <View style={styles.gaugeCard}>
               <Text style={styles.gaugeLabel}>Speed</Text>
-              <Text style={styles.gaugeValue}>{formatValue(liveData.speed)}</Text>
-              <Text style={styles.gaugeUnit}>km/h</Text>
+              <Text style={styles.gaugeValue}>{formatValue(UnitConverter.convertSpeed(liveData.speed, true))}</Text>
+              <Text style={styles.gaugeUnit}>{distanceUnit === 'miles' ? 'mph' : 'km/h'}</Text>
             </View>
           </View>
         </View>
@@ -275,12 +312,12 @@ export default function DashboardScreen() {
             <View style={styles.metricCard}>
               <MaterialIcons name="speed" size={20} color="#8E44AD" />
               <Text style={styles.metricLabel}>Odometer</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.odometer, 0)} mi</Text>
+              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertDistance(liveData.odometer, true), 0)} {distanceUnit === 'miles' ? 'mi' : 'km'}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="thermometer" size={20} color="#FF6B35" />
               <Text style={styles.metricLabel}>Coolant Temp</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.coolantTemp)}°C</Text>
+              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertTemperature(liveData.coolantTemp, true))}{tempUnit === 'fahrenheit' ? '°F' : '°C'}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="car" size={20} color="#007AFF" />
@@ -306,6 +343,11 @@ export default function DashboardScreen() {
               <Ionicons name="logo-buffer" size={20} color="#AF52DE" />
               <Text style={styles.metricLabel}>MAF</Text>
               <Text style={styles.metricValue}>{formatValue(liveData.maf, 1)} g/s</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <Ionicons name="thermometer-outline" size={20} color="#FF6B35" />
+              <Text style={styles.metricLabel}>Intake Air Temp</Text>
+              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertTemperature(liveData.intakeAirTemp, true))}{tempUnit === 'fahrenheit' ? '°F' : '°C'}</Text>
             </View>
           </View>
         </View>
@@ -354,14 +396,14 @@ export default function DashboardScreen() {
   </View>
         
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: theme.colors.background,
   },
   centered: {
     justifyContent: 'center',
@@ -373,9 +415,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.headerBackground,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: theme.colors.border,
   },
   headerLeft: {
     flex: 1,
@@ -383,7 +425,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   statusContainer: {
@@ -399,6 +441,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '500',
+    color: theme.colors.text,
   },
   disconnectButton: {
     padding: 8,
@@ -419,44 +462,44 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: theme.colors.text,
     marginBottom: 12,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: theme.colors.primary,
     fontWeight: '500',
-},
+  },
   primaryGauges: {
     flexDirection: 'row',
     gap: 12,
   },
   gaugeCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: theme.dark ? 0.3 : 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   gaugeLabel: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   gaugeValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#000000',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   gaugeUnit: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: theme.colors.textSecondary,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -465,25 +508,25 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     width: (width - 52) / 2, // 20 padding on each side, 12 gap
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: theme.dark ? 0.3 : 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: theme.colors.textSecondary,
     marginTop: 8,
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: theme.colors.text,
   },
   quickActions: {
   flexDirection: 'row',
