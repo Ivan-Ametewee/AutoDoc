@@ -5017,6 +5017,6 @@
     subsystem: 'Unknown',
     severity: this.severityLevels.MEDIUM,
     causes: ['Possible sensor fault', 'Wiring issue', 'BCM/ECU malfunction'],
-    symptoms: ['Warning light ON', 'Related system not working'],
+    symptoms: ['Warning light ON', 'Related system(s) not working'],
     solutions: ['Check wiring/connectors', 'Replace faulty sensor/module', 'Inspect BCM/ECU']
   }
