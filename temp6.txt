@@ -1,2350 +1,1202 @@
-// ==================== TOYOTA NETWORK CODES ====================
-  'U0001': {
-    description: 'High Speed CAN Communication Bus',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0002': {
-    description: 'High Speed CAN Communication Bus Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0003': {
-    description: 'High Speed CAN Communication Bus (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0004': {
-    description: 'High Speed CAN Communication Bus (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0005': {
-    description: 'High Speed CAN Communication Bus (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0006': {
-    description: 'High Speed CAN Communication Bus (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0007': {
-    description: 'High Speed CAN Communication Bus (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0008': {
-    description: 'High Speed CAN Communication Bus (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0009': {
-    description: 'High Speed CAN Communication Bus (-) shorted to Bus (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0010': {
-    description: 'Medium Speed CAN Communication Bus',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0011': {
-    description: 'Medium Speed CAN Communication Bus Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0012': {
-    description: 'Medium Speed CAN Communication Bus (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0013': {
-    description: 'Medium Speed CAN Communication Bus (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0014': {
-    description: 'Medium Speed CAN Communication Bus (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0015': {
-    description: 'Medium Speed CAN Communication Bus (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0016': {
-    description: 'Medium Speed CAN Communication Bus (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0017': {
-    description: 'Medium Speed CAN Communication Bus (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0018': {
-    description: 'Medium Speed CAN Communication Bus (-) shorted to Bus (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0019': {
-    description: 'Low Speed CAN Communication Bus',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0020': {
-    description: 'Low Speed CAN Communication Bus Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0021': {
-    description: 'Low Speed CAN Communication Bus (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0022': {
-    description: 'Low Speed CAN Communication Bus (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0023': {
-    description: 'Low Speed CAN Communication Bus (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0024': {
-    description: 'Low Speed CAN Communication Bus (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0025': {
-    description: 'Low Speed CAN Communication Bus (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0026': {
-    description: 'Low Speed CAN Communication Bus (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0027': {
-    description: 'Low Speed CAN Communication Bus (-) shorted to Bus (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0028': {
-    description: 'Vehicle Communication Bus A',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0029': {
-    description: 'Vehicle Communication Bus A Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0030': {
-    description: 'Vehicle Communication Bus A (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0031': {
-    description: 'Vehicle Communication Bus A (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0032': {
-    description: 'Vehicle Communication Bus A (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0033': {
-    description: 'Vehicle Communication Bus A (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0034': {
-    description: 'Vehicle Communication Bus A (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0035': {
-    description: 'Vehicle Communication Bus A (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0036': {
-    description: 'Vehicle Communication Bus A (-) shorted to Bus A (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0037': {
-    description: 'Vehicle Communication Bus B',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0038': {
-    description: 'Vehicle Communication Bus B Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0039': {
-    description: 'Vehicle Communication Bus B (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0040': {
-    description: 'Vehicle Communication Bus B (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0041': {
-    description: 'Vehicle Communication Bus B (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0042': {
-    description: 'Vehicle Communication Bus B (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0043': {
-    description: 'Vehicle Communication Bus B (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0044': {
-    description: 'Vehicle Communication Bus B (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0045': {
-    description: 'Vehicle Communication Bus B (-) shorted to Bus B (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0046': {
-    description: 'Vehicle Communication Bus C',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0047': {
-    description: 'Vehicle Communication Bus C Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0048': {
-    description: 'Vehicle Communication Bus C (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0049': {
-    description: 'Vehicle Communication Bus C (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0050': {
-    description: 'Vehicle Communication Bus C (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0051': {
-    description: 'Vehicle Communication Bus C (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0052': {
-    description: 'Vehicle Communication Bus C (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0053': {
-    description: 'Vehicle Communication Bus C (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0054': {
-    description: 'Vehicle Communication Bus C (-) shorted to Bus C (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0055': {
-    description: 'Vehicle Communication Bus D',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0056': {
-    description: 'Vehicle Communication Bus D Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0057': {
-    description: 'Vehicle Communication Bus D (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0058': {
-    description: 'Vehicle Communication Bus D (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0059': {
-    description: 'Vehicle Communication Bus D (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0060': {
-    description: 'Vehicle Communication Bus D (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0061': {
-    description: 'Vehicle Communication Bus D (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0062': {
-    description: 'Vehicle Communication Bus D (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0063': {
-    description: 'Vehicle Communication Bus D (-) shorted to Bus D (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0064': {
-    description: 'Vehicle Communication Bus E',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0065': {
-    description: 'Vehicle Communication Bus E Performance',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0066': {
-    description: 'Vehicle Communication Bus E (+) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0067': {
-    description: 'Vehicle Communication Bus E (+) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0068': {
-    description: 'Vehicle Communication Bus E (+) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0069': {
-    description: 'Vehicle Communication Bus E (-) Open',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0070': {
-    description: 'Vehicle Communication Bus E (-) Low',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0071': {
-    description: 'Vehicle Communication Bus E (-) High',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0072': {
-    description: 'Vehicle Communication Bus E (-) shorted to Bus E (+)',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0073': {
-    description: 'Control Module Communication Bus Off',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0100': {
-    description: 'Lost Communication With ECM/PCM "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0101': {
-    description: 'Lost Communication with TCM',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0102': {
-    description: 'Lost Communication with Transfer Case Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0103': {
-    description: 'Lost Communication With Gear Shift Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0104': {
-    description: 'Lost Communication With Cruise Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0105': {
-    description: 'Lost Communication With Fuel Injector Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0106': {
-    description: 'Lost Communication With Glow Plug Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0107': {
-    description: 'Lost Communication With Throttle Actuator Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0108': {
-    description: 'Lost Communication With Alternative Fuel Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0109': {
-    description: 'Lost Communication With Fuel Pump Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0110': {
-    description: 'Lost Communication With Drive Motor Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0111': {
-    description: 'Lost Communication With Battery Energy Control Module "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0112': {
-    description: 'Lost Communication With Battery Energy Control Module "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0113': {
-    description: 'Lost Communication With Emissions Critical Control Information',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0114': {
-    description: 'Lost Communication With Four-Wheel Drive Clutch Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0115': {
-    description: 'Lost Communication With ECM/PCM "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0121': {
-    description: 'Lost Communication With Anti-Lock Brake System (ABS) Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0122': {
-    description: 'Lost Communication With Vehicle Dynamics Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0123': {
-    description: 'Lost Communication With Yaw Rate Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0124': {
-    description: 'Lost Communication With Lateral Acceleration Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0125': {
-    description: 'Lost Communication With Multi-axis Acceleration Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0126': {
-    description: 'Lost Communication With Steering Angle Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0127': {
-    description: 'Lost Communication With Tire Pressure Monitor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0128': {
-    description: 'Lost Communication With Park Brake Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0129': {
-    description: 'Lost Communication With Brake System Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0130': {
-    description: 'Lost Communication With Steering Effort Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0131': {
-    description: 'Lost Communication With Power Steering Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0132': {
-    description: 'Lost Communication With Ride Level Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0140': {
-    description: 'Lost Communication With Body Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0141': {
-    description: 'Lost Communication With Body Control Module "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0142': {
-    description: 'Lost Communication With Body Control Module "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0143': {
-    description: 'Lost Communication With Body Control Module "C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0144': {
-    description: 'Lost Communication With Body Control Module "D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0145': {
-    description: 'Lost Communication With Body Control Module "E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0146': {
-    description: 'Lost Communication With Gateway "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0147': {
-    description: 'Lost Communication With Gateway "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0148': {
-    description: 'Lost Communication With Gateway "C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0149': {
-    description: 'Lost Communication With Gateway "D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0150': {
-    description: 'Lost Communication With Gateway "E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0151': {
-    description: 'Lost Communication With Restraints Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0152': {
-    description: 'Lost Communication With Side Restraints Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0153': {
-    description: 'Lost Communication With Side Restraints Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0154': {
-    description: 'Lost Communication With Restraints Occupant Sensing Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0155': {
-    description: 'Lost Communication With Instrument Panel Cluster (IPC) Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0156': {
-    description: 'Lost Communication With Information Center "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0157': {
-    description: 'Lost Communication With Information Center "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0158': {
-    description: 'Lost Communication With Head Up Display',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0159': {
-    description: 'Lost Communication With Parking Assist Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0160': {
-    description: 'Lost Communication With Audible Alert Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0161': {
-    description: 'Lost Communication With Compass Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0162': {
-    description: 'Lost Communication With Navigation Display Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0163': {
-    description: 'Lost Communication With Navigation Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0164': {
-    description: 'Lost Communication With HVAC Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0165': {
-    description: 'Lost Communication With HVAC Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0166': {
-    description: 'Lost Communication With Auxiliary Heater Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0167': {
-    description: 'Lost Communication With Vehicle Immobilizer Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0168': {
-    description: 'Lost Communication With Vehicle Security Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0169': {
-    description: 'Lost Communication With Sunroof Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0170': {
-    description: 'Lost Communication With "Restraints System Sensor A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0171': {
-    description: 'Lost Communication With "Restraints System Sensor B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0172': {
-    description: 'Lost Communication With "Restraints System Sensor C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0173': {
-    description: 'Lost Communication With "Restraints System Sensor D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0174': {
-    description: 'Lost Communication With "Restraints System Sensor E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0175': {
-    description: 'Lost Communication With "Restraints System Sensor F"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0176': {
-    description: 'Lost Communication With "Restraints System Sensor G"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0177': {
-    description: 'Lost Communication With "Restraints System Sensor H"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0178': {
-    description: 'Lost Communication With "Restraints System Sensor I"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0179': {
-    description: 'Lost Communication With "Restraints System Sensor J"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0180': {
-    description: 'Lost Communication With Automatic Lighting Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0181': {
-    description: 'Lost Communication With Headlamp Leveling Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0182': {
-    description: 'Lost Communication With Lighting Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0183': {
-    description: 'Lost Communication With Lighting Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0184': {
-    description: 'Lost Communication With Radio',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0185': {
-    description: 'Lost Communication With Antenna Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0186': {
-    description: 'Lost Communication With Audio Amplifier',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0187': {
-    description: 'Lost Communication With Digital Disc Player/Changer Module "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0188': {
-    description: 'Lost Communication With Digital Disc Player/Changer Module "B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0189': {
-    description: 'Lost Communication With Digital Disc Player/Changer Module "C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0190': {
-    description: 'Lost Communication With Digital Disc Player/Changer Module "D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0191': {
-    description: 'Lost Communication With Television',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0192': {
-    description: 'Lost Communication With Personal Computer',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0193': {
-    description: 'Lost Communication With "Digital Audio Control Module A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0194': {
-    description: 'Lost Communication With "Digital Audio Control Module B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0195': {
-    description: 'Lost Communication With Subscription Entertainment Receiver Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0196': {
-    description: 'Lost Communication With Rear Seat Entertainment Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0197': {
-    description: 'Lost Communication With Telephone Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0198': {
-    description: 'Lost Communication With Telematic Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0199': {
-    description: 'Lost Communication With "Door Control Module A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0200': {
-    description: 'Lost Communication With "Door Control Module B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0201': {
-    description: 'Lost Communication With "Door Control Module C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0202': {
-    description: 'Lost Communication With "Door Control Module D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0203': {
-    description: 'Lost Communication With "Door Control Module E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0204': {
-    description: 'Lost Communication With "Door Control Module F"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0205': {
-    description: 'Lost Communication With "Door Control Module G"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0206': {
-    description: 'Lost Communication With Folding Top Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0207': {
-    description: 'Lost Communication With Movable Roof Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0208': {
-    description: 'Lost Communication With "Seat Control Module A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0209': {
-    description: 'Lost Communication With "Seat Control Module B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0210': {
-    description: 'Lost Communication With "Seat Control Module C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0211': {
-    description: 'Lost Communication With "Seat Control Module D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0212': {
-    description: 'Lost Communication With Steering Column Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0213': {
-    description: 'Lost Communication With Mirror Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0214': {
-    description: 'Lost Communication With Remote Function Actuation',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0215': {
-    description: 'Lost Communication With "Door Switch A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0216': {
-    description: 'Lost Communication With "Door Switch B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0217': {
-    description: 'Lost Communication With "Door Switch C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0218': {
-    description: 'Lost Communication With "Door Switch D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0219': {
-    description: 'Lost Communication With "Door Switch E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0220': {
-    description: 'Lost Communication With "Door Switch F"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0221': {
-    description: 'Lost Communication With "Door Switch G"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0222': {
-    description: 'Lost Communication With "Door Window Motor A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0223': {
-    description: 'Lost Communication With "Door Window Motor B"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0224': {
-    description: 'Lost Communication With "Door Window Motor C"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0225': {
-    description: 'Lost Communication With "Door Window Motor D"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0226': {
-    description: 'Lost Communication With "Door Window Motor E"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0227': {
-    description: 'Lost Communication With "Door Window Motor F"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0228': {
-    description: 'Lost Communication With "Door Window Motor G"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0229': {
-    description: 'Lost Communication With Heated Steering Wheel Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0230': {
-    description: 'Lost Communication With Rear Gate Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0231': {
-    description: 'Lost Communication With Rain Sensing Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0232': {
-    description: 'Lost Communication With Side Obstacle Detection Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0233': {
-    description: 'Lost Communication With Side Obstacle Detection Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0234': {
-    description: 'Lost Communication With Convenience Recall Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0235': {
-    description: 'Lost Communication With Cruise Control Front Distance Range Sensor',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0300': {
-    description: 'Internal Control Module Software Incompatibility',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0301': {
-    description: 'Software Incompatibility with ECM/PCM',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0302': {
-    description: 'Software Incompatibility with Transmission Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0303': {
-    description: 'Software Incompatibility with Transfer Case Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0304': {
-    description: 'Software Incompatibility with Gear Shift Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0305': {
-    description: 'Software Incompatibility with Cruise Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0306': {
-    description: 'Software Incompatibility with Fuel Injector Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0307': {
-    description: 'Software Incompatibility with Glow Plug Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0308': {
-    description: 'Software Incompatibility with Throttle Actuator Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0309': {
-    description: 'Software Incompatibility with Alternative Fuel Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0310': {
-    description: 'Software Incompatibility with Fuel Pump Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0311': {
-    description: 'Software Incompatibility with Drive Motor Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0312': {
-    description: 'Software Incompatibility with Battery Energy Control Module A',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0313': {
-    description: 'Software Incompatibility with Battery Energy Control Module B',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0314': {
-    description: 'Software Incompatibility with Four-Wheel Drive Clutch Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0315': {
-    description: 'Software Incompatibility with Anti-Lock Brake System Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0316': {
-    description: 'Software Incompatibility with Vehicle Dynamics Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0317': {
-    description: 'Software Incompatibility with Park Brake Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0318': {
-    description: 'Software Incompatibility with Brake System Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0319': {
-    description: 'Software Incompatibility with Steering Effort Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0320': {
-    description: 'Software Incompatibility with Power Steering Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0321': {
-    description: 'Software Incompatibility with Ride Level Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0322': {
-    description: 'Software Incompatibility with Body Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0323': {
-    description: 'Software Incompatibility with Instrument Panel Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0324': {
-    description: 'Software Incompatibility with HVAC Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0325': {
-    description: 'Software Incompatibility with Auxiliary Heater Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0326': {
-    description: 'Software Incompatibility with Vehicle Immobilizer Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0327': {
-    description: 'Software Incompatibility with Vehicle Security Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0328': {
-    description: 'Software Incompatibility with Steering Angle Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0329': {
-    description: 'Software Incompatibility with Steering Column Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0330': {
-    description: 'Software Incompatibility with Tire Pressure Monitor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0331': {
-    description: 'Software Incompatibility with Body Control Module "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0400': {
-    description: 'Invalid Data Received',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0401': {
-    description: 'Invalid Data Received From ECM/PCM',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0402': {
-    description: 'Invalid Data Received From Transmission Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0403': {
-    description: 'Invalid Data Received From Transfer Case Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0404': {
-    description: 'Invalid Data Received From Gear Shift Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0405': {
-    description: 'Invalid Data Received From Cruise Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0406': {
-    description: 'Invalid Data Received From Fuel Injector Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0407': {
-    description: 'Invalid Data Received From Glow Plug Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0408': {
-    description: 'Invalid Data Received From Throttle Actuator Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0409': {
-    description: 'Invalid Data Received From Alternative Fuel Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0410': {
-    description: 'Invalid Data Received From Fuel Pump Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0411': {
-    description: 'Invalid Data Received From Drive Motor Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0412': {
-    description: 'Invalid Data Received From Battery Energy Control Module A',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0413': {
-    description: 'Invalid Data Received From Battery Energy Control Module B',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0414': {
-    description: 'Invalid Data Received From Four-Wheel Drive Clutch Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0415': {
-    description: 'Invalid Data Received From Anti-Lock Brake System Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0416': {
-    description: 'Invalid Data Received From Vehicle Dynamics Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0417': {
-    description: 'Invalid Data Received From Park Brake Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0418': {
-    description: 'Invalid Data Received From Brake System Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0419': {
-    description: 'Invalid Data Received From Steering Effort Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0420': {
-    description: 'Invalid Data Received From Power Steering Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0421': {
-    description: 'Invalid Data Received From Ride Level Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0422': {
-    description: 'Invalid Data Received From Body Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0423': {
-    description: 'Invalid Data Received From Instrument Panel Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0424': {
-    description: 'Invalid Data Received From HVAC Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0425': {
-    description: 'Invalid Data Received From Auxiliary Heater Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0426': {
-    description: 'Invalid Data Received From Vehicle Immobilizer Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0427': {
-    description: 'Invalid Data Received From Vehicle Security Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0428': {
-    description: 'Invalid Data Received From Steering Angle Sensor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0429': {
-    description: 'Invalid Data Received From Steering Column Control Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0430': {
-    description: 'Invalid Data Received From Tire Pressure Monitor Module',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  },
-  'U0431': {
-    description: 'Invalid Data Received From Body Control Module "A"',
-    system: 'Network',
-    subsystem: 'Unknown',
-    severity: this.severityLevels.MEDIUM,
-    causes: ['CAN bus fault', 'Wiring/connection issue', 'Control module error'],
-    symptoms: ['Warning lights ON', 'Communication issues between modules'],
-    solutions: ['Check CAN wiring/connectors', 'Inspect modules', 'Perform network diagnostics']
-  }
+// import { Ionicons } from '@expo/vector-icons';
+// import { router } from 'expo-router';
+// import React, { useCallback, useEffect, useRef, useState } from 'react';
+// import {
+//   ActivityIndicator,
+//   Alert,
+//   Modal,
+//   Platform,
+//   ScrollView,
+//   StyleSheet,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   View,
+// } from 'react-native';
+// // SafeAreaView removed - using View instead
+// import { useDispatch } from 'react-redux';
+// import BluetoothManager from '../services/bluetooth/BluetoothManager';
+// import WiFiManager from '../services/wifi/WiFiManager';
+// //import { setConnectionType } from '../../store/actions/connectionActions';
+
+// // Types
+// interface ConnectionOption {
+//   id: string;
+//   name: string;
+//   type: 'bluetooth' | 'wifi' | 'demo';
+//   icon: keyof typeof Ionicons.glyphMap;
+//   status: 'available' | 'connecting' | 'connected' | 'unavailable';
+//   address?: string;
+//   bonded?: boolean;
+//   rssi?: number;
+//   security?: string;
+//   signal?: string;
+// }
+
+// interface WiFiNetwork {
+//   SSID: string;
+//   level: number;
+//   capabilities: string;
+//   frequency?: number;
+//   isOBD?: boolean;
+//   signal?: string;
+//   security?: string;
+// }
+
+// // Constants
+// const SCAN_TIMEOUT = 10000;
+// const CONNECTION_TIMEOUT = 5000;
+
+// const DEFAULT_CONNECTIONS: ConnectionOption[] = [
+//   {
+//     id: 'bluetooth-scan',
+//     name: 'Bluetooth OBD Adapter',
+//     type: 'bluetooth',
+//     icon: 'bluetooth',
+//     status: 'available',
+//   },
+//   {
+//     id: 'wifi-scan',
+//     name: 'WiFi OBD Adapter',
+//     type: 'wifi',
+//     icon: 'wifi',
+//     status: 'available',
+//   },
+//   {
+//     id: 'demo-001',
+//     name: 'Demo Mode',
+//     type: 'demo',
+//     icon: 'car-sport',
+//     status: 'available',
+//   },
+// ];
+
+// export default function ConnectionScreen() {
+//   const dispatch = useDispatch();
+//   // State
+//   const [connections, setConnections] = useState<ConnectionOption[]>(DEFAULT_CONNECTIONS);
+//   const [isScanning, setIsScanning] = useState(false);
+//   const [bluetoothState, setBluetoothState] = useState({
+//     initialized: false,
+//     enabled: false,
+//     hasPermissions: false,
+//   });
+//   const [wifiInitialized, setWifiInitialized] = useState(false);
+//   const [bluetoothDevices, setBluetoothDevices] = useState<ConnectionOption[]>([]);
+//   const [wifiNetworks, setWifiNetworks] = useState<ConnectionOption[]>([]);
+//   const [showBluetoothDevices, setShowBluetoothDevices] = useState(false);
+//   const [showWifiNetworks, setShowWifiNetworks] = useState(false);
+//   const [showPasswordModal, setShowPasswordModal] = useState(false);
+//   const [selectedNetwork, setSelectedNetwork] = useState<ConnectionOption | null>(null);
+//   const [networkPassword, setNetworkPassword] = useState('');
+//   const [showCustomServerModal, setShowCustomServerModal] = useState(false);
+//   const [customHost, setCustomHost] = useState('192.168.0.10');
+//   const [customPort, setCustomPort] = useState('35000');
+
+//   // Refs
+//   const bluetoothManagerRef = useRef<typeof BluetoothManager | null>(BluetoothManager);
+//   const wifiManagerRef = useRef<typeof WiFiManager | null>(WiFiManager);
+//   const isMountedRef = useRef(true);
+
+//   // Cleanup on unmount
+//   useEffect(() => {
+//     isMountedRef.current = true;
+
+//     return () => {
+//       isMountedRef.current = false;
+//       cleanupManagers();
+//     };
+//   }, []);
+
+//   const cleanupManagers = useCallback(() => {
+//     try {
+//       if (bluetoothState.initialized && bluetoothManagerRef.current) {
+//         bluetoothManagerRef.current.removeAllListeners?.();
+//       }
+//       if (wifiInitialized && wifiManagerRef.current) {
+//         wifiManagerRef.current.removeAllListeners?.();
+//       }
+//     } catch (error) {
+//       console.error('Error during cleanup:', error);
+//     }
+//   }, [bluetoothState.initialized, wifiInitialized]);
+
+//   // Safe state updater
+//   const safeSetState = useCallback((updater: () => void) => {
+//     if (isMountedRef.current) {
+//       updater();
+//     }
+//   }, []);
+
+//   // Error handler
+//   const handleError = useCallback((title: string, error: unknown, onDismiss?: () => void) => {
+//     const message = error && typeof error === 'object' && 'message' in error
+//       ? String(error.message)
+//       : 'An unexpected error occurred';
+
+//     console.error(`${title}:`, error);
+
+//     Alert.alert(title, message, [
+//       { text: 'OK', onPress: onDismiss }
+//     ]);
+//   }, []);
+
+//   // Bluetooth event handlers
+//   const setupBluetoothListeners = useCallback(() => {
+//     const manager = bluetoothManagerRef.current;
+//     if (!manager) return;
+
+//     try {
+//       manager.on('initialized', () => {
+//         safeSetState(() => {
+//           setBluetoothState(prev => ({
+//             ...prev,
+//             initialized: true,
+//             enabled: true,
+//             hasPermissions: true
+//           }));
+//         });
+//         startBluetoothScan();
+//       });
+
+//       manager.on('obdDeviceFound', (device: any) => {
+//         if (device && device.address) {
+//           addBluetoothDevice(device);
+//         }
+//       });
+
+//       manager.on('scanStateChanged', ({ state, devices }: any) => {
+//         safeSetState(() => {
+//           setIsScanning(state === 'scanning');
+//         });
+//       });
+
+//       manager.on('connectionStateChanged', ({ state, device }: any) => {
+//         if (device?.id) {
+//           updateDeviceStatus(device.id, state);
+
+//           if (state === 'connected') {
+//             setTimeout(() => {
+//               if (isMountedRef.current) {
+//                 router.replace('/(tabs)/dashboard');
+//               }
+//             }, CONNECTION_TIMEOUT);
+//           }
+//         }
+//       });
+
+//       manager.on('bluetoothStateChanged', ({ enabled }: any) => {
+//         safeSetState(() => {
+//           setBluetoothState(prev => ({ ...prev, enabled }));
+//         });
+
+//         if (!enabled) {
+//           Alert.alert(
+//             'Bluetooth Disabled',
+//             'Please enable Bluetooth to connect to OBD adapters.',
+//             [{ text: 'OK' }]
+//           );
+//         }
+//       });
+
+//       manager.on('error', (error: any) => {
+//         handleError('Bluetooth Error', error, () => {
+//           safeSetState(() => {
+//             setIsScanning(false);
+//             setBluetoothState(prev => ({ ...prev, initialized: false }));
+//           });
+//         });
+//       });
+//     } catch (error) {
+//       handleError('Setup Error', error);
+//     }
+//   }, [safeSetState, handleError]);
+
+//   // WiFi event handlers
+//   const setupWiFiListeners = useCallback(() => {
+//     const manager = wifiManagerRef.current;
+//     if (!manager) return;
+
+//     try {
+//       manager.on('initialized', () => {
+//         safeSetState(() => setWifiInitialized(true));
+//         startWiFiScan();
+//       });
+
+//       manager.on('obdNetworkFound', (network: WiFiNetwork) => {
+//         if (network && network.SSID) {
+//           addWiFiNetwork(network);
+//         }
+//       });
+
+//       manager.on('scanStateChanged', ({ state }: any) => {
+//         safeSetState(() => setIsScanning(state === 'scanning'));
+//       });
+
+//       manager.on('connectionStateChanged', ({ state, config }: any) => {
+//         if (selectedNetwork) {
+//           if (state === 'connected') {
+//             updateWiFiNetworkStatus(selectedNetwork.id, 'connected');
+//             setTimeout(() => {
+//               if (isMountedRef.current) {
+//                 router.replace('/(tabs)/dashboard');
+//               }
+//             }, CONNECTION_TIMEOUT);
+//           } else if (state === 'disconnected') {
+//             updateWiFiNetworkStatus(selectedNetwork.id, 'available');
+//           }
+//         }
+//       });
+
+//       manager.on('error', (error: any) => {
+//         handleError('WiFi Error', error, () => {
+//           safeSetState(() => {
+//             setIsScanning(false);
+//             if (selectedNetwork) {
+//               updateWiFiNetworkStatus(selectedNetwork.id, 'available');
+//             }
+//           });
+//         });
+//       });
+//     } catch (error) {
+//       handleError('Setup Error', error);
+//     }
+//   }, [safeSetState, handleError, selectedNetwork]);
+
+//   // Initialize Bluetooth
+//   const initializeBluetooth = useCallback(async () => {
+//     if (!bluetoothManagerRef.current) {
+//       handleError('Bluetooth Error', new Error('Bluetooth manager not available'));
+//       return;
+//     }
+
+//     try {
+//       setupBluetoothListeners();
+//       const success = await bluetoothManagerRef.current.initialize();
+
+//       if (!success) {
+//         const message = Platform.OS === 'android'
+//           ? 'Please enable Bluetooth and grant location permissions to scan for OBD adapters.'
+//           : 'Please enable Bluetooth to connect to OBD adapters.';
+
+//         Alert.alert('Bluetooth Setup Required', message, [
+//           { text: 'Cancel', onPress: () => setShowBluetoothDevices(false) },
+//           { text: 'Try Again', onPress: initializeBluetooth }
+//         ]);
+//       }
+//     } catch (error) {
+//       handleError('Bluetooth Initialization Failed', error, () => {
+//         setShowBluetoothDevices(false);
+//       });
+//     }
+//   }, [setupBluetoothListeners, handleError]);
+
+//   // Initialize WiFi
+//   const initializeWiFi = useCallback(async () => {
+//     if (!wifiManagerRef.current) {
+//       handleError('WiFi Error', new Error('WiFi manager not available'));
+//       return;
+//     }
+
+//     try {
+//       setupWiFiListeners();
+//       const success = await wifiManagerRef.current.initialize();
+
+//       if (!success) {
+//         Alert.alert(
+//           'WiFi Setup Required',
+//           'Please enable WiFi and grant location permissions to scan for OBD adapters.',
+//           [
+//             { text: 'Cancel', onPress: () => setShowWifiNetworks(false) },
+//             { text: 'Try Again', onPress: initializeWiFi }
+//           ]
+//         );
+//       }
+//     } catch (error) {
+//       handleError('WiFi Initialization Failed', error, () => {
+//         setShowWifiNetworks(false);
+//       });
+//     }
+//   }, [setupWiFiListeners, handleError]);
+
+//   // Start Bluetooth scan
+//   const startBluetoothScan = useCallback(async () => {
+//     if (!bluetoothManagerRef.current || !bluetoothState.initialized) return;
+
+//     try {
+//       setIsScanning(true);
+//       setBluetoothDevices([]);
+
+//       await bluetoothManagerRef.current.scanForDevices(SCAN_TIMEOUT);
+//     } catch (error) {
+//       handleError('Scan Failed', error);
+//     } finally {
+//       safeSetState(() => setIsScanning(false));
+//     }
+//   }, [bluetoothState.initialized, handleError, safeSetState]);
+
+//   // Start WiFi scan
+//   const startWiFiScan = useCallback(async () => {
+//     if (!wifiManagerRef.current || !wifiInitialized) return;
+
+//     try {
+//       setIsScanning(true);
+//       setWifiNetworks([]);
+
+//       await wifiManagerRef.current.scanForNetworks();
+//     } catch (error) {
+//       handleError('Scan Failed', error);
+//     } finally {
+//       safeSetState(() => setIsScanning(false));
+//     }
+//   }, [wifiInitialized, handleError, safeSetState]);
+
+//   // Add Bluetooth device
+//   const addBluetoothDevice = useCallback((device: {
+//     id?: string;
+//     address: string;
+//     name?: string;
+//     bonded?: boolean;
+//     rssi?: number;
+//   }) => {
+//     const connectionOption: ConnectionOption = {
+//       id: device.id || device.address,
+//       name: device.name || `Unknown Device (${device.address})`,
+//       type: 'bluetooth',
+//       icon: 'bluetooth',
+//       status: 'available',
+//       address: device.address,
+//       bonded: device.bonded,
+//       rssi: device.rssi,
+//     };
+
+//     safeSetState(() => {
+//       setBluetoothDevices(prev => {
+//         const existingIndex = prev.findIndex(conn => conn.id === connectionOption.id);
+
+//         if (existingIndex >= 0) {
+//           const updated = [...prev];
+//           updated[existingIndex] = { ...updated[existingIndex], ...connectionOption };
+//           return updated;
+//         }
+//         return [...prev, connectionOption];
+//       });
+//     });
+//   }, [safeSetState]);
+
+//   // Add WiFi network
+//   const addWiFiNetwork = useCallback((network: WiFiNetwork) => {
+//     const connectionOption: ConnectionOption = {
+//       id: network.SSID,
+//       name: network.SSID,
+//       type: 'wifi',
+//       icon: 'wifi',
+//       status: 'available',
+//       signal: getSignalStrength(network.level),
+//       security: getSecurityType(network.capabilities),
+//     };
+
+//     safeSetState(() => {
+//       setWifiNetworks(prev => {
+//         const existingIndex = prev.findIndex(conn => conn.id === connectionOption.id);
+
+//         if (existingIndex >= 0) {
+//           const updated = [...prev];
+//           updated[existingIndex] = { ...updated[existingIndex], ...connectionOption };
+//           return updated;
+//         }
+//         return [...prev, connectionOption];
+//       });
+//     });
+//   }, [safeSetState]);
+
+//   // Helper functions
+//   const getSignalStrength = (level: number): string => {
+//     if (level >= -50) return 'excellent';
+//     if (level >= -60) return 'good';
+//     if (level >= -70) return 'fair';
+//     if (level >= -80) return 'weak';
+//     return 'very_weak';
+//   };
+
+//   const getSecurityType = (capabilities: string): string => {
+//     if (capabilities.includes('WPA3')) return 'WPA3';
+//     if (capabilities.includes('WPA2')) return 'WPA2';
+//     if (capabilities.includes('WPA')) return 'WPA';
+//     if (capabilities.includes('WEP')) return 'WEP';
+//     return 'OPEN';
+//   };
+
+//   // Update device status
+//   const updateDeviceStatus = useCallback((
+//     deviceId: string,
+//     status: string
+//   ) => {
+//     if (!deviceId) return;
+
+//     const statusMap: { [key: string]: ConnectionOption['status'] } = {
+//       'connecting': 'connecting',
+//       'connected': 'connected',
+//       'disconnected': 'available'
+//     };
+
+//     const newStatus: ConnectionOption['status'] = statusMap[status] || 'available';
+
+//     safeSetState(() => {
+//       setBluetoothDevices(prev =>
+//         prev.map(conn =>
+//           conn.id === deviceId
+//             ? { ...conn, status: newStatus }
+//             : conn
+//         )
+//       );
+//     });
+//   }, [safeSetState]);
+
+//   // Update WiFi network status
+//   const updateWiFiNetworkStatus = useCallback((
+//     networkId: string,
+//     status: ConnectionOption['status']
+//   ) => {
+//     safeSetState(() => {
+//       setWifiNetworks(prev =>
+//         prev.map(conn =>
+//           conn.id === networkId
+//             ? { ...conn, status: status }
+//             : conn
+//         )
+//       );
+//     });
+//   }, [safeSetState]);
+
+//   // Handle connection
+//   const handleConnect = useCallback(async (connectionId: string) => {
+//     const connection = connections.find(c => c.id === connectionId);
+//     const bluetoothDevice = bluetoothDevices.find(c => c.id === connectionId);
+//     const wifiNetwork = wifiNetworks.find(c => c.id === connectionId);
+//     const targetConnection = connection || bluetoothDevice || wifiNetwork;
+
+//     if (!targetConnection) return;
+
+//     // Handle option selection
+//     if (connectionId === 'bluetooth-scan') {
+//       setShowBluetoothDevices(true);
+//       if (!bluetoothState.initialized) {
+//         await initializeBluetooth();
+//       } else {
+//         startBluetoothScan();
+//       }
+//       return;
+//     }
+
+//     if (connectionId === 'wifi-scan') {
+//       setShowWifiNetworks(true);
+//       if (!wifiInitialized) {
+//         await initializeWiFi();
+//       } else {
+//         startWiFiScan();
+//       }
+//       return;
+//     }
+
+//     // Update status to connecting
+//     if (bluetoothDevice) {
+//       updateDeviceStatus(connectionId, 'connecting');
+//     } else if (wifiNetwork) {
+//       updateWiFiNetworkStatus(connectionId, 'connecting');
+//     } else {
+//       setConnections(prev =>
+//         prev.map(c =>
+//           c.id === connectionId ? { ...c, status: 'connecting' } : c
+//         )
+//       );
+//     }
+
+//     try {
+//       if (targetConnection.type === 'demo') {
+//         // Demo mode
+//         await new Promise(resolve => setTimeout(resolve, CONNECTION_TIMEOUT));
+//         //dispatch(setConnectionType('demo'));
+//         setConnections(prev =>
+//           prev.map(c =>
+//             c.id === connectionId ? { ...c, status: 'connected' } : c
+//           )
+//         );
+
+//         setTimeout(() => {
+//           if (isMountedRef.current) {
+//             router.replace('/(tabs)/dashboard');
+//           }
+//         }, 500);
+
+//       } else if (targetConnection.type === 'bluetooth') {
+//         if (!bluetoothState.initialized || !bluetoothState.enabled) {
+//           throw new Error('Bluetooth is not available');
+//         }
+
+//         if (!bluetoothManagerRef.current) {
+//           throw new Error('Bluetooth manager not available');
+//         }
+
+//         const success = await bluetoothManagerRef.current.connectToDevice(connectionId);
+//         if (!success) {
+//           throw new Error('Failed to connect to Bluetooth device');
+//         }
+
+//         //dispatch(setConnectionType('bluetooth'/*, targetConnection, 'bluetooth'*/));
+//       } else if (targetConnection.type === 'wifi') {
+//         if (!wifiInitialized) {
+//           throw new Error('WiFi is not available');
+//         }
+
+//         setSelectedNetwork(targetConnection);
+
+//         if (targetConnection.security && targetConnection.security !== 'OPEN') {
+//           setShowPasswordModal(true);
+//         } else {
+//           await connectToWiFiNetwork(targetConnection.id, '');
+//           //dispatch(setConnectionType('wifi'/*, targetConnection, 'wifi'*/));
+//         }
+//       }
+
+//     } catch (error) {
+//       // Reset status on error
+//       if (bluetoothDevice) {
+//         updateDeviceStatus(connectionId, 'available');
+//       } else if (wifiNetwork) {
+//         updateWiFiNetworkStatus(connectionId, 'available');
+//       } else {
+//         setConnections(prev =>
+//           prev.map(c =>
+//             c.id === connectionId ? { ...c, status: 'available' } : c
+//           )
+//         );
+//       }
+
+//       handleError('Connection Failed', error);
+//     }
+//   }, [
+//     connections, bluetoothDevices, wifiNetworks, bluetoothState, wifiInitialized,
+//     initializeBluetooth, initializeWiFi, startBluetoothScan, startWiFiScan,
+//     updateDeviceStatus, updateWiFiNetworkStatus, handleError, dispatch
+//   ]);
+
+//   // Connect to WiFi network
+//   const connectToWiFiNetwork = useCallback(async (ssid: string, password: string) => {
+//     if (!wifiManagerRef.current) {
+//       throw new Error('WiFi manager not available');
+//     }
+
+//     try {
+//       const success = await wifiManagerRef.current.connectToOBDNetwork(ssid, password);
+//       if (!success) {
+//         throw new Error('Failed to connect to WiFi network');
+//       }
+//     } catch (error) {
+//       if (selectedNetwork) {
+//         updateWiFiNetworkStatus(selectedNetwork.id, 'available');
+//       }
+//       throw error;
+//     }
+//   }, [selectedNetwork, updateWiFiNetworkStatus]);
+
+//   // Handle password submission
+//   const handlePasswordSubmit = useCallback(async () => {
+//     if (!selectedNetwork) return;
+
+//     try {
+//       setShowPasswordModal(false);
+//       await connectToWiFiNetwork(selectedNetwork.id, networkPassword);
+//       //dispatch(setConnectionType('wifi'/*, selectedNetwork, 'wifi'*/));
+//     } catch (error) {
+//       handleError('Connection Failed', error);
+//     } finally {
+//       setNetworkPassword('');
+//       setSelectedNetwork(null);
+//     }
+//   }, [selectedNetwork, networkPassword, connectToWiFiNetwork, handleError, dispatch]);
+
+//   // Handle custom server connection
+//   const handleCustomServerConnect = useCallback(async () => {
+//     if (!selectedNetwork || !wifiManagerRef.current) return;
+
+//     try {
+//       setShowCustomServerModal(false);
+
+//       const host = customHost.trim();
+//       const port = parseInt(customPort.trim());
+
+//       if (!host || isNaN(port)) {
+//         throw new Error('Please enter valid host and port');
+//       }
+
+//       const success = await wifiManagerRef.current.connectToCustomServer(
+//         selectedNetwork.id,
+//         networkPassword,
+//         host,
+//         port
+//       );
+
+//       if (!success) {
+//         throw new Error('Failed to connect to custom server');
+//       }
+//     } catch (error) {
+//       if (selectedNetwork) {
+//         updateWiFiNetworkStatus(selectedNetwork.id, 'available');
+//       }
+//       handleError('Connection Failed', error);
+//     } finally {
+//       setNetworkPassword('');
+//       setSelectedNetwork(null);
+//     }
+//   }, [selectedNetwork, customHost, customPort, networkPassword, updateWiFiNetworkStatus, handleError]);
+
+//   // Handle rescan
+//   const handleRescan = useCallback(async () => {
+//     if (showBluetoothDevices) {
+//       if (!bluetoothState.initialized) {
+//         Alert.alert('Bluetooth Not Available', 'Please initialize Bluetooth first.');
+//         return;
+//       }
+//       if (!bluetoothState.enabled) {
+//         Alert.alert('Bluetooth Disabled', 'Please enable Bluetooth to scan for devices.');
+//         return;
+//       }
+//       startBluetoothScan();
+//     } else if (showWifiNetworks) {
+//       if (!wifiInitialized) {
+//         Alert.alert('WiFi Not Available', 'Please initialize WiFi first.');
+//         return;
+//       }
+//       startWiFiScan();
+//     }
+//   }, [showBluetoothDevices, showWifiNetworks, bluetoothState, wifiInitialized, startBluetoothScan, startWiFiScan]);
+
+//   // Handle back to options
+//   const handleBackToOptions = useCallback(() => {
+//     setShowBluetoothDevices(false);
+//     setShowWifiNetworks(false);
+//     setBluetoothDevices([]);
+//     setWifiNetworks([]);
+
+//     if (isScanning) {
+//       try {
+//         if (bluetoothState.initialized && bluetoothManagerRef.current) {
+//           bluetoothManagerRef.current.stopScan?.();
+//         }
+//       } catch (error) {
+//         console.error('Error stopping scan:', error);
+//       }
+//       setIsScanning(false);
+//     }
+//   }, [isScanning, bluetoothState.initialized]);
+
+//   // UI Helper functions
+//   const getStatusColor = (status: ConnectionOption['status']): string => {
+//     const colors = {
+//       available: '#007AFF',
+//       connecting: '#FF9500',
+//       connected: '#34C759',
+//       unavailable: '#FF3B30',
+//     };
+//     return colors[status] || '#8E8E93';
+//   };
+
+//   const getStatusText = (status: ConnectionOption['status']): string => {
+//     const texts = {
+//       available: 'Available',
+//       connecting: 'Connecting...',
+//       connected: 'Connected',
+//       unavailable: 'Unavailable',
+//     };
+//     return texts[status] || 'Unknown';
+//   };
+
+//   const getSignalIcon = (signal?: string): keyof typeof Ionicons.glyphMap => {
+//     return ['weak', 'very_weak'].includes(signal || '') ? 'wifi-outline' : 'wifi';
+//   };
+
+//   // Render connection card
+//   const renderConnectionCard = useCallback((connection: ConnectionOption) => {
+//     const isBluetoothDevice = connection.type === 'bluetooth' && connection.id !== 'bluetooth-scan';
+//     const isWiFiNetwork = connection.type === 'wifi' && connection.id !== 'wifi-scan';
+
+//     const deviceInfo = isBluetoothDevice ? (
+//       <Text style={styles.deviceInfo}>
+//         {connection.address && `${connection.address}`}
+//         {connection.bonded && ' • Paired'}
+//         {connection.rssi && ` • ${connection.rssi}dBm`}
+//       </Text>
+//     ) : isWiFiNetwork ? (
+//       <Text style={styles.deviceInfo}>
+//         {connection.security && `${connection.security}`}
+//         {connection.signal && ` • ${connection.signal.replace('_', ' ')}`}
+//       </Text>
+//     ) : null;
+
+//     return (
+//       <TouchableOpacity
+//         key={connection.id}
+//         style={[
+//           styles.connectionCard,
+//           connection.status === 'connected' && styles.connectedCard,
+//         ]}
+//         onPress={() => handleConnect(connection.id)}
+//         disabled={connection.status === 'connecting' || connection.status === 'connected'}
+//       >
+//         <View style={styles.connectionIcon}>
+//           <Ionicons
+//             name={isWiFiNetwork ? getSignalIcon(connection.signal) : connection.icon}
+//             size={24}
+//             color={getStatusColor(connection.status)}
+//           />
+//         </View>
+
+//         <View style={styles.connectionInfo}>
+//           <Text style={styles.connectionName}>{connection.name}</Text>
+//           {deviceInfo}
+//           <Text style={[styles.connectionStatus, { color: getStatusColor(connection.status) }]}>
+//             {getStatusText(connection.status)}
+//           </Text>
+//         </View>
+
+//         <View style={styles.connectionAction}>
+//           {connection.status === 'connecting' ? (
+//             <ActivityIndicator size="small" color="#FF9500" />
+//           ) : connection.status === 'connected' ? (
+//             <Ionicons name="checkmark-circle" size={24} color="#34C759" />
+//           ) : isWiFiNetwork && connection.security !== 'OPEN' ? (
+//             <Ionicons name="lock-closed" size={20} color="#8E8E93" />
+//           ) : (
+//             <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+//           )}
+//         </View>
+//       </TouchableOpacity>
+//     );
+//   }, [handleConnect, getStatusColor, getStatusText, getSignalIcon]);
+
+//   // Computed values
+//   const currentDevices = showBluetoothDevices ? bluetoothDevices :
+//     showWifiNetworks ? wifiNetworks :
+//       connections;
+
+//   const currentTitle = showBluetoothDevices ? 'Bluetooth Devices' :
+//     showWifiNetworks ? 'WiFi Networks' :
+//       'Connection Options';
+
+//   const emptyStateText = showBluetoothDevices ? 'No Bluetooth adapters found' :
+//     showWifiNetworks ? 'No WiFi OBD adapters found' :
+//       'No connection options';
+
+//   const emptyStateSubtext = showBluetoothDevices ?
+//     'Make sure your OBD adapter is plugged in and in pairing mode' :
+//     showWifiNetworks ?
+//       'Make sure your WiFi OBD adapter is powered on and broadcasting' :
+//       '';
+
+//   const canRescan = (showBluetoothDevices && bluetoothState.initialized) ||
+//     (showWifiNetworks && wifiInitialized);
+
+//   return (
+//     <View style={styles.container}>
+//       <View style={styles.header}>
+//         {(showBluetoothDevices || showWifiNetworks) && (
+//           <TouchableOpacity style={styles.backButton} onPress={handleBackToOptions}>
+//             <Ionicons name="chevron-back" size={24} color="#007AFF" />
+//             <Text style={styles.backText}>Back</Text>
+//           </TouchableOpacity>
+//         )}
+//         <Text style={styles.title}>OBDII Diagnostic</Text>
+//         <Text style={styles.subtitle}>
+//           {showBluetoothDevices ? 'Choose Bluetooth device' :
+//             showWifiNetworks ? 'Choose WiFi network' :
+//               'Connect to your vehicle'}
+//         </Text>
+//       </View>
+
+//       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+//         <View style={styles.section}>
+//           <View style={styles.sectionHeader}>
+//             <Text style={styles.sectionTitle}>{currentTitle}</Text>
+//             {(showBluetoothDevices || showWifiNetworks) && (
+//               <TouchableOpacity
+//                 style={styles.scanButton}
+//                 onPress={handleRescan}
+//                 disabled={isScanning || !canRescan}
+//               >
+//                 {isScanning ? (
+//                   <ActivityIndicator size="small" color="#007AFF" />
+//                 ) : (
+//                   <Ionicons
+//                     name="refresh"
+//                     size={20}
+//                     color={canRescan ? "#007AFF" : "#C7C7CC"}
+//                   />
+//                 )}
+//                 <Text style={[styles.scanText, { color: canRescan ? "#007AFF" : "#C7C7CC" }]}>
+//                   {isScanning ? 'Scanning...' : 'Rescan'}
+//                 </Text>
+//               </TouchableOpacity>
+//             )}
+//           </View>
+
+//           {currentDevices.length > 0 ? (
+//             currentDevices.map(renderConnectionCard)
+//           ) : (
+//             <View style={styles.emptyState}>
+//               <Ionicons
+//                 name={showBluetoothDevices ? "bluetooth" : showWifiNetworks ? "wifi" : "car-sport"}
+//                 size={48}
+//                 color="#C7C7CC"
+//               />
+//               <Text style={styles.emptyStateText}>{emptyStateText}</Text>
+//               {emptyStateSubtext && (
+//                 <Text style={styles.emptyStateSubtext}>{emptyStateSubtext}</Text>
+//               )}
+//               {canRescan && !isScanning && (
+//                 <TouchableOpacity style={styles.rescanButton} onPress={handleRescan}>
+//                   <Text style={styles.rescanButtonText}>Try Again</Text>
+//                 </TouchableOpacity>
+//               )}
+//             </View>
+//           )}
+//         </View>
+//       </ScrollView>
+
+//       {/* Password Modal */}
+//       <Modal
+//         visible={showPasswordModal}
+//         transparent={true}
+//         animationType="slide"
+//         onRequestClose={() => setShowPasswordModal(false)}
+//       >
+//         <View style={styles.modalOverlay}>
+//           <View style={styles.modalContainer}>
+//             <Text style={styles.modalTitle}>Enter Network Password</Text>
+//             <Text style={styles.modalSubtitle}>
+//               Network: {selectedNetwork?.name}
+//             </Text>
+
+//             <TextInput
+//               style={styles.passwordInput}
+//               placeholder="Password"
+//               value={networkPassword}
+//               onChangeText={setNetworkPassword}
+//               secureTextEntry={true}
+//               autoFocus={true}
+//             />
+
+//             <View style={styles.modalButtons}>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.cancelButton]}
+//                 onPress={() => {
+//                   setShowPasswordModal(false);
+//                   setNetworkPassword('');
+//                   setSelectedNetwork(null);
+//                 }}
+//               >
+//                 <Text style={styles.cancelButtonText}>Cancel</Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.connectButton]}
+//                 onPress={handlePasswordSubmit}
+//                 disabled={!networkPassword.trim()}
+//               >
+//                 <Text style={styles.connectButtonText}>Connect</Text>
+//               </TouchableOpacity>
+//             </View>
+
+//             <TouchableOpacity
+//               style={styles.customServerButton}
+//               onPress={() => {
+//                 setShowPasswordModal(false);
+//                 setShowCustomServerModal(true);
+//               }}
+//             >
+//               <Text style={styles.customServerButtonText}>Custom Server Settings</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+//       </Modal>
+
+//       {/* Custom Server Modal */}
+//       <Modal
+//         visible={showCustomServerModal}
+//         transparent={true}
+//         animationType="slide"
+//         onRequestClose={() => setShowCustomServerModal(false)}
+//       >
+//         <View style={styles.modalOverlay}>
+//           <View style={styles.modalContainer}>
+//             <Text style={styles.modalTitle}>Custom Server Settings</Text>
+//             <Text style={styles.modalSubtitle}>
+//               Network: {selectedNetwork?.name}
+//             </Text>
+
+//             <TextInput
+//               style={styles.passwordInput}
+//               placeholder="Password"
+//               value={networkPassword}
+//               onChangeText={setNetworkPassword}
+//               secureTextEntry={true}
+//             />
+
+//             <TextInput
+//               style={styles.passwordInput}
+//               placeholder="Host (e.g., 192.168.0.10)"
+//               value={customHost}
+//               onChangeText={setCustomHost}
+//             />
+
+//             <TextInput
+//               style={styles.passwordInput}
+//               placeholder="Port (e.g., 35000)"
+//               value={customPort}
+//               onChangeText={setCustomPort}
+//               keyboardType="numeric"
+//             />
+
+//             <View style={styles.modalButtons}>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.cancelButton]}
+//                 onPress={() => {
+//                   setShowCustomServerModal(false);
+//                   setNetworkPassword('');
+//                   setSelectedNetwork(null);
+//                 }}
+//               >
+//                 <Text style={styles.cancelButtonText}>Cancel</Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.connectButton]}
+//                 onPress={handleCustomServerConnect}
+//                 disabled={!networkPassword.trim() || !customHost.trim() || !customPort.trim()}
+//               >
+//                 <Text style={styles.connectButtonText}>Connect</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#F2F2F7',
+//   },
+//   header: {
+//     paddingHorizontal: 20,
+//     paddingTop: 20,
+//     paddingBottom: 16,
+//     backgroundColor: '#FFFFFF',
+//     borderBottomWidth: 1,
+//     borderBottomColor: '#E5E5EA',
+//   },
+//   backButton: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     marginBottom: 16,
+//   },
+//   backText: {
+//     fontSize: 17,
+//     color: '#007AFF',
+//     marginLeft: 4,
+//   },
+//   title: {
+//     fontSize: 28,
+//     fontWeight: 'bold',
+//     color: '#000000',
+//     marginBottom: 4,
+//   },
+//   subtitle: {
+//     fontSize: 17,
+//     color: '#8E8E93',
+//   },
+//   content: {
+//     flex: 1,
+//     paddingHorizontal: 20,
+//   },
+//   section: {
+//     marginTop: 20,
+//   },
+//   sectionHeader: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 12,
+//   },
+//   sectionTitle: {
+//     fontSize: 20,
+//     fontWeight: '600',
+//     color: '#000000',
+//   },
+//   scanButton: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 16,
+//     backgroundColor: '#F2F2F7',
+//   },
+//   scanText: {
+//     fontSize: 15,
+//     fontWeight: '500',
+//     marginLeft: 4,
+//   },
+//   connectionCard: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 12,
+//     padding: 16,
+//     marginBottom: 12,
+//     shadowColor: '#000000',
+//     shadowOffset: { width: 0, height: 1 },
+//     shadowOpacity: 0.04,
+//     shadowRadius: 2,
+//     elevation: 1,
+//   },
+//   connectedCard: {
+//     borderWidth: 1,
+//     borderColor: '#34C759',
+//   },
+//   connectionIcon: {
+//     width: 40,
+//     height: 40,
+//     borderRadius: 20,
+//     backgroundColor: '#F2F2F7',
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     marginRight: 12,
+//   },
+//   connectionInfo: {
+//     flex: 1,
+//   },
+//   connectionName: {
+//     fontSize: 17,
+//     fontWeight: '500',
+//     color: '#000000',
+//     marginBottom: 2,
+//   },
+//   deviceInfo: {
+//     fontSize: 13,
+//     color: '#8E8E93',
+//     marginBottom: 4,
+//   },
+//   connectionStatus: {
+//     fontSize: 15,
+//     fontWeight: '500',
+//   },
+//   connectionAction: {
+//     marginLeft: 8,
+//   },
+//   emptyState: {
+//     alignItems: 'center',
+//     paddingVertical: 60,
+//     paddingHorizontal: 40,
+//   },
+//   emptyStateText: {
+//     fontSize: 20,
+//     fontWeight: '500',
+//     color: '#8E8E93',
+//     textAlign: 'center',
+//     marginTop: 16,
+//     marginBottom: 8,
+//   },
+//   emptyStateSubtext: {
+//     fontSize: 15,
+//     color: '#8E8E93',
+//     textAlign: 'center',
+//     lineHeight: 20,
+//     marginBottom: 24,
+//   },
+//   rescanButton: {
+//     backgroundColor: '#007AFF',
+//     paddingHorizontal: 24,
+//     paddingVertical: 12,
+//     borderRadius: 22,
+//   },
+//   rescanButtonText: {
+//     fontSize: 17,
+//     fontWeight: '600',
+//     color: '#FFFFFF',
+//   },
+//   modalOverlay: {
+//     flex: 1,
+//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//   },
+//   modalContainer: {
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 12,
+//     padding: 24,
+//     width: '85%',
+//     maxWidth: 340,
+//   },
+//   modalTitle: {
+//     fontSize: 20,
+//     fontWeight: '600',
+//     color: '#000000',
+//     textAlign: 'center',
+//     marginBottom: 8,
+//   },
+//   modalSubtitle: {
+//     fontSize: 15,
+//     color: '#8E8E93',
+//     textAlign: 'center',
+//     marginBottom: 24,
+//   },
+//   passwordInput: {
+//     borderWidth: 1,
+//     borderColor: '#E5E5EA',
+//     borderRadius: 8,
+//     padding: 12,
+//     fontSize: 17,
+//     marginBottom: 16,
+//     backgroundColor: '#F9F9F9',
+//   },
+//   modalButtons: {
+//     flexDirection: 'row',
+//     marginTop: 8,
+//   },
+//   modalButton: {
+//     flex: 1,
+//     paddingVertical: 12,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//   },
+//   cancelButton: {
+//     backgroundColor: '#F2F2F7',
+//     marginRight: 8,
+//   },
+//   connectButton: {
+//     backgroundColor: '#007AFF',
+//     marginLeft: 8,
+//   },
+//   cancelButtonText: {
+//     fontSize: 17,
+//     fontWeight: '500',
+//     color: '#8E8E93',
+//   },
+//   connectButtonText: {
+//     fontSize: 17,
+//     fontWeight: '600',
+//     color: '#FFFFFF',
+//   },
+//   customServerButton: {
+//     marginTop: 16,
+//     paddingVertical: 8,
+//     alignItems: 'center',
+//   },
+//   customServerButtonText: {
+//     fontSize: 15,
+//     color: '#007AFF',
+//     textDecorationLine: 'underline',
+//   },
+// });

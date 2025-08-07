@@ -12,8 +12,6 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ivanametewee.simulate"
-      "supportsTablet": true,
-      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +22,8 @@
       "package": "com.ivanametewee.simulate",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
