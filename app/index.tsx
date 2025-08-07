@@ -1254,7 +1254,7 @@ export default function ConnectionScreen() {
     try {
       if (OBDIIService) {
         // Listen for the final connection status from the central service
-        unsubscribe = OBDIIService.subscribe((event, data) => {
+        unsubscribe = OBDIIService.subscribe((event: string, data: any) => {
           console.log('OBDIIService event:', event, data);
           if (event === 'connectionStatus') {
             if (data.status === 'connected') {
@@ -1307,7 +1307,7 @@ export default function ConnectionScreen() {
         }
         await WiFiService.requestPermissions();
         const { obd: obdNetworks } = await WiFiService.scanNetworks();
-        foundDevices = obdNetworks.map((net, index) => ({
+        foundDevices = obdNetworks.map((net: any, index: number) => ({
           name: net.SSID,
           address: net.SSID || `wifi_${index}`, // Use SSID as address for WiFi networks
           type: 'wifi',
@@ -1320,7 +1320,7 @@ export default function ConnectionScreen() {
         await BluetoothService.requestPermissions();
         // Getting bonded (already paired) devices is usually faster and more reliable
         const bondedDevices = await BluetoothService.getBondedDevices();
-        foundDevices = bondedDevices.map(dev => ({
+        foundDevices = bondedDevices.map((dev: any) => ({
           name: dev.name || 'Unknown Device',
           address: dev.address,
           type: 'bluetooth',
