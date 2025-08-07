@@ -11,6 +11,8 @@
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.ivanametewee.simulate"
+      "supportsTablet": true,
       "infoPlist": {}
     },
     "android": {
