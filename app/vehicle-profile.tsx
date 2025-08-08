@@ -14,8 +14,8 @@ import {
   ActivityIndicator,
   Linking,
   AppState,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -405,7 +405,7 @@ const VehicleProfileScreen: React.FC = () => {
   const maintenanceStatus = getMaintenanceStatus();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
       <View style={styles.header}>
@@ -767,7 +767,7 @@ const VehicleProfileScreen: React.FC = () => {
           </View>
         </Modal>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

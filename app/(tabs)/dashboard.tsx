@@ -10,29 +10,30 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 // Import the single source of truth for all OBD interactions
 import OBDIIService from '../../services/obdii/OBDIIService';
 import SettingsService from '../../services/settings/SettingsService';
 import { UnitConverter } from '../../utils/unitConversion';
+import { DataProcessor, ProcessedOBDData } from '../../utils/dataProcessing';
 
 const { width } = Dimensions.get('window');
 
 // Define an interface for our dashboard's live data state
 interface LiveDataState {
-  rpm: number;
-  speed: number;
-  coolantTemp: number;
-  engineLoad: number;
-  batteryVoltage: number; // Note: This requires a specific PID like 'CONTROL_MODULE_VOLTAGE'
-  fuelLevel: number;
-  throttlePosition: number;
-  maf: number;
-  intakeAirTemp: number;
-  odometer: number; // Odometer reading in miles/km
+  rpm: ProcessedOBDData | null;
+  speed: ProcessedOBDData | null;
+  coolantTemp: ProcessedOBDData | null;
+  engineLoad: ProcessedOBDData | null;
+  batteryVoltage: ProcessedOBDData | null;
+  fuelLevel: ProcessedOBDData | null;
+  throttlePosition: ProcessedOBDData | null;
+  maf: ProcessedOBDData | null;
+  intakeAirTemp: ProcessedOBDData | null;
+  odometer: ProcessedOBDData | null;
 }
 
 export default function DashboardScreen() {
@@ -41,8 +42,8 @@ export default function DashboardScreen() {
   
   // --- State Management ---
   const [liveData, setLiveData] = useState<LiveDataState>({
-    rpm: 0, speed: 0, coolantTemp: 0, engineLoad: 0, batteryVoltage: 0,
-    fuelLevel: 0, throttlePosition: 0, maf: 0, intakeAirTemp: 0, odometer: 0,
+    rpm: null, speed: null, coolantTemp: null, engineLoad: null, batteryVoltage: null,
+    fuelLevel: null, throttlePosition: null, maf: null, intakeAirTemp: null, odometer: null,
   });
   
   const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
@@ -122,55 +123,52 @@ export default function DashboardScreen() {
             router.replace('/'); // Go back to home if connection is lost
           }
         } else if (event === 'dataUpdate') {
-          // Use a functional state update for better performance
+          // Use centralized data processing for consistency
+          const processedData = DataProcessor.processOBDData(data.name, data.value);
+          console.log(`[Dashboard] Processed ${data.name}:`, processedData);
+          
           setLiveData(prevData => {
-            // Create a mutable copy
             const newData = { ...prevData };
-            // Update the copy based on the PID name from the service
+            
+            // Update the appropriate field based on the PID name
             switch (data.name) {
               case 'ENGINE_RPM':
-                newData.rpm = data.value;
+                newData.rpm = processedData;
                 break;
               case 'VEHICLE_SPEED':
-                newData.speed = data.value;
+                newData.speed = processedData;
                 break;
               case 'ENGINE_COOLANT_TEMP':
-                newData.coolantTemp = data.value;
+                newData.coolantTemp = processedData;
                 break;
               case 'ENGINE_LOAD':
-                newData.engineLoad = data.value;
+                newData.engineLoad = processedData;
                 break;
               case 'FUEL_LEVEL':
-                newData.fuelLevel = data.value;
+                newData.fuelLevel = processedData;
                 break;
               case 'THROTTLE_POSITION':
-                  newData.throttlePosition = data.value;
-                  break;
+                newData.throttlePosition = processedData;
+                break;
               case 'MAF_RATE':
-                  newData.maf = data.value;
-                  break;
+                newData.maf = processedData;
+                break;
               case 'INTAKE_AIR_TEMP':
               case 'AIR_INTAKE_TEMP':
-                  newData.intakeAirTemp = data.value;
-                  break;
-              // Note: A real PID for battery voltage would be needed here
+                newData.intakeAirTemp = processedData;
+                break;
               case 'CONTROL_MODULE_VOLTAGE':
-                  newData.batteryVoltage = data.value;
-                  break;
+                newData.batteryVoltage = processedData;
+                break;
               case 'ODOMETER':
               case 'VEHICLE_ODOMETER':
               case 'TOTAL_DISTANCE':
               case 'TOTAL_DISTANCE_TRAVELED':
-                  // Convert km to miles for display (MockDataGenerator outputs km)
-                  const kmValue = data.value;
-                  const milesValue = kmValue * 0.621371; // Convert km to miles
-                  newData.odometer = milesValue;
-                  
-                  // Log odometer updates for debugging fraud detection
-                  console.log(`[Dashboard] Odometer update: ${kmValue} km (${milesValue.toFixed(0)} mi) from PID: ${data.name}`);
-                  break;
+                newData.odometer = processedData;
+                console.log(`[Dashboard] Odometer update:`, processedData);
+                break;
             }
-            return newData; // Return the updated state
+            return newData;
           });
         } else if (event === 'milStatus') {
           setMilActive(data.active);
@@ -236,8 +234,12 @@ export default function DashboardScreen() {
 
   const handleQuickAction = (route: string) => router.push(route as any);
   
-  const formatValue = (value: number | undefined, decimals = 0): string => {
-    return (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '--';
+  const formatValue = (processedData: ProcessedOBDData | null): string => {
+    return processedData ? processedData.displayValue : '--';
+  };
+  
+  const getValueWithUnit = (processedData: ProcessedOBDData | null): string => {
+    return processedData ? DataProcessor.formatForDisplay(processedData) : '--';
   };
 
   // --- Render Logic ---
@@ -251,7 +253,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Dashboard</Text>
@@ -276,12 +278,12 @@ export default function DashboardScreen() {
             <View style={styles.gaugeCard}>
               <Text style={styles.gaugeLabel}>RPM</Text>
               <Text style={styles.gaugeValue}>{formatValue(liveData.rpm)}</Text>
-              <Text style={styles.gaugeUnit}>rpm</Text>
+              <Text style={styles.gaugeUnit}>{liveData.rpm?.unit || 'rpm'}</Text>
             </View>
             <View style={styles.gaugeCard}>
               <Text style={styles.gaugeLabel}>Speed</Text>
-              <Text style={styles.gaugeValue}>{formatValue(UnitConverter.convertSpeed(liveData.speed, true))}</Text>
-              <Text style={styles.gaugeUnit}>{distanceUnit === 'miles' ? 'mph' : 'km/h'}</Text>
+              <Text style={styles.gaugeValue}>{formatValue(liveData.speed)}</Text>
+              <Text style={styles.gaugeUnit}>{liveData.speed?.unit || (distanceUnit === 'miles' ? 'mph' : 'km/h')}</Text>
             </View>
           </View>
         </View>
@@ -312,42 +314,42 @@ export default function DashboardScreen() {
             <View style={styles.metricCard}>
               <MaterialIcons name="speed" size={20} color="#8E44AD" />
               <Text style={styles.metricLabel}>Odometer</Text>
-              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertDistance(liveData.odometer, true), 0)} {distanceUnit === 'miles' ? 'mi' : 'km'}</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.odometer)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="thermometer" size={20} color="#FF6B35" />
               <Text style={styles.metricLabel}>Coolant Temp</Text>
-              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertTemperature(liveData.coolantTemp, true))}{tempUnit === 'fahrenheit' ? '°F' : '°C'}</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.coolantTemp)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="car" size={20} color="#007AFF" />
               <Text style={styles.metricLabel}>Engine Load</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.engineLoad, 1)}%</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.engineLoad)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="battery-half" size={20} color="#34C759" />
               <Text style={styles.metricLabel}>Battery</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.batteryVoltage, 1)}V</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.batteryVoltage)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="water" size={20} color="#5AC8FA" />
               <Text style={styles.metricLabel}>Fuel Level</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.fuelLevel, 1)}%</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.fuelLevel)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="speedometer" size={20} color="#FF9500" />
               <Text style={styles.metricLabel}>Throttle</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.throttlePosition, 1)}%</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.throttlePosition)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="logo-buffer" size={20} color="#AF52DE" />
               <Text style={styles.metricLabel}>MAF</Text>
-              <Text style={styles.metricValue}>{formatValue(liveData.maf, 1)} g/s</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.maf)}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="thermometer-outline" size={20} color="#FF6B35" />
               <Text style={styles.metricLabel}>Intake Air Temp</Text>
-              <Text style={styles.metricValue}>{formatValue(UnitConverter.convertTemperature(liveData.intakeAirTemp, true))}{tempUnit === 'fahrenheit' ? '°F' : '°C'}</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.intakeAirTemp)}</Text>
             </View>
           </View>
         </View>
@@ -396,7 +398,7 @@ export default function DashboardScreen() {
   </View>
         
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

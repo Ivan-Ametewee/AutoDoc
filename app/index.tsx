@@ -1201,7 +1201,7 @@
 //   },
 // });
 
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -1399,7 +1399,7 @@ export default function ConnectionScreen() {
     <>
       <View style={styles.header}>
         <Image source={require('../assets/images/icon.png')} style={styles.logo} />
-        <Text style={styles.title}>OBD-II Simulator</Text>
+        <Text style={styles.title}>AutoDoc</Text>
         <Text style={styles.subtitle}>Connect to your vehicle to get started</Text>
       </View>
       <View style={styles.buttonContainer}>
@@ -1466,14 +1466,14 @@ export default function ConnectionScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {renderContent()}
       {error && (
         <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -64,6 +64,7 @@ export default function TabLayout() {
               style={{ marginRight: 16 }}
             />
           ),
+          headerShown: false,
         }}
       />
 
@@ -79,10 +80,11 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
 
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="terminal"
         options={{
           title: 'Terminal',
@@ -110,7 +112,7 @@ export default function TabLayout() {
             />
           ),
         }}
-      />
+      /> */}
 
       <Tabs.Screen
         name="history"
@@ -124,6 +126,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
 
@@ -139,6 +142,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          headerShown: false,
         }}
       />
     </Tabs>

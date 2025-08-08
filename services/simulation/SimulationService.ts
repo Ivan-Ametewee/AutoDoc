@@ -45,6 +45,11 @@ class SimulationService {
     this.isSimulating = true;
     this.lastUpdateTime = Date.now();
     
+    // Initialize MockDataGenerator with current scenario
+    const mockScenario = this.mapToMockDataScenario(this.currentScenario);
+    mockDataGenerator.setDrivingScenario(mockScenario);
+    console.log(`🚗 Set initial driving scenario: ${mockScenario} (from ${this.currentScenario})`);
+    
     // Initialize vehicle state. Assuming initialize method exists on VehicleSimulator
     // this.vehicleSimulator.initialize(); 
     
@@ -85,6 +90,10 @@ class SimulationService {
   private updateSimulation(): void {
     const deltaTime = (Date.now() - this.lastUpdateTime) / 1000;
     this.lastUpdateTime = Date.now();
+
+    // Map simulation scenarios to MockDataGenerator driving scenarios
+    const mockScenario = this.mapToMockDataScenario(this.currentScenario);
+    mockDataGenerator.setDrivingScenario(mockScenario);
 
     this.vehicleSimulator.update(deltaTime, this.currentScenario);
     this.currentData = mockDataGenerator.generateRealtimeData();
@@ -336,6 +345,24 @@ class SimulationService {
   }
 
   /**
+   * Map SimulationService scenarios to MockDataGenerator driving scenarios
+   */
+  private mapToMockDataScenario(scenario: string): 'idle' | 'city' | 'highway' | 'aggressive' {
+    const scenarioMapping: { [key: string]: 'idle' | 'city' | 'highway' | 'aggressive' } = {
+      [this.scenarios.IDLE]: 'idle',
+      [this.scenarios.CITY_DRIVING]: 'city', 
+      [this.scenarios.HIGHWAY_DRIVING]: 'highway',
+      [this.scenarios.NORMAL_DRIVING]: 'city', // Default to city driving
+      [this.scenarios.COLD_START]: 'idle',
+      [this.scenarios.OVERHEATING]: 'city',
+      [this.scenarios.ENGINE_TROUBLE]: 'idle',
+      [this.scenarios.LOW_FUEL]: 'city'
+    };
+    
+    return scenarioMapping[scenario] || 'city'; // Default to city if unknown
+  }
+
+  /**
    * Get scenario description
    */
   private getScenarioDescription(scenario: string): string {
@@ -365,6 +392,7 @@ class SimulationService {
     // **FIXED**: Call reset on the instances
     this.vehicleSimulator.reset(); 
     mockDataGenerator.reset(); 
+    mockDataGenerator.startEngine(); // Restart engine after reset for simulation
     this.currentData = {};
     this.currentScenario = this.scenarios.NORMAL_DRIVING;
     

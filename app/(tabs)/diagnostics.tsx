@@ -9,8 +9,8 @@ import {
   Alert,
   Modal,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
@@ -18,6 +18,7 @@ import OBDIIService from '../../services/obdii/OBDIIService';
 import { unifiedDTCService } from '../../services/obdii/UnifiedDTCService';
 import SettingsService from '../../services/settings/SettingsService';
 import { UnitConverter } from '../../utils/unitConversion';
+import { DataProcessor } from '../../utils/dataProcessing';
 
 interface DiagnosticTroubleCode {
   code: string;
@@ -150,33 +151,8 @@ export default function DiagnosticsScreen() {
   };
 
   // Helper function to determine parameter status based on value
-  const getParameterStatus = (parameter: string, value: number): LiveData['status'] => {
-    switch (parameter) {
-      case 'Engine RPM':
-        if (value > 6000) return 'critical';
-        if (value > 4500) return 'warning';
-        return 'normal';
-      case 'Coolant Temperature':
-        if (value > 105) return 'critical';
-        if (value > 95) return 'warning';
-        return 'normal';
-      case 'Throttle Position':
-        return 'normal'; // Throttle position doesn't have critical thresholds
-      case 'Fuel Level':
-        if (value < 10) return 'critical';
-        if (value < 25) return 'warning';
-        return 'normal';
-      case 'Battery Voltage':
-        if (value < 11.5) return 'critical';
-        if (value < 12.0) return 'warning';
-        return 'normal';
-      case 'MAF Rate':
-        if (value > 100) return 'warning'; // High MAF rate could indicate issues
-        return 'normal';
-      default:
-        return 'normal';
-    }
-  };
+  // Note: Parameter status calculation is now handled by DataProcessor
+  // This ensures consistent status determination across all screens
 
   // Load DTCs on component mount and manage live data
   useEffect(() => {
@@ -263,85 +239,40 @@ export default function DiagnosticsScreen() {
         // Update live data based on OBD-II data updates
         console.log('Diagnostics: Received dataUpdate:', data.name, '=', data.value);
         
+        const processedData = DataProcessor.processOBDData(data.name, data.value);
+        console.log('Diagnostics: Processed data:', processedData);
+        
         setLiveData(prev => prev.map(item => {
-          let newValue = item.value;
-          let newStatus: LiveData['status'] = 'normal';
-          let convertedValue = data.value;
+          // Map OBD-II PID names to display parameter names
+          const parameterMap: { [key: string]: string } = {
+            'ENGINE_RPM': 'Engine RPM',
+            'VEHICLE_SPEED': 'Vehicle Speed',
+            'ENGINE_COOLANT_TEMP': 'Coolant Temperature',
+            'INTAKE_AIR_TEMP': 'Intake Air Temperature',
+            'AIR_INTAKE_TEMP': 'Intake Air Temperature',
+            'ENGINE_LOAD': 'Engine Load',
+            'THROTTLE_POSITION': 'Throttle Position',
+            'FUEL_LEVEL': 'Fuel Level',
+            'MAF_RATE': 'MAF Rate',
+            'CONTROL_MODULE_VOLTAGE': 'Battery Voltage',
+            'TOTAL_DISTANCE': 'Odometer',
+            'ODOMETER': 'Odometer',
+            'VEHICLE_ODOMETER': 'Odometer',
+            'TOTAL_DISTANCE_TRAVELED': 'Odometer'
+          };
           
-          // Map OBD-II PID names to display parameter names and apply unit conversions
-          switch (data.name) {
-            case 'ENGINE_RPM':
-              if (item.parameter === 'Engine RPM') {
-                newValue = Math.round(data.value).toString();
-              }
-              break;
-            case 'VEHICLE_SPEED':
-              if (item.parameter === 'Vehicle Speed') {
-                convertedValue = UnitConverter.convertSpeed(data.value, true);
-                newValue = Math.round(convertedValue).toString();
-                newStatus = getParameterStatus(item.parameter, convertedValue);
-              }
-              break;
-            case 'ENGINE_COOLANT_TEMP':
-              if (item.parameter === 'Coolant Temperature') {
-                convertedValue = UnitConverter.convertTemperature(data.value, true);
-                newValue = Math.round(convertedValue).toString();
-                newStatus = getParameterStatus(item.parameter, convertedValue);
-              }
-              break;
-            case 'INTAKE_AIR_TEMP':
-            case 'AIR_INTAKE_TEMP':
-              if (item.parameter === 'Intake Air Temperature') {
-                convertedValue = UnitConverter.convertTemperature(data.value, true);
-                newValue = Math.round(convertedValue).toString();
-                newStatus = getParameterStatus(item.parameter, convertedValue);
-              }
-              break;
-            case 'ENGINE_LOAD':
-              if (item.parameter === 'Engine Load') {
-                newValue = Math.round(data.value).toString();
-                newStatus = getParameterStatus(item.parameter, data.value);
-              }
-              break;
-            case 'THROTTLE_POSITION':
-              if (item.parameter === 'Throttle Position') {
-                newValue = Math.round(data.value).toString();
-                newStatus = getParameterStatus(item.parameter, data.value);
-              }
-              break;
-            case 'FUEL_LEVEL':
-              if (item.parameter === 'Fuel Level') {
-                newValue = Math.round(data.value).toString();
-                newStatus = getParameterStatus(item.parameter, data.value);
-              }
-              break;
-            case 'MAF_RATE':
-              if (item.parameter === 'MAF Rate') {
-                newValue = data.value.toFixed(1);
-                newStatus = getParameterStatus(item.parameter, data.value);
-              }
-              break;
-            case 'CONTROL_MODULE_VOLTAGE':
-              if (item.parameter === 'Battery Voltage') {
-                newValue = data.value.toFixed(1);
-                newStatus = getParameterStatus(item.parameter, data.value);
-              }
-              break;
-            case 'TOTAL_DISTANCE':
-            case 'ODOMETER':
-            case 'VEHICLE_ODOMETER':
-            case 'TOTAL_DISTANCE_TRAVELED':
-              if (item.parameter === 'Odometer') {
-                convertedValue = UnitConverter.convertDistance(data.value, true);
-                newValue = Math.round(convertedValue).toString();
-                newStatus = getParameterStatus(item.parameter, convertedValue);
-              }
-              break;
-            default:
-              return item;
+          const matchingParameter = parameterMap[data.name];
+          
+          if (item.parameter === matchingParameter) {
+            return {
+              ...item,
+              value: processedData.displayValue,
+              unit: processedData.unit,
+              status: processedData.status
+            };
           }
-
-          return { ...item, value: newValue, status: newStatus };
+          
+          return item;
         }));
       } else if (event === 'connectionStatus') {
         setConnectionStatus(data.status);
@@ -805,7 +736,7 @@ export default function DiagnosticsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -1012,7 +943,7 @@ export default function DiagnosticsScreen() {
           )}
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

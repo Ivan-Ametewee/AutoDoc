@@ -12,8 +12,8 @@ import {
   Platform,
   StatusBar,
   Share,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import SettingsService, { AppSettings, SettingKey } from '../../services/settings/SettingsService';
@@ -560,7 +560,7 @@ const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.headerBackground} />
       
       <View style={styles.header}>
@@ -693,7 +693,7 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 
   function getOptionDisplayText(settingId: string, option: string): string {

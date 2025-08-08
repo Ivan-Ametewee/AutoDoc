@@ -19,6 +19,8 @@ const DeviceList = ({
   onDeviceForget,
   onRefresh,
   showPairedOnly = false,
+  showOBDOnly = true,
+  onToggleOBDFilter,
 }) => {
   const [selectedDevice, setSelectedDevice] = useState(null);
 
@@ -208,27 +210,54 @@ const DeviceList = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="bluetooth-outline" size={64} color="#CCCCCC" />
+      <Ionicons name={showOBDOnly ? "car-outline" : "bluetooth-outline"} size={64} color="#CCCCCC" />
       <Text style={styles.emptyTitle}>
-        {showPairedOnly ? 'No Paired Devices' : 'No Devices Found'}
+        {showOBDOnly 
+          ? (showPairedOnly ? 'No Paired OBD-II Adapters' : 'No OBD-II Adapters Found')
+          : (showPairedOnly ? 'No Paired Devices' : 'No Devices Found')}
       </Text>
       <Text style={styles.emptySubtitle}>
-        {showPairedOnly
-          ? 'Pair some devices first to see them here'
-          : isScanning
-          ? 'Scanning for devices...'
-          : 'Pull down to scan for devices'}
+        {showOBDOnly 
+          ? (showPairedOnly
+              ? 'Pair some OBD-II adapters first to see them here'
+              : isScanning
+              ? 'Scanning for OBD-II adapters...'
+              : 'Pull down to scan for OBD-II adapters')
+          : (showPairedOnly
+              ? 'Pair some devices first to see them here'
+              : isScanning
+              ? 'Scanning for devices...'
+              : 'Pull down to scan for devices')}
       </Text>
     </View>
   );
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>
-        {showPairedOnly ? 'Paired Devices' : 'Available Devices'}
-      </Text>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>
+          {showOBDOnly 
+            ? (showPairedOnly ? 'Paired OBD-II Adapters' : 'Available OBD-II Adapters')
+            : (showPairedOnly ? 'Paired Devices' : 'Available Devices')}
+        </Text>
+        {onToggleOBDFilter && (
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={onToggleOBDFilter}
+          >
+            <Ionicons 
+              name={showOBDOnly ? "car" : "list"} 
+              size={16} 
+              color="#2196F3" 
+            />
+            <Text style={styles.filterButtonText}>
+              {showOBDOnly ? 'OBD Only' : 'Show All'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <Text style={styles.headerSubtitle}>
-        {devices.length} device{devices.length !== 1 ? 's' : ''} found
+        {devices.length} {showOBDOnly ? 'adapter' : 'device'}{devices.length !== 1 ? 's' : ''} found
       </Text>
     </View>
   );
@@ -274,15 +303,36 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333333',
+    flex: 1,
   },
   headerSubtitle: {
     fontSize: 14,
     color: '#666666',
     marginTop: 4,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  filterButtonText: {
+    fontSize: 12,
+    color: '#2196F3',
+    fontWeight: '600',
+    marginLeft: 4,
   },
   deviceItem: {
     backgroundColor: '#FFFFFF',

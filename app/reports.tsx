@@ -9,8 +9,8 @@ import {
   Share,
   ActivityIndicator,
   Platform,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -229,7 +229,7 @@ const ReportsScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -337,7 +337,7 @@ const ReportsScreen: React.FC = () => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -2,6 +2,7 @@ import { NativeModules, Platform, PermissionsAndroid } from 'react-native';
 import { EventEmitter } from 'events';
 import WifiManager from 'react-native-wifi-reborn';
 import TcpSocket from 'react-native-tcp-socket'; // Changed for TypeScript compatibility
+import { filterOBDWiFiNetworks, enhanceOBDNetwork, isLikelyOBDWiFiNetwork } from '../../utils/deviceFilters';
 
 // --- Type Definitions ---
 interface OBDServerConfig {
@@ -196,9 +197,7 @@ class WiFiService extends EventEmitter {
 
       const networks: Network[] = await WifiManager.loadWifiList();
 
-      const obdNetworks = networks.filter(network =>
-        this.isLikelyOBDNetwork(network)
-      );
+      const obdNetworks = filterOBDWiFiNetworks(networks).map(enhanceOBDNetwork);
 
       console.log(`Found ${networks.length} networks, ${obdNetworks.length} potential OBDII networks`);
       this.emit('scanCompleted', { all: networks, obd: obdNetworks });
@@ -212,34 +211,7 @@ class WiFiService extends EventEmitter {
     }
   }
 
-  private isLikelyOBDNetwork(network: Network): boolean {
-    const obdKeywords = [
-      'obd', 'elm327', 'elm', 'wifi', 'obdii', 'diagnostic', 'scan',
-      'torque', 'car', 'auto', 'vehicle', 'ecu', 'can'
-    ];
-
-    const ssid = (network.SSID || '').toLowerCase();
-
-    const keywordMatch = obdKeywords.some(keyword =>
-      ssid.includes(keyword)
-    );
-
-    const patternMatch = /^(obd|elm|wifi|car|auto|diagnostic)/i.test(network.SSID || '');
-
-    const obdPatterns = [
-      /^WiFi_?OBD/i,
-      /^ELM327/i,
-      /^OBD.*WiFi/i,
-      /^Car.*WiFi/i,
-      /^Auto.*WiFi/i
-    ];
-
-    const specificPatternMatch = obdPatterns.some(pattern =>
-      pattern.test(network.SSID || '')
-    );
-
-    return keywordMatch || patternMatch || specificPatternMatch;
-  }
+  // Moved OBD network detection logic to utils/deviceFilters.ts for consistency
 
   async connectToNetwork(ssid: string, password = ''): Promise<boolean> {
     try {

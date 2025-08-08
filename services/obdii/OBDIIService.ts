@@ -430,6 +430,10 @@ class OBDIIService extends EventEmitter {
     simulationService.registerCallback(this.handleSimulationData);
     this.isInitialized = true;
     this.mode22Supported = true; // Simulation supports everything
+    
+    // Ensure the engine is started for realistic simulation data
+    this.mockDataGenerator.startEngine();
+    console.log('🚗 Started engine in simulation mode');
 
     // Listen for fraud/fault/risk events from MockDataGenerator
     this.removeMockDataListeners();
@@ -1920,6 +1924,7 @@ class OBDIIService extends EventEmitter {
       'FUEL_LEVEL': 'FUEL_LEVEL',
       'INTAKE_AIR_TEMP': 'INTAKE_AIR_TEMP',
       'MAF_RATE': 'MAF_RATE',
+      'CONTROL_MODULE_VOLTAGE': 'CONTROL_MODULE_VOLTAGE',
       'TRIP_DISTANCE': 'TRIP_DISTANCE',
       'TOTAL_DISTANCE': 'TOTAL_DISTANCE', // This is the key odometer mapping
       // Alternative odometer names that simulation might use

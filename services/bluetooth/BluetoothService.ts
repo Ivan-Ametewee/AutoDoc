@@ -4,6 +4,7 @@ import RNBluetoothClassic, {
   BluetoothDevice,
   BluetoothEventSubscription,
 } from 'react-native-bluetooth-classic';
+import { filterOBDBluetoothDevices, enhanceOBDDevice } from '../../utils/deviceFilters';
 
 // --- Type Definitions ---
 interface ConnectionState {
@@ -95,7 +96,7 @@ class BluetoothService extends EventEmitter {
     }
   }
   
-    public async startScan(): Promise<BluetoothDevice[]> {
+    public async startScan(filterOBDOnly: boolean = true): Promise<BluetoothDevice[]> {
     if (this.isScanning) {
         console.warn("Scan is already in progress.");
         return [];
@@ -103,7 +104,15 @@ class BluetoothService extends EventEmitter {
     try {
         this.isScanning = true;
         this.emit('scanStarted');
-        return await RNBluetoothClassic.startDiscovery();
+        const allDevices = await RNBluetoothClassic.startDiscovery();
+        
+        if (filterOBDOnly) {
+          const obdDevices = filterOBDBluetoothDevices(allDevices);
+          console.log(`Discovered ${allDevices.length} devices, ${obdDevices.length} are OBD-II adapters`);
+          return obdDevices.map(enhanceOBDDevice);
+        }
+        
+        return allDevices;
     } catch (error: any) {
         console.error("Bluetooth scan failed:", error.message);
         this.emit('error', error);
@@ -127,10 +136,18 @@ class BluetoothService extends EventEmitter {
     }
   }
 
-  public async getBondedDevices(): Promise<BluetoothDevice[]> {
+  public async getBondedDevices(filterOBDOnly: boolean = true): Promise<BluetoothDevice[]> {
     try {
       if (!this.permissionsGranted) await this.requestPermissions();
-      return await RNBluetoothClassic.getBondedDevices();
+      const allDevices = await RNBluetoothClassic.getBondedDevices();
+      
+      if (filterOBDOnly) {
+        const obdDevices = filterOBDBluetoothDevices(allDevices);
+        console.log(`Found ${allDevices.length} bonded devices, ${obdDevices.length} are OBD-II adapters`);
+        return obdDevices.map(enhanceOBDDevice);
+      }
+      
+      return allDevices;
     } catch (error: any) {
       console.error('Error getting bonded devices:', error.message);
       return [];

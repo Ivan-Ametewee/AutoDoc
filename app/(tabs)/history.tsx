@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 interface DiagnosticSession {
@@ -804,7 +804,7 @@ export default function HistoryScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
@@ -920,7 +920,7 @@ export default function HistoryScreen() {
       {renderFilterModal()}
       {renderSessionModal()}
       {renderNotesModal()}
-    </View>
+    </SafeAreaView>
   );
 }
 

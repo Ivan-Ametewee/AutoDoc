@@ -9,8 +9,8 @@ import {
   Alert,
   Modal,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
-// SafeAreaView removed - using View instead
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -250,7 +250,7 @@ export default function AlertsScreen() {
   const unreadCount = alerts.filter(alert => !alert.isRead).length;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -462,7 +462,7 @@ export default function AlertsScreen() {
           )}
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 

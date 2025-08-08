@@ -39,16 +39,16 @@ class MockDataGenerator extends EventEmitter {
   constructor() {
     super();
     this.engineState = {
-      running: false,
+      running: true, // Start engine automatically in simulation
       warmupTime: 0,
-      rpm: 0,
+      rpm: 700, // Idle RPM
       speed: 0,
       coolantTemp: 20,
       throttlePosition: 0,
-      engineLoad: 0,
+      engineLoad: 15, // Base engine load
       fuelLevel: 75,
       intakeAirTemp: 25,
-      mafRate: 0
+      mafRate: 2.5 // Idle MAF rate
     } as EngineState;
     this.drivingScenario = 'idle';
     this.lastUpdate = Date.now();
@@ -92,13 +92,14 @@ class MockDataGenerator extends EventEmitter {
       // Coolant temperature rises gradually when cold
       if (this.engineState.coolantTemp < 90) {
         const tempRiseRate = Math.max(0.5, (90 - this.engineState.coolantTemp) * 0.02);
-        this.engineState.coolantTemp += tempRiseRate * deltaTime;
+        this.engineState.coolantTemp = Math.max(5, this.engineState.coolantTemp + tempRiseRate * deltaTime); // Minimum 5°C
       }
 
       // Intake air temperature affected by engine heat and ambient
       const ambientTemp = 25;
       const engineHeatEffect = (this.engineState.coolantTemp - ambientTemp) * 0.3;
-      this.engineState.intakeAirTemp = ambientTemp + engineHeatEffect + this.randomVariation(2);
+      const baseIntakeTemp = ambientTemp + engineHeatEffect + this.randomVariation(2);
+      this.engineState.intakeAirTemp = Math.max(5, baseIntakeTemp); // Minimum 5°C to prevent negative values
     }
   }
 
@@ -127,7 +128,7 @@ class MockDataGenerator extends EventEmitter {
   simulateIdle() {
     this.engineState.rpm = 700 + this.randomVariation(50);
     this.engineState.speed = 0;
-    this.engineState.throttlePosition = 0 + this.randomVariation(2);
+    this.engineState.throttlePosition = Math.max(0, Math.min(100, 0 + this.randomVariation(2)));
     this.engineState.engineLoad = 15 + this.randomVariation(5);
     this.engineState.mafRate = 2.5 + this.randomVariation(0.5);
   }
@@ -137,7 +138,7 @@ class MockDataGenerator extends EventEmitter {
     const baseSpeed = 35 + Math.sin(Date.now() / 10000) * 20;
     this.engineState.speed = Math.max(0, baseSpeed + this.randomVariation(10));
     this.engineState.rpm = this.calculateRPMFromSpeed(this.engineState.speed) + this.randomVariation(100);
-    this.engineState.throttlePosition = 20 + this.randomVariation(15);
+    this.engineState.throttlePosition = Math.max(0, Math.min(100, 20 + this.randomVariation(15)));
     this.engineState.engineLoad = 35 + this.randomVariation(10);
     this.engineState.mafRate = 15 + this.randomVariation(5);
 
@@ -148,7 +149,7 @@ class MockDataGenerator extends EventEmitter {
     // Steady highway speed
     this.engineState.speed = 75 + this.randomVariation(5);
     this.engineState.rpm = this.calculateRPMFromSpeed(this.engineState.speed) + this.randomVariation(50);
-    this.engineState.throttlePosition = 45 + this.randomVariation(8);
+    this.engineState.throttlePosition = Math.max(0, Math.min(100, 45 + this.randomVariation(8)));
     this.engineState.engineLoad = 55 + this.randomVariation(8);
     this.engineState.mafRate = 25 + this.randomVariation(3);
 
@@ -159,7 +160,7 @@ class MockDataGenerator extends EventEmitter {
     // High RPM and throttle
     this.engineState.speed = 50 + Math.sin(Date.now() / 5000) * 30;
     this.engineState.rpm = Math.min(6500, this.calculateRPMFromSpeed(this.engineState.speed) * 1.3) + this.randomVariation(200);
-    this.engineState.throttlePosition = 70 + this.randomVariation(20);
+    this.engineState.throttlePosition = Math.max(0, Math.min(100, 70 + this.randomVariation(20)));
     this.engineState.engineLoad = 75 + this.randomVariation(15);
     this.engineState.mafRate = 35 + this.randomVariation(8);
 
@@ -292,6 +293,7 @@ class MockDataGenerator extends EventEmitter {
       FUEL_LEVEL: Math.round(this.engineState.fuelLevel),
       INTAKE_AIR_TEMP: Math.round(this.engineState.intakeAirTemp),
       MAF_RATE: Math.round(this.engineState.mafRate * 10) / 10,
+      CONTROL_MODULE_VOLTAGE: this.generateBatteryVoltage(),
       TRIP_DISTANCE: Math.round(this.tripDistance * 10) / 10,
       TOTAL_DISTANCE: Math.round(this.totalDistance)
     };
@@ -376,7 +378,8 @@ class MockDataGenerator extends EventEmitter {
       supportedPIDs: [
         'ENGINE_RPM', 'VEHICLE_SPEED', 'ENGINE_COOLANT_TEMP',
         'THROTTLE_POSITION', 'ENGINE_LOAD', 'FUEL_LEVEL',
-        'INTAKE_AIR_TEMP', 'MAF_RATE'
+        'INTAKE_AIR_TEMP', 'MAF_RATE', 'CONTROL_MODULE_VOLTAGE',
+        'TOTAL_DISTANCE'
       ]
     };
   }
@@ -556,6 +559,20 @@ class MockDataGenerator extends EventEmitter {
     return { ...this.fraudSimulation };
   }
 
+  // Generate realistic battery voltage based on engine state
+  private generateBatteryVoltage(): number {
+    if (!this.engineState.running) {
+      // Battery voltage when engine off (12.6V typical for good battery)
+      return 12.6 + this.randomVariation(0.2);
+    } else {
+      // Alternator charging voltage (13.8-14.4V typical)
+      const baseVoltage = 14.1;
+      const rpmEffect = Math.min(0.3, this.engineState.rpm / 3000 * 0.3); // Higher RPM = slightly higher voltage
+      const loadEffect = -this.engineState.engineLoad / 100 * 0.2; // Higher load = slightly lower voltage
+      return baseVoltage + rpmEffect + loadEffect + this.randomVariation(0.1);
+    }
+  }
+
   // Utility methods
   randomVariation(range: number): number {
     return (Math.random() - 0.5) * 2 * range;
@@ -563,16 +580,16 @@ class MockDataGenerator extends EventEmitter {
 
   reset() {
     this.engineState = {
-      running: false,
+      running: true, // Start engine automatically in simulation
       warmupTime: 0,
-      rpm: 0,
+      rpm: 700, // Idle RPM
       speed: 0,
       coolantTemp: 20,
       throttlePosition: 0,
-      engineLoad: 0,
+      engineLoad: 15, // Base engine load
       fuelLevel: 75,
       intakeAirTemp: 25,
-      mafRate: 0
+      mafRate: 2.5 // Idle MAF rate
     };
     this.faults = [];
     this.freezeFrameCache.clear(); // Clear freeze frame cache on reset

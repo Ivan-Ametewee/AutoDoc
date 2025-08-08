@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import { Stack } from 'expo-router';
 import FraudDetectionDashboard from '../components/fraud/FraudDetectionDashboard';
 
 export default function FraudDetectionScreen() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
           title: 'Fraud Detection',
@@ -21,7 +21,7 @@ export default function FraudDetectionScreen() {
         }}
       />
       <FraudDetectionDashboard />
-    </View>
+    </SafeAreaView>
   );
 }
 
