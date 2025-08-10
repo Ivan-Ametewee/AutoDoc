@@ -10,14 +10,7 @@ export default function FraudDetectionScreen() {
         options={{
           title: 'Fraud Detection',
           presentation: 'modal',
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: '#1a1a1a',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          headerShown: false,
         }}
       />
       <FraudDetectionDashboard />

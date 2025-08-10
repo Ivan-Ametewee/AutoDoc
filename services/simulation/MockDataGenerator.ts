@@ -295,7 +295,13 @@ class MockDataGenerator extends EventEmitter {
       MAF_RATE: Math.round(this.engineState.mafRate * 10) / 10,
       CONTROL_MODULE_VOLTAGE: this.generateBatteryVoltage(),
       TRIP_DISTANCE: Math.round(this.tripDistance * 10) / 10,
-      TOTAL_DISTANCE: Math.round(this.totalDistance)
+      TOTAL_DISTANCE: Math.round(this.totalDistance),
+      ODOMETER_STANDARD: Math.round(this.totalDistance),
+      ODOMETER: Math.round(this.totalDistance),
+      VEHICLE_ODOMETER: Math.round(this.totalDistance),
+      TOTAL_DISTANCE_TRAVELED: Math.round(this.totalDistance),
+      DISTANCE_SINCE_CODES_CLEARED: 1000, // Default value for diagnostic distance
+      DISTANCE_WITH_MIL_ON: 0 // Assuming no MIL on by default
     };
   }
 
@@ -501,23 +507,54 @@ class MockDataGenerator extends EventEmitter {
    * Simulate ECU tampering patterns
    */
   private simulateECUTampering(): void {
+    const timeSinceStart = Date.now() - this.fraudSimulation.lastFraudEvent;
+    
     if (this.fraudSimulation.tamperingPatterns.includes('speed_rpm_mismatch')) {
-      // Occasionally show impossible speed/RPM combinations
-      if (Math.random() < 0.1) { // 10% chance
-        if (this.engineState.speed > 30) {
+      // Show impossible speed/RPM combinations more frequently for demo
+      if (Math.random() < 0.3) { // Increased to 30% chance
+        if (this.engineState.speed > 20) {
           // Force RPM to 0 while showing speed (impossible)
           this.engineState.rpm = 0;
           console.log('⚠️ FRAUD SIMULATION: Impossible speed/RPM combination');
+        } else {
+          // Or show high RPM with no speed
+          this.engineState.rpm = 3000 + Math.random() * 2000;
+          this.engineState.speed = 0;
+          console.log('⚠️ FRAUD SIMULATION: High RPM with no movement');
         }
       }
     }
 
     if (this.fraudSimulation.tamperingPatterns.includes('impossible_values')) {
-      // Generate impossible parameter values
-      if (Math.random() < 0.05) { // 5% chance
-        this.engineState.speed = Math.random() * 400 + 300; // Impossible speed > 300 km/h
-        console.log('⚠️ FRAUD SIMULATION: Impossible speed value generated');
+      // Generate impossible parameter values more frequently
+      if (Math.random() < 0.2) { // Increased to 20% chance
+        const tamperingType = Math.floor(Math.random() * 3);
+        
+        switch (tamperingType) {
+          case 0:
+            // Impossible speed
+            this.engineState.speed = Math.random() * 200 + 250; // 250-450 km/h
+            console.log('⚠️ FRAUD SIMULATION: Impossible speed value generated:', this.engineState.speed);
+            break;
+          case 1:
+            // Impossible temperature
+            this.engineState.coolantTemp = Math.random() * 50 + 150; // 150-200°C (overheating)
+            console.log('⚠️ FRAUD SIMULATION: Impossible temperature generated:', this.engineState.coolantTemp);
+            break;
+          case 2:
+            // Impossible fuel level (over 100%)
+            this.engineState.fuelLevel = 100 + Math.random() * 20; // 100-120%
+            console.log('⚠️ FRAUD SIMULATION: Impossible fuel level generated:', this.engineState.fuelLevel);
+            break;
+        }
       }
+    }
+    
+    // Add periodic glitches every 10 seconds
+    if (timeSinceStart % 10000 < 1000) { // Glitch for 1 second every 10 seconds
+      this.engineState.throttlePosition = Math.random() * 100;
+      this.engineState.engineLoad = Math.random() * 100;
+      console.log('⚡ FRAUD SIMULATION: Parameter glitch active');
     }
   }
 
@@ -527,29 +564,92 @@ class MockDataGenerator extends EventEmitter {
   public setupFraudDemoScenario(scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated'): void {
     switch (scenario) {
       case 'clean':
+        // Clear all fraud simulation and faults
         this.disableFraudSimulation();
         this.totalDistance = 45231;
-        console.log('✅ Clean vehicle scenario - no fraud patterns');
+        this.clearDTCs(); // Remove all fault codes
+        console.log('✅ Clean vehicle scenario - no fraud patterns, all faults cleared');
         break;
 
       case 'rollback':
+        // Set up rollback scenario with immediate minor rollback and scheduled major rollback
         this.totalDistance = 125000; // Higher starting odometer
         this.enableFraudSimulation('rollback');
-        console.log('📉 Rollback fraud scenario - major odometer decrease coming');
+        
+        // Add immediate minor rollback to show instant effect
+        this.totalDistance -= 500; // Immediate 500km decrease
+        this.addFault({
+          code: 'U0100',
+          description: 'Lost Communication With ECM/PCM',
+          severity: 'high'
+        });
+        
+        console.log('📉 Rollback fraud scenario - immediate 500km decrease, major rollback in 15s');
         break;
 
       case 'tampering':
+        // Set up tampering with immediate effects
         this.totalDistance = 89000;
         this.enableFraudSimulation('tampering');
-        console.log('⚙️ ECU tampering scenario - parameter inconsistencies');
+        
+        // Add immediate tampering effects
+        this.engineState.speed = 45; // Set speed to trigger tampering
+        this.engineState.rpm = 0; // Impossible: speed without RPM
+        
+        this.addFault({
+          code: 'P0606',
+          description: 'PCM Processor Fault',
+          severity: 'critical'
+        });
+        this.addFault({
+          code: 'U0155',
+          description: 'Lost Communication With Instrument Panel Cluster',
+          severity: 'medium'
+        });
+        
+        console.log('⚙️ ECU tampering scenario - immediate impossible parameter values');
         break;
 
       case 'sophisticated':
+        // Multiple fraud techniques with immediate effects
         this.totalDistance = 156000;
         this.enableFraudSimulation('multiple');
-        console.log('🔥 Sophisticated fraud scenario - multiple techniques');
+        
+        // Immediate rollback
+        this.totalDistance -= 15000; // Major immediate rollback
+        
+        // Immediate tampering effects  
+        this.engineState.speed = 85;
+        this.engineState.rpm = 0; // Impossible combination
+        
+        // Add multiple fraud indicators
+        this.addFault({
+          code: 'U0001',
+          description: 'High Speed CAN Communication Bus',
+          severity: 'critical'
+        });
+        this.addFault({
+          code: 'P0602',
+          description: 'Control Module Programming Error',
+          severity: 'critical'
+        });
+        this.addFault({
+          code: 'U0100',
+          description: 'Lost Communication With ECM/PCM',
+          severity: 'high'
+        });
+        
+        console.log('🔥 Sophisticated fraud scenario - immediate 15000km rollback + tampering + multiple faults');
         break;
     }
+    
+    // Reset fraud event timer to ensure scheduled effects work
+    this.fraudSimulation.lastFraudEvent = Date.now();
+    
+    // Emit events to update listeners immediately
+    this.emit('faultsChanged', this.faults);
+    this.emit('alertsChanged', this.getActiveAlerts());
+    this.emit('riskChanged', this.getRiskScoreAndStatus());
   }
 
   /**

@@ -1363,22 +1363,27 @@ export default function ConnectionScreen() {
       
       OBDIIService.enableSimulation();
       
-      // Add a fallback timeout in case the subscription doesn't work
-      setTimeout(() => {
+      // Use a more robust navigation approach
+      const checkConnectionAndNavigate = () => {
         try {
           const connectionInfo = OBDIIService.getConnectionStatus();
-          if (connectionInfo && connectionInfo.status === 'connected') {
-            console.log('Demo mode connected, navigating to dashboard');
-            router.replace('/(tabs)/dashboard');
-          } else {
-            console.log('Demo mode navigation fallback');
-            router.replace('/(tabs)/dashboard');
-          }
+          console.log('Demo mode connection status:', connectionInfo);
+          
+          // Navigate regardless of connection status for demo mode
+          console.log('Demo mode enabled, navigating to dashboard');
+          router.replace('/(tabs)/dashboard');
         } catch (error) {
-          console.warn('Demo mode fallback failed:', error);
+          console.warn('Demo mode navigation error:', error);
+          // Still navigate even if there's an error, for demo purposes
           router.replace('/(tabs)/dashboard');
         }
-      }, 2000);
+      };
+      
+      // Use requestAnimationFrame to ensure the component is ready
+      requestAnimationFrame(() => {
+        setTimeout(checkConnectionAndNavigate, 1000);
+      });
+      
     } catch (error) {
       console.error('Demo mode error:', error);
       setError('Failed to start demo mode');
@@ -1398,7 +1403,7 @@ export default function ConnectionScreen() {
   const renderInitialView = () => (
     <>
       <View style={styles.header}>
-        <Image source={require('../assets/images/icon.png')} style={styles.logo} />
+        <Image source={require('../assets/images/splash-icon.png')} style={styles.logo} />
         <Text style={styles.title}>AutoDoc</Text>
         <Text style={styles.subtitle}>Connect to your vehicle to get started</Text>
       </View>
@@ -1491,7 +1496,7 @@ const ConnectionButton = ({ iconName, label, onPress, isDark }: any) => {
 const getStyles = (isDark: boolean) => StyleSheet.create({
     container: { flex: 1, backgroundColor: isDark ? '#121212' : '#f5f5f5', paddingTop: 60, paddingHorizontal: 20 },
     header: { alignItems: 'center', marginBottom: 60, marginTop: 40 },
-    logo: { width: 100, height: 100, marginBottom: 20 },
+    logo: { width: 150, height: 150, marginBottom: 20 },
     title: { fontSize: 28, fontWeight: 'bold', color: isDark ? '#fff' : '#000', textAlign: 'center' },
     subtitle: { fontSize: 16, color: isDark ? '#a0a0a0' : '#666', marginTop: 8 },
     buttonContainer: { width: '100%', maxWidth: 400, alignSelf: 'center' },

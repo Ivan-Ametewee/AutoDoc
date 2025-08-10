@@ -19,6 +19,8 @@ import OBDIIService from '../../services/obdii/OBDIIService';
 import SettingsService from '../../services/settings/SettingsService';
 import { UnitConverter } from '../../utils/unitConversion';
 import { DataProcessor, ProcessedOBDData } from '../../utils/dataProcessing';
+import { useLiveOBDData } from '../../hooks/useLiveOBDData';
+import { useSelector } from 'react-redux';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +41,12 @@ interface LiveDataState {
 export default function DashboardScreen() {
   const { theme, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
+  
+  // Initialize the live OBD data hook to sync with Redux
+  useLiveOBDData();
+  
+  // Get odometer data from Redux store (shared with fraud detection)
+  const reduxOdometer = useSelector((state: any) => state.data?.liveData?.odometer);
   
   // --- State Management ---
   const [liveData, setLiveData] = useState<LiveDataState>({
@@ -164,6 +172,7 @@ export default function DashboardScreen() {
               case 'VEHICLE_ODOMETER':
               case 'TOTAL_DISTANCE':
               case 'TOTAL_DISTANCE_TRAVELED':
+              case 'ODOMETER_STANDARD':
                 newData.odometer = processedData;
                 console.log(`[Dashboard] Odometer update:`, processedData);
                 break;
@@ -314,7 +323,7 @@ export default function DashboardScreen() {
             <View style={styles.metricCard}>
               <MaterialIcons name="speed" size={20} color="#8E44AD" />
               <Text style={styles.metricLabel}>Odometer</Text>
-              <Text style={styles.metricValue}>{getValueWithUnit(liveData.odometer)}</Text>
+              <Text style={styles.metricValue}>{getValueWithUnit(liveData.odometer) || (reduxOdometer ? `${Math.round(reduxOdometer)} km` : '---')}</Text>
             </View>
             <View style={styles.metricCard}>
               <Ionicons name="thermometer" size={20} color="#FF6B35" />

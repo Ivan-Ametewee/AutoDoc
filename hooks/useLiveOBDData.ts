@@ -8,13 +8,22 @@ import {
   VehicleData, 
   createOdometerReading,
   hasOdometerData,
-  hasFraudDetectionData 
+  hasFraudDetectionData,
+  SerializedPIDData
 } from '../store/actions/dataActions';
 import { validateOdometerReading } from '../store/actions/fraudDetectionActions';
 import OBDIIService from '../services/obdii/OBDIIService';
 import { ParsedPIDData } from '../services/obdii/OBDIIParser';
 import store from '../store';
 import { simulationService } from '../services/simulation/SimulationService';
+
+// Helper function to serialize PID data for Redux
+function serializePIDData(pidData: ParsedPIDData): SerializedPIDData {
+  return {
+    ...pidData,
+    timestamp: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : String(pidData.timestamp)
+  };
+}
 
 type RootState = ReturnType<typeof store.getState>;
 
@@ -26,7 +35,10 @@ export function useLiveOBDData() {
   const connectionType = useSelector((state: RootState) => state.connection?.connectionType);
   const isConnecting = useSelector((state: RootState) => state.connection?.isConnecting);
   const activeVehicleId = useSelector((state: RootState) => state.vehicle?.activeVehicle);
-  const vehicles = useSelector((state: RootState) => state.vehicle?.vehicles || []);
+  const vehicles = useSelector((state: RootState) => {
+    const vehicleArray = state.vehicle?.vehicles;
+    return Array.isArray(vehicleArray) ? vehicleArray : [];
+  });
   const vehicleInfo = vehicles.find(v => v.id === activeVehicleId);
   
   // Get real-time fraud detection setting from Redux
@@ -67,9 +79,9 @@ export function useLiveOBDData() {
           ...vehicleData
         }));
         
-        // Dispatch the PID data update
+        // Dispatch the PID data update with serialized timestamps
         dispatch(updatePIDData({
-          pidData,
+          pidData: serializePIDData(pidData),
           vehicleData
         }));
         

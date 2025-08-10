@@ -43,7 +43,7 @@ Thumbs.db
 node_modules/
 
 # Build artifacts
-build/
+# build/
 dist/
 *.tgz
 *.tar.gz
@@ -74,19 +74,19 @@ expo-env.d.ts
 .react-native/
 
 # Android/iOS build artifacts
-android/build/
-ios/build/
-android/.gradle/
-android/app/build/
-android/app/.cxx/
-ios/Pods/
-ios/*.xcworkspace
-ios/*.xcodeproj
+# android/build/
+# ios/build/
+# android/.gradle/
+# android/app/build/
+# android/app/.cxx/
+# ios/Pods/
+# ios/*.xcworkspace
+# ios/*.xcodeproj
 
 # Unnecessary image files
-assets/images/notification_icon.jpg
-assets/images/partial-react-logo.png
-assets/images/react-logo*.png
+# assets/images/notification_icon.jpg
+# assets/images/partial-react-logo.png
+# assets/images/react-logo*.png
 
 # Local development scripts
 scripts/

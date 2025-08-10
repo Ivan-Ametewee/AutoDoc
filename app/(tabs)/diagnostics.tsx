@@ -233,7 +233,8 @@ export default function DiagnosticsScreen() {
         setIsScanning(false);
       } else if (event === 'dtcCleared') {
         if (data.success) {
-          setDtcCodes(prev => prev.map(code => ({ ...code, status: 'cleared' as const })));
+          // Remove all DTCs from the list when successfully cleared
+          setDtcCodes([]);
         }
       } else if (event === 'dataUpdate') {
         // Update live data based on OBD-II data updates
@@ -434,12 +435,11 @@ export default function DiagnosticsScreen() {
               const success = await OBDIIService.clearDTC();
               
               if (success) {
-                setDtcCodes((prev: DiagnosticTroubleCode[]) =>
-                  prev.map((code: DiagnosticTroubleCode) => ({ ...code, status: 'cleared' as const }))
-                );
+                // Clear all DTCs from the list since they've been successfully cleared
+                setDtcCodes([]);
                 Alert.alert(
                   'Success', 
-                  'All diagnostic codes have been cleared and the Check Engine Light should turn off.'
+                  'All diagnostic codes have been cleared and the Check Engine Light has turned off.'
                 );
               } else {
                 Alert.alert(
@@ -536,8 +536,17 @@ export default function DiagnosticsScreen() {
       </View>
 
       <ScrollView style={styles.codesList}>
-        {dtcCodes.map((code: DiagnosticTroubleCode, index: number) => (
-          <TouchableOpacity
+        {dtcCodes.filter(code => code.status !== 'cleared').length === 0 ? (
+          <View style={styles.noDtcsContainer}>
+            <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+            <Text style={styles.noDtcsText}>No Diagnostic Trouble Codes</Text>
+            <Text style={styles.noDtcsSubtext}>
+              Your vehicle's diagnostic systems are running normally.
+            </Text>
+          </View>
+        ) : (
+          dtcCodes.filter(code => code.status !== 'cleared').map((code: DiagnosticTroubleCode, index: number) => (
+            <TouchableOpacity
             key={`dtc-${code.code}-${index}`}
             style={styles.codeItem}
             onPress={async () => {
@@ -589,7 +598,8 @@ export default function DiagnosticsScreen() {
               <Ionicons name="chevron-forward" size={16} color="#666" />
             </View>
           </TouchableOpacity>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -1345,6 +1355,26 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 6,
+    lineHeight: 20,
+  },
+  noDtcsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 20,
+  },
+  noDtcsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#4CAF50',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  noDtcsSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
     lineHeight: 20,
   },
 });

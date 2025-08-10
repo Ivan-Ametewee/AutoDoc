@@ -272,6 +272,67 @@ export class PIDDefinitions {
         return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
       },
     }],
+
+    // Generic odometer aliases for compatibility
+    ['ODOMETER', {
+      name: 'ODOMETER',
+      pid: 'A6',
+      mode: '01',
+      bytes: 4,
+      description: 'Odometer Reading (Generic)',
+      unit: 'km',
+      min: 0,
+      max: 4294967295,
+      parse: (bytes) => {
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
+      },
+    }],
+
+    ['VEHICLE_ODOMETER', {
+      name: 'VEHICLE_ODOMETER',
+      pid: 'A6',
+      mode: '01',
+      bytes: 4,
+      description: 'Vehicle Odometer Reading',
+      unit: 'km',
+      min: 0,
+      max: 4294967295,
+      parse: (bytes) => {
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
+      },
+    }],
+
+    ['TOTAL_DISTANCE', {
+      name: 'TOTAL_DISTANCE',
+      pid: 'A6',
+      mode: '01',
+      bytes: 4,
+      description: 'Total Distance Traveled',
+      unit: 'km',
+      min: 0,
+      max: 4294967295,
+      parse: (bytes) => {
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
+      },
+    }],
+
+    ['TOTAL_DISTANCE_TRAVELED', {
+      name: 'TOTAL_DISTANCE_TRAVELED',
+      pid: 'A6',
+      mode: '01',
+      bytes: 4,
+      description: 'Total Distance Traveled (Alternative)',
+      unit: 'km',
+      min: 0,
+      max: 4294967295,
+      parse: (bytes) => {
+        if (bytes.length < 4) return 0;
+        return (bytes[0] * 16777216) + (bytes[1] * 65536) + (bytes[2] * 256) + bytes[3];
+      },
+    }],
   ]);
 
   /**
@@ -408,6 +469,10 @@ export class PIDDefinitions {
       'MAF_RATE',
       'CONTROL_MODULE_VOLTAGE',
       'ODOMETER_STANDARD', // For vehicles that support standard odometer PID
+      'ODOMETER', // Generic odometer alias
+      'VEHICLE_ODOMETER', // Vehicle odometer alias
+      'TOTAL_DISTANCE', // Total distance traveled
+      'TOTAL_DISTANCE_TRAVELED', // Alternative total distance
       'DISTANCE_SINCE_CODES_CLEARED', // Alternative distance reading
       'DISTANCE_WITH_MIL_ON' // Alternative distance reading
     ];

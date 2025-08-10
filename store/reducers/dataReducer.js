@@ -200,10 +200,13 @@ const dataReducer = (state = initialState, action) => {
       
       return {
         ...state,
-        // Update PID-specific storage
+        // Update PID-specific storage with serialized timestamps
         pidData: {
           ...state.pidData,
-          [pidData.name]: pidData,
+          [pidData.name]: {
+            ...pidData,
+            timestamp: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : String(pidData.timestamp)
+          },
         },
         rawPIDValues: {
           ...state.rawPIDValues,
@@ -214,7 +217,7 @@ const dataReducer = (state = initialState, action) => {
           ...state.liveData,
           ...vehicleData,
         },
-        lastDataUpdate: pidData.timestamp.toISOString(),
+        lastDataUpdate: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : String(pidData.timestamp),
       };
 
     case 'UPDATE_LIVE_DATA':

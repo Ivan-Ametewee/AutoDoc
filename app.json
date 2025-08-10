@@ -1,28 +1,35 @@
 {
   "expo": {
-    "name": "simulate",
+    "name": "AutoDoc",
     "slug": "simulate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "simulate",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "newArchEnabled": false,
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
-      "infoPlist": {}
+      "infoPlist": {},
+      "bundleIdentifier": "com.ivanametewee.simulate"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
       "package": "com.ivanametewee.simulate",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -31,6 +38,15 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      ["expo-splash-screen",
+        {
+          "backgroundColor": "#232323",
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "imageHeight": 200,
+          "imageWidth": 200
+        }
+      ], 
       "expo-router",
       "react-native-wifi-reborn"
     ],

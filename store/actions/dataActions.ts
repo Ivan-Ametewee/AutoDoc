@@ -21,11 +21,14 @@ export interface VehicleData {
     distanceSinceCodesCleared?: number; // NEW: For fraud detection
     distanceWithMILOn?: number; // NEW: For fraud detection
     runtimeSinceEngineStart?: number; // NEW: For fraud detection
-    lastUpdate: Date;
+    lastUpdate: Date | string;
 }
 
+// Type for PID data with serialized timestamp (for Redux)
+export type SerializedPIDData = Omit<ParsedPIDData, 'timestamp'> & { timestamp: string };
+
 export interface PIDDataPayload {
-    pidData: ParsedPIDData;
+    pidData: ParsedPIDData | SerializedPIDData;
     vehicleData: Partial<VehicleData>;
 }
 
@@ -35,7 +38,7 @@ export const updatePIDData = createAction<PIDDataPayload>('data/updatePIDData');
 // Utility function to map PID data to VehicleData format
 export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData> {
     const result: Partial<VehicleData> = {
-        lastUpdate: pidData.timestamp
+        lastUpdate: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : String(pidData.timestamp)
     };
 
     // Map PID names to VehicleData properties
@@ -81,6 +84,9 @@ export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData
         case 'ODOMETER_STANDARD':
         case 'ODOMETER':
         case 'odometer':
+        case 'TOTAL_DISTANCE':
+        case 'TOTAL_DISTANCE_TRAVELED':
+        case 'VEHICLE_ODOMETER':
             result.odometer = typeof pidData.value === 'number' ? pidData.value : 0;
             console.log(`🚗 Odometer reading received: ${result.odometer} km from ${pidData.name}`);
             break;

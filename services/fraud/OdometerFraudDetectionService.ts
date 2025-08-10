@@ -354,14 +354,15 @@ class OdometerFraudDetectionService {
   public async runFraudDetection(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<{
     riskScore: number;
     status: 'clean' | 'suspicious' | 'high_risk';
     checkResults: any;
     alerts: any[];
   }> {
-    const result = await this.detectFraud(currentReading, historicalData, vehicleProfile);
+    const result = await this.detectFraud(currentReading, historicalData, vehicleProfile, fraudDetectionSettings);
     
     return {
       riskScore: result.overallRiskScore,
@@ -377,7 +378,8 @@ class OdometerFraudDetectionService {
   public async detectFraud(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<FraudDetectionResult> {
     
     console.log('🔍 Starting enhanced fraud detection with real ECU data');
@@ -408,13 +410,13 @@ class OdometerFraudDetectionService {
       console.log('⚠️ Processing non-ECU data source:', currentReading.source);
     }
 
-    // Run all fraud detection checks
+    // Run all fraud detection checks (only enabled ones)
     const checks = await Promise.all([
-      this.detectOdometerRollback(currentReading, historicalData, vehicleProfile),
-      this.detectInconsistencies(currentReading, historicalData, vehicleProfile),
-      this.detectDigitalTampering(currentReading, historicalData, vehicleProfile),
-      this.checkDataIntegrity(currentReading, historicalData, vehicleProfile),
-      this.performECUCrossValidation(currentReading, historicalData, vehicleProfile) // NEW
+      this.detectOdometerRollback(currentReading, historicalData, vehicleProfile, fraudDetectionSettings),
+      this.detectInconsistencies(currentReading, historicalData, vehicleProfile, fraudDetectionSettings),
+      this.detectDigitalTampering(currentReading, historicalData, vehicleProfile, fraudDetectionSettings),
+      this.checkDataIntegrity(currentReading, historicalData, vehicleProfile, fraudDetectionSettings),
+      this.performECUCrossValidation(currentReading, historicalData, vehicleProfile, fraudDetectionSettings) // NEW
     ]);
 
     // Aggregate results
@@ -447,12 +449,23 @@ class OdometerFraudDetectionService {
   private async performECUCrossValidation(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<CheckResult> {
     const result: CheckResult = this.getEmptyCheckResult();
-    result.enabled = currentReading.source === 'obd';
+    
+    // Check if we have OBD data and if ECU validation is enabled in settings
+    const hasObdData = currentReading.source === 'obd';
+    const isEnabledInSettings = fraudDetectionSettings?.checks?.digitalTampering?.enabled ?? true;
+    result.enabled = hasObdData && isEnabledInSettings;
 
-    if (!result.enabled) {
+    if (!hasObdData) {
+      console.log('⚠️ ECU cross-validation skipped - no OBD data available');
+      return result;
+    }
+    
+    if (!isEnabledInSettings) {
+      console.log('⏸️ ECU cross-validation disabled by user settings');
       return result;
     }
 
@@ -820,10 +833,20 @@ class OdometerFraudDetectionService {
   private async detectOdometerRollback(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<CheckResult> {
     const result: CheckResult = this.getEmptyCheckResult();
     result.threshold = -100; // Negative threshold for rollback detection
+    
+    // Check if this detection type is enabled
+    const isEnabled = fraudDetectionSettings?.checks?.odometerRollback?.enabled ?? true;
+    result.enabled = isEnabled;
+    
+    if (!isEnabled) {
+      console.log('⏸️ Odometer rollback detection is disabled by user settings');
+      return result;
+    }
 
     if (historicalData.length === 0) {
       return result;
@@ -907,11 +930,21 @@ class OdometerFraudDetectionService {
   private async detectInconsistencies(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<CheckResult> {
     const result: CheckResult = this.getEmptyCheckResult();
     result.threshold = 500; // Daily mileage threshold
     result.timeWindow = 24; // Hours
+    
+    // Check if this detection type is enabled
+    const isEnabled = fraudDetectionSettings?.checks?.inconsistentReporting?.enabled ?? true;
+    result.enabled = isEnabled;
+    
+    if (!isEnabled) {
+      console.log('⏸️ Inconsistent reporting detection is disabled by user settings');
+      return result;
+    }
 
     if (historicalData.length < 2) {
       return result;
@@ -960,10 +993,20 @@ class OdometerFraudDetectionService {
   private async detectDigitalTampering(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<CheckResult> {
     const result: CheckResult = this.getEmptyCheckResult();
     result.ecu_checks = true;
+    
+    // Check if this detection type is enabled
+    const isEnabled = fraudDetectionSettings?.checks?.digitalTampering?.enabled ?? true;
+    result.enabled = isEnabled;
+    
+    if (!isEnabled) {
+      console.log('⏸️ Digital tampering detection is disabled by user settings');
+      return result;
+    }
 
     console.log('🔐 Detecting digital tampering...');
 
@@ -1008,10 +1051,20 @@ class OdometerFraudDetectionService {
   private async checkDataIntegrity(
     currentReading: OdometerReading,
     historicalData: OdometerReading[],
-    vehicleProfile?: VehicleProfile
+    vehicleProfile?: VehicleProfile,
+    fraudDetectionSettings?: FraudDetectionState
   ): Promise<CheckResult> {
     const result: CheckResult = this.getEmptyCheckResult();
     result.checksumValidation = true;
+    
+    // Check if this detection type is enabled
+    const isEnabled = fraudDetectionSettings?.checks?.dataIntegrity?.enabled ?? true;
+    result.enabled = isEnabled;
+    
+    if (!isEnabled) {
+      console.log('⏸️ Data integrity detection is disabled by user settings');
+      return result;
+    }
 
     console.log('🔍 Checking data integrity...');
 

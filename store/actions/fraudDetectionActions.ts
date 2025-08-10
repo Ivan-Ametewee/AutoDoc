@@ -42,6 +42,7 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
       // Note: activeVehicle is typically just an ID, activeProfile would be the full object
       const activeProfile = state.vehicle?.activeProfile;
       const { historicalData } = state.data;
+      const fraudDetectionSettings = state.vehicle?.fraudDetection;
 
       // Fraud detection can work without a vehicle profile, but it's helpful for context
       let vehicleProfile = activeProfile;
@@ -64,11 +65,12 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
         type: FRAUD_DETECTION_TYPES.RUN_FRAUD_CHECK,
       });
 
-      // Run fraud detection
+      // Run fraud detection with user settings
       const results = await fraudDetectionService.runFraudDetection(
         currentReading,
         historicalData || [],
-        vehicleProfile
+        vehicleProfile,
+        fraudDetectionSettings
       );
 
       // Save results to database (optional, don't fail if database issues)
@@ -626,6 +628,42 @@ export const exportFraudDetectionReport = () => {
           },
         },
       });
+      throw error;
+    }
+  };
+};
+
+/**
+ * Update individual fraud check settings
+ */
+export const updateFraudCheckSettings = (payload: { checkType: string; enabled: boolean }) => {
+  return (dispatch: Dispatch<FraudDetectionAction>, getState: () => RootState) => {
+    try {
+      const state = getState();
+      const currentChecks = state.vehicle?.fraudDetection?.checks || {};
+      
+      // Create updated checks object
+      const updatedChecks = {
+        ...currentChecks,
+        [payload.checkType]: {
+          ...currentChecks[payload.checkType],
+          enabled: payload.enabled,
+        }
+      };
+
+      dispatch({
+        type: FRAUD_DETECTION_TYPES.UPDATE_FRAUD_SETTINGS,
+        payload: {
+          settings: {
+            checks: updatedChecks,
+          }
+        },
+      });
+
+      console.log(`✅ Updated ${payload.checkType} fraud check setting: ${payload.enabled ? 'enabled' : 'disabled'}`);
+
+    } catch (error: any) {
+      console.error('❌ Failed to update fraud check settings:', error);
       throw error;
     }
   };

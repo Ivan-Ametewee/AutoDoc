@@ -28,6 +28,8 @@ import {
 import { simulationService } from '../../services/simulation/SimulationService';
 // Import OBD service for real-time fraud detection
 import OBDIIService from '../../services/obdii/OBDIIService';
+import { updateFraudCheckSettings } from '../../store/actions/fraudDetectionActions';
+import { DataProcessor } from '../../utils/dataProcessing';
 
 // Types
 interface FraudAlert {
@@ -79,6 +81,12 @@ interface FraudDetectionState {
   };
 }
 
+// Helper function to serialize PID data for Redux actions
+const serializePIDDataForRedux = (pidData: any) => ({
+  ...pidData,
+  timestamp: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : pidData.timestamp
+});
+
 const FraudDetectionDashboard: React.FC = () => {
   console.log('🔄 FraudDetectionDashboard component rendering... [UPDATED]');
   
@@ -90,6 +98,15 @@ const FraudDetectionDashboard: React.FC = () => {
     state.data?.dataPoints || state.data?.sessionData || []
   );
   const liveDataFromStore = useSelector((state: any) => state.data?.liveData);
+  const dashboardOdometer = useSelector((state: any) => state.data?.liveData?.odometer) || 0;
+  const connectionType = useSelector((state: any) => state.connection?.connectionType);
+  
+  // Check if we're in demo/simulation mode - be flexible with connection type detection
+  const isDemoMode = connectionType === 'simulation' || connectionType === 'demo' || !connectionType;
+  
+  // Debug logging for demo mode detection
+  console.log('🔍 FraudDetection Debug - connectionType:', connectionType, 'isDemoMode:', isDemoMode);
+  console.log('🔍 FraudDetection Debug - Redux connection state:', useSelector((state: any) => state.connection));
   
   console.log('📊 Current fraud data from Redux:', fraudDataFromStore);
   
@@ -106,10 +123,10 @@ const FraudDetectionDashboard: React.FC = () => {
             const odometerData = await OBDIIService.queryPID(odometerPID);
             if (odometerData && odometerData.value) {
               console.log('🚗 Initial odometer reading:', odometerData.value, 'km');
-              // Store in Redux via data action
+              // Store in Redux via data action with serialized timestamps
               const { updatePIDData, mapPIDToVehicleData } = require('../../store/actions/dataActions');
               const vehicleData = mapPIDToVehicleData(odometerData);
-              dispatch(updatePIDData({ pidData: odometerData, vehicleData }));
+              dispatch(updatePIDData({ pidData: serializePIDDataForRedux(odometerData), vehicleData }));
             }
           } else {
             // Fallback: try common odometer PIDs
@@ -122,7 +139,7 @@ const FraudDetectionDashboard: React.FC = () => {
                   console.log('🚗 Initial odometer reading:', data.value, 'km from', pidName);
                   const { updatePIDData, mapPIDToVehicleData } = require('../../store/actions/dataActions');
                   const vehicleData = mapPIDToVehicleData(data);
-                  dispatch(updatePIDData({ pidData: data, vehicleData }));
+                  dispatch(updatePIDData({ pidData: serializePIDDataForRedux(data), vehicleData }));
                   break; // Stop after first successful reading
                 }
               } catch (error) {
@@ -249,8 +266,8 @@ const FraudDetectionDashboard: React.FC = () => {
       const currentReading = {
         id: `manual_check_${Date.now()}`,
         timestamp: new Date().toISOString(),
-        odometer: liveDataFromStore?.odometer || 0,
-        mileage: liveDataFromStore?.odometer || 0,
+        odometer: dashboardOdometer,
+        mileage: dashboardOdometer,
         source: 'manual' as const,
         engineHours: liveDataFromStore?.engineHours || 0,
         vehicleSpeed: liveDataFromStore?.speed || 0,
@@ -328,18 +345,36 @@ const FraudDetectionDashboard: React.FC = () => {
   };
 
   const handleToggleRealTime = async () => {
-    Alert.alert('Real-time Disabled', 'Real-time fraud detection is disabled. Use "Run Check" button for manual analysis.');
+    Alert.alert('Real-time Disabled', 'Real-time fraud detection is disabled. Use "Refresh" button for manual analysis.');
+  };
+
+  const handleToggleDetectionSetting = (checkType: string) => {
+    try {
+      // Toggle the specific fraud check setting
+      const currentCheck = fraudData?.checks?.[checkType as keyof typeof fraudData.checks];
+      dispatch(updateFraudCheckSettings({
+        checkType,
+        enabled: !(currentCheck?.enabled || false)
+      }) as any);
+    } catch (error: any) {
+      Alert.alert('Error', `Failed to update setting: ${error.message}`);
+    }
   };
 
   const handleDemoScenario = (scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated') => {
     try {
+      // Force start simulation if it's not running
+      if (connectionType === 'simulation') {
+        simulationService.startSimulation();
+      }
+      
       simulationService.setupFraudDemoScenario(scenario);
       
       const messages = {
-        clean: 'Clean vehicle demo - no fraud patterns',
-        rollback: 'Odometer rollback demo - watch for major decrease in 15 seconds',
-        tampering: 'ECU tampering demo - impossible parameter combinations',
-        sophisticated: 'Multiple fraud techniques demo - comprehensive testing'
+        clean: 'Clean vehicle demo activated - All fraud patterns cleared, vehicle reset to normal state',
+        rollback: 'Odometer rollback demo activated - Immediate 500km decrease + major rollback in 15 seconds. Watch the odometer value!',
+        tampering: 'ECU tampering demo activated - Impossible speed/RPM combinations, erratic parameters, and diagnostic faults added',
+        sophisticated: 'Sophisticated fraud demo activated - Immediate 15,000km rollback + tampering + multiple critical faults. Check all indicators!'
       };
       
       Alert.alert('Demo Scenario', messages[scenario]);
@@ -456,65 +491,56 @@ const FraudDetectionDashboard: React.FC = () => {
   );
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
             <MaterialIcons name="security" size={32} color="#3b82f6" />
             <View style={styles.headerText}>
-              <Text style={styles.title}>Odometer Fraud Detection</Text>
-              <Text style={styles.subtitle}>Real-time monitoring and analysis</Text>
-            </View>
-          </View>
-          <View style={[
-            styles.headerActions,
-            isSmallScreen && styles.headerActionsSmall
-          ]}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton, 
-                { marginRight: 8 },
-                isSmallScreen && styles.actionButtonSmall
-              ]}
-              onPress={handleRunFraudCheck}
-              disabled={isRunningCheck}
-            >
-              <MaterialIcons 
-                name="refresh" 
-                size={isSmallScreen ? 16 : 20} 
-                color="white" 
-                style={isRunningCheck ? styles.spinning : undefined}
-              />
-              {!isSmallScreen && (
-                <Text style={styles.actionButtonText}>
-                  {isRunningCheck ? 'Scanning...' : 'Run Check'}
+              <Text style={[styles.title, {fontSize: 18, color: '#000000', fontWeight: 'bold'}]} numberOfLines={1}>
+                Odometer Fraud Detection
+              </Text>
+              <View style={styles.subtitleRow}>
+                <Text style={[styles.subtitle, {fontSize: 14, color: '#666666', flex: 1}]}>
+                  Real-time monitoring and analysis
                 </Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.actionButton, 
-                styles.secondaryButton,
-                isSmallScreen && styles.actionButtonSmall
-              ]}
-              onPress={handleExportReport}
-            >
-              <MaterialIcons name="file-download" size={isSmallScreen ? 16 : 20} color="white" />
-              {!isSmallScreen && (
-                <Text style={styles.actionButtonText}>Export</Text>
-              )}
-            </TouchableOpacity>
+                <View style={[
+                  styles.headerActions,
+                  isSmallScreen && styles.headerActionsSmall
+                ]}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={handleRunFraudCheck}
+                    disabled={isRunningCheck}
+                  >
+                    <MaterialIcons 
+                      name="refresh" 
+                      size={24} 
+                      color="white" 
+                      style={isRunningCheck ? styles.spinning : undefined}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.iconButton, styles.secondaryIconButton]}
+                    onPress={handleExportReport}
+                  >
+                    <MaterialIcons name="file-download" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Status Overview */}
+      <ScrollView 
+        style={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {/* Status Overview */}
       <View style={[styles.statusGrid, statusCardLayout]}>
         <StatusCard
           title="Overall Status"
@@ -554,7 +580,7 @@ const FraudDetectionDashboard: React.FC = () => {
             {new Date(fraudData.lastCheck).toLocaleDateString()} at {new Date(fraudData.lastCheck).toLocaleTimeString()}
           </Text>
           <Text style={styles.dataFreshnessSubtext}>
-            Results shown above are from stored analysis. Press "Run Check" for fresh analysis with current OBD data.
+            Results shown above are from stored analysis. Press "Refresh" for fresh analysis with current OBD data.
           </Text>
         </View>
       )}
@@ -575,14 +601,14 @@ const FraudDetectionDashboard: React.FC = () => {
             ) : (
               <>
                 <Text style={styles.odometerValue}>
-                  {liveDataFromStore?.odometer ? 
-                    `${Math.round(liveDataFromStore.odometer * 0.621371).toLocaleString()} mi` : 
-                    '--'
-                  }
+                  {liveDataFromStore?.odometer ? (() => {
+                    const processedData = DataProcessor.processOBDData('ODOMETER', liveDataFromStore.odometer);
+                    return `${processedData.displayValue} ${processedData.unit}`;
+                  })() : '--'}
                 </Text>
                 <Text style={styles.odometerSubtext}>
                   {liveDataFromStore?.odometer ? 
-                    `(${Math.round(liveDataFromStore.odometer).toLocaleString()} km) - Current ECU Reading` : 
+                    `(${Math.round(liveDataFromStore.odometer).toLocaleString()} km raw) - Current ECU Reading` : 
                     'No data available - Check connection'
                   }
                 </Text>
@@ -596,7 +622,7 @@ const FraudDetectionDashboard: React.FC = () => {
             <Text style={styles.odometerNoteText}>
               {isLoadingInitialReading 
                 ? "Getting initial odometer reading from vehicle ECU..."
-                : "This reading was obtained from the vehicle's ECU. Press 'Run Check' to perform fraud analysis."
+                : "This reading was obtained from the vehicle's ECU. Press 'Refresh' button to perform fraud analysis."
               }
             </Text>
           </View>
@@ -786,7 +812,7 @@ const FraudDetectionDashboard: React.FC = () => {
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingTitle}>Real-Time ECU Monitoring (Disabled)</Text>
                   <Text style={styles.settingDescription}>
-                    Real-time monitoring is disabled. Use "Run Check" for manual fraud detection.
+                    Real-time monitoring is disabled. Use "Refresh" for manual fraud detection.
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -822,6 +848,7 @@ const FraudDetectionDashboard: React.FC = () => {
                       styles.toggle,
                       (check?.enabled || false) && styles.toggleActive
                     ]}
+                    onPress={() => handleToggleDetectionSetting(checkType)}
                   >
                     <View style={[
                       styles.toggleThumb,
@@ -833,14 +860,15 @@ const FraudDetectionDashboard: React.FC = () => {
             </View>
           </View>
 
-          {/* Demo Scenarios Section */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Demo Scenarios</Text>
-              <Text style={styles.cardSubtitle}>
-                Test fraud detection with predefined scenarios
-              </Text>
-            </View>
+          {/* Demo Scenarios Section - Only show in demo mode */}
+          {isDemoMode && (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>Demo Scenarios</Text>
+                <Text style={styles.cardSubtitle}>
+                  Test fraud detection with predefined scenarios
+                </Text>
+              </View>
             <View style={styles.cardContent}>
               <View style={styles.demoButtonsGrid}>
                 <TouchableOpacity
@@ -880,10 +908,12 @@ const FraudDetectionDashboard: React.FC = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+            </View>
+          )}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -891,6 +921,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    flex: 1,
   },
   header: {
     backgroundColor: 'white',
@@ -905,15 +938,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   headerContent: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 16,
+    width: '100%',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    flex: 2, // Give more space to the title area
   },
   headerText: {
     marginLeft: 16,
@@ -1459,6 +1492,27 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     flex: 1,
     lineHeight: 16,
+  },
+  iconButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  secondaryIconButton: {
+    backgroundColor: '#64748b',
+    marginLeft: 8,
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 });
 
