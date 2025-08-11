@@ -1201,7 +1201,7 @@
 //   },
 // });
 
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, ActivityIndicator, Image, FlatList, Pressable, Platform, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -1294,6 +1294,12 @@ export default function ConnectionScreen() {
 
   // --- Action Handlers ---
   const handleStartDiscovery = useCallback(async (type: 'wifi' | 'bluetooth') => {
+    // Prevent Bluetooth discovery on iOS
+    if (type === 'bluetooth' && Platform.OS === 'ios') {
+      setError('Bluetooth functionality is not available on iOS devices. Please use Wi-Fi or Demo Mode instead.');
+      return;
+    }
+
     setView('discovering');
     setDiscoveryType(type);
     setError(null);
@@ -1409,8 +1415,17 @@ export default function ConnectionScreen() {
       </View>
       <View style={styles.buttonContainer}>
         <ConnectionButton iconName="wifi" label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
-        <ConnectionButton iconName="bluetooth" label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
+        {Platform.OS !== 'ios' && (
+          <ConnectionButton iconName="bluetooth" label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
+        )}
         <ConnectionButton iconName="play-circle" label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
+        {Platform.OS === 'ios' && (
+          <View style={styles.iosWarningContainer}>
+            <Text style={styles.iosWarningText}>
+              📱 Bluetooth is not available on iOS. Use Wi-Fi or Demo Mode instead.
+            </Text>
+          </View>
+        )}
       </View>
     </>
   );
@@ -1513,4 +1528,6 @@ const getStyles = (isDark: boolean) => StyleSheet.create({
     deviceText: { fontSize: 16, fontWeight: '600', color: isDark ? '#eee' : '#222' },
     deviceSubtext: { fontSize: 12, color: isDark ? '#999' : '#555', marginTop: 4 },
     centeredMessage: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+    iosWarningContainer: { marginTop: 10, padding: 15, backgroundColor: isDark ? '#2a2a2a' : '#fff3cd', borderRadius: 10, borderWidth: 1, borderColor: isDark ? '#444' : '#ffc107' },
+    iosWarningText: { fontSize: 14, color: isDark ? '#ffd700' : '#856404', textAlign: 'center', lineHeight: 18 },
 });
