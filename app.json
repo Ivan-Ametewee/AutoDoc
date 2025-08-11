@@ -17,11 +17,16 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {},
-      "bundleIdentifier": "com.ivanametewee.simulate"
+      "bundleIdentifier": "com.ivanametewee.simulate",
+      "icon": {
+        "dark": "./assets/icons/ios-dark.png",
+        "light": "./assets/icons/ios-light.png",
+        "tinted": "./assets/icons/ios-tinted.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
@@ -40,11 +45,14 @@
     "plugins": [
       ["expo-splash-screen",
         {
-          "backgroundColor": "#232323",
-          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#ffffff",
+          "image": "./assets/icons/splash-icon-dark.png",
           "resizeMode": "contain",
-          "imageHeight": 200,
-          "imageWidth": 200
+          "imageWidth": 120,
+          "dark": {
+            "image": "./assets/icons/splash-icon-dark.png",
+            "backgroundColor": "#000000"
+          }
         }
       ], 
       "expo-router",
