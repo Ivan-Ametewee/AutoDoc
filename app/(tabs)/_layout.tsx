@@ -57,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+        title: 'Dashboard',
           headerTitle: 'Vehicle Dashboard',
           tabBarIcon: ({ color, size, focused }) => (
             <Gauge
@@ -73,6 +73,7 @@ export default function TabLayout() {
               style={{ marginRight: 16 }}
             />
           ),
+          headerShown: false
         }}
       />
 
@@ -88,6 +89,7 @@ export default function TabLayout() {
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
+          headerShown: false
         }}
       />
 
@@ -103,6 +105,7 @@ export default function TabLayout() {
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
+          headerShown: false
         }}
       />
 
@@ -110,14 +113,15 @@ export default function TabLayout() {
         name="history"
         options={{
           title: 'History',
-          headerTitle: 'Diagnostic History',
-          tabBarIcon: ({ color, size, focused }) => (
-            <History
-              size={focused ? size + 2 : size}
-              color={color}
-              strokeWidth={focused ? 2.5 : 2}
-            />
-          ),
+          // headerTitle: 'Diagnostic History',
+          // tabBarIcon: ({ color, size, focused }) => (
+          //   <History
+          //     size={focused ? size + 2 : size}
+          //     color={color}
+          //     strokeWidth={focused ? 2.5 : 2}
+          //   />
+          // ),
+          headerShown: false
         }}
       />
 
@@ -133,6 +137,7 @@ export default function TabLayout() {
               strokeWidth={focused ? 2.5 : 2}
             />
           ),
+          headerShown: false
         }}
       />
     </Tabs>
