@@ -47,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+        title: 'Dashboard',
           headerTitle: 'Vehicle Dashboard',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
@@ -96,6 +96,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          headerShown: false
         }}
       />
 
