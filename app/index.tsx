@@ -1414,11 +1414,11 @@ export default function ConnectionScreen() {
         <Text style={styles.subtitle}>Connect to your vehicle to get started</Text>
       </View>
       <View style={styles.buttonContainer}>
-        <ConnectionButton icon={Wifi} label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
+        <ConnectionButton iconName="wifi" label="Connect via Wi-Fi" onPress={() => handleStartDiscovery('wifi')} isDark={isDark} />
         {Platform.OS !== 'ios' && (
-          <ConnectionButton icon={Bluetooth} label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
+          <ConnectionButton iconName="bluetooth" label="Connect via Bluetooth" onPress={() => handleStartDiscovery('bluetooth')} isDark={isDark} />
         )}
-        <ConnectionButton icon={PlayCircle} label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
+        <ConnectionButton iconName="play-circle" label="Start Demo Mode" onPress={handleStartDemo} isDark={isDark} />
         {Platform.OS === 'ios' && (
           <View style={styles.iosWarningContainer}>
             <Text style={styles.iosWarningText}>
