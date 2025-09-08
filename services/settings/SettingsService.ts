@@ -83,7 +83,7 @@ class SettingsService extends EventEmitter {
       maintenance_reminders: true,
 
       // Display & Interface
-      theme: 'light',
+      theme: 'auto',
       temperature_unit: 'celsius',
       distance_unit: 'km',
       language: 'en',

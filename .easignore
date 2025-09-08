@@ -43,7 +43,7 @@ Thumbs.db
 node_modules/
 
 # Build artifacts
-# build/
+build/
 dist/
 *.tgz
 *.tar.gz
