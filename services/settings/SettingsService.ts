@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { EventEmitter } from 'events';
+// Lightweight internal event emitter to avoid external typings issues
 
 // Settings type definitions
 export interface AppSettings {
@@ -40,15 +40,56 @@ export interface AppSettings {
 
 export type SettingKey = keyof AppSettings;
 
-class SettingsService extends EventEmitter {
+class SettingsService {
   private static instance: SettingsService;
   private settings: AppSettings;
   private readonly STORAGE_KEY = '@VehicleDiagnostics:Settings';
 
+  // internal event map: event name -> array of listeners
+  private events: Map<string, Array<(...args: any[]) => void>> = new Map();
+
   private constructor() {
-    super();
     this.settings = this.getDefaultSettings();
     this.loadSettings();
+  }
+
+  // Event emitter API (minimal subset)
+  public on(event: string, listener: (...args: any[]) => void): void {
+    const list = this.events.get(event) || [];
+    list.push(listener);
+    this.events.set(event, list);
+  }
+
+  public removeListener(event: string, listener: (...args: any[]) => void): void {
+    const list = this.events.get(event);
+    if (!list) return;
+    const idx = list.indexOf(listener);
+    if (idx >= 0) {
+      list.splice(idx, 1);
+      this.events.set(event, list);
+    }
+  }
+
+  public removeAllListeners(event?: string): void {
+    if (event) {
+      this.events.delete(event);
+    } else {
+      this.events.clear();
+    }
+  }
+
+  public emit(event: string, ...args: any[]): void {
+    const list = this.events.get(event);
+    if (!list) return;
+    // create a copy to avoid mutation during iteration
+    [...list].forEach((listener) => {
+      try {
+        listener(...args);
+      } catch (e) {
+        // swallow listener errors to avoid breaking emitter
+        console.error(`[SettingsService] Event listener error for ${event}:`, e);
+      }
+    });
   }
 
   public static getInstance(): SettingsService {
@@ -100,7 +141,7 @@ class SettingsService extends EventEmitter {
     try {
       console.log('📋 [SETTINGS] Loading settings from storage...');
       const storedSettings = await AsyncStorage.getItem(this.STORAGE_KEY);
-      
+
       if (storedSettings) {
         const parsed = JSON.parse(storedSettings);
         // Merge with defaults to ensure all keys exist
@@ -140,16 +181,16 @@ class SettingsService extends EventEmitter {
   ): Promise<boolean> {
     try {
       console.log(`📋 [SETTINGS] Updating ${key}:`, value);
-      
+
       const oldValue = this.settings[key];
       this.settings[key] = value;
-      
+
       const saved = await this.saveSettings();
       if (saved) {
         this.emit('settingChanged', { key, value, oldValue });
         this.emit(`settingChanged:${key}`, value, oldValue);
       }
-      
+
       return saved;
     } catch (error: any) {
       console.error(`📋 [SETTINGS] Error updating ${key}:`, error.message);
@@ -170,11 +211,11 @@ class SettingsService extends EventEmitter {
       console.log('📋 [SETTINGS] Resetting settings to defaults...');
       this.settings = this.getDefaultSettings();
       const saved = await this.saveSettings();
-      
+
       if (saved) {
         this.emit('settingsReset', this.settings);
       }
-      
+
       return saved;
     } catch (error: any) {
       console.error('📋 [SETTINGS] Error resetting settings:', error.message);
@@ -235,20 +276,20 @@ class SettingsService extends EventEmitter {
   // Temperature conversion utilities
   public convertTemperature(value: number, fromUnit?: 'celsius' | 'fahrenheit'): number {
     const unit = fromUnit || this.getTemperatureUnit();
-    
+
     if (unit === 'fahrenheit') {
       // Convert Celsius to Fahrenheit if current setting is Fahrenheit
-      return (value * 9/5) + 32;
+      return (value * 9 / 5) + 32;
     } else {
       // Already in Celsius or convert Fahrenheit to Celsius
-      return (value - 32) * 5/9;
+      return (value - 32) * 5 / 9;
     }
   }
 
   // Distance conversion utilities
   public convertDistance(value: number, fromUnit?: 'km' | 'miles'): number {
     const unit = fromUnit || this.getDistanceUnit();
-    
+
     if (unit === 'miles') {
       // Convert km to miles if current setting is miles
       return value * 0.621371;
@@ -284,23 +325,23 @@ class SettingsService extends EventEmitter {
   public async clearCache(): Promise<boolean> {
     try {
       console.log('📋 [SETTINGS] Clearing app cache...');
-      
+
       // Get all AsyncStorage keys
       const keys = await AsyncStorage.getAllKeys();
-      
+
       // Filter out settings key and keep only cache/temporary data keys
-      const cacheKeys = keys.filter(key => 
-        key.includes('cache') || 
-        key.includes('temp') || 
+      const cacheKeys = keys.filter(key =>
+        key.includes('cache') ||
+        key.includes('temp') ||
         key.includes('logs') ||
         key.includes('diagnostic_history')
       );
-      
+
       if (cacheKeys.length > 0) {
         await AsyncStorage.multiRemove(cacheKeys);
         console.log(`📋 [SETTINGS] Cleared ${cacheKeys.length} cache entries`);
       }
-      
+
       this.emit('cacheCleared');
       return true;
     } catch (error: any) {
@@ -316,7 +357,7 @@ class SettingsService extends EventEmitter {
         exportDate: new Date().toISOString(),
         appVersion: '1.0.0',
       };
-      
+
       return JSON.stringify(exportData, null, 2);
     } catch (error: any) {
       console.error('📋 [SETTINGS] Error exporting settings:', error.message);
@@ -327,19 +368,19 @@ class SettingsService extends EventEmitter {
   public async importSettings(settingsJson: string): Promise<boolean> {
     try {
       const importData = JSON.parse(settingsJson);
-      
+
       if (importData.settings) {
         // Validate and merge with defaults
         this.settings = { ...this.getDefaultSettings(), ...importData.settings };
         const saved = await this.saveSettings();
-        
+
         if (saved) {
           this.emit('settingsImported', this.settings);
         }
-        
+
         return saved;
       }
-      
+
       throw new Error('Invalid settings format');
     } catch (error: any) {
       console.error('📋 [SETTINGS] Error importing settings:', error.message);

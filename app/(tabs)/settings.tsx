@@ -728,6 +728,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    //paddingVertical: 10,
   },
   header: {
     flexDirection: 'row',

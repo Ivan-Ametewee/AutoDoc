@@ -29,7 +29,6 @@
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": false,
       "package": "com.ivanametewee.simulate",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

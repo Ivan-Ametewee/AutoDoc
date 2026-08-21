@@ -70,13 +70,13 @@ export default function DashboardScreen() {
   route: '/(tabs)/diagnostics',
   color: '#FF3B30',
  },
- {
-  id: 'fraud-detection',
-  title: 'Fraud Detection',
-  icon: 'shield-checkmark-outline' as const,
-  route: '/fraud-detection',
-  color: '#9C27B0',
- },
+//  {
+//   id: 'fraud-detection',
+//   title: 'Fraud Detection',
+//   icon: 'shield-checkmark-outline' as const,
+//   route: '/fraud-detection',
+//   color: '#9C27B0',
+//  },
  {
   id: 'history',
   title: 'History',
@@ -415,6 +415,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    paddingTop: 20,
   },
   centered: {
     justifyContent: 'center',

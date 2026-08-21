@@ -12,34 +12,20 @@ buildscript {
   }
 }
 
-def reactNativeAndroidDir = new File(
-  providers.exec {
-    workingDir(rootDir)
-    commandLine("node", "--print", "require.resolve('react-native/package.json')")
-  }.standardOutput.asText.get().trim(),
-  "../android"
-)
-
 allprojects {
   repositories {
-    maven {
-      // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-      url(reactNativeAndroidDir)
-    }
-
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
 }
 
-// 👇 Add this block to override compileSdkVersion for react-native-bluetooth-serial
 subprojects {
-  afterEvaluate { project ->
-    if (project.name == 'react-native-bluetooth-serial') {
-      project.android.compileSdkVersion = 35
+    afterEvaluate { project ->
+        if (project.name == "react-native-bluetooth-serial") {
+            project.android.compileSdkVersion = 36
+        }
     }
-  }
 }
 
 apply plugin: "expo-root-project"
