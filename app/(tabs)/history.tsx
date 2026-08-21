@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View,
   ViewStyle,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 interface DiagnosticSession {
@@ -137,7 +137,7 @@ interface Styles {
 export default function HistoryScreen() {
   const { theme, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
-  
+
   const [sessions, setSessions] = useState<DiagnosticSession[]>([
     {
       id: '1',
@@ -928,7 +928,6 @@ const createStyles = (theme: any) => StyleSheet.create<Styles>({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingVertical: 20,
   },
   header: {
     flexDirection: 'row',

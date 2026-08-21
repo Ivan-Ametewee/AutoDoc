@@ -1,7 +1,8 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   RefreshControl,
   ScrollView,
@@ -9,18 +10,16 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 
 // Import the single source of truth for all OBD interactions
+import { useSelector } from 'react-redux';
+import { useLiveOBDData } from '../../hooks/useLiveOBDData';
 import OBDIIService from '../../services/obdii/OBDIIService';
 import SettingsService from '../../services/settings/SettingsService';
-import { UnitConverter } from '../../utils/unitConversion';
 import { DataProcessor, ProcessedOBDData } from '../../utils/dataProcessing';
-import { useLiveOBDData } from '../../hooks/useLiveOBDData';
-import { useSelector } from 'react-redux';
 
 const { width } = Dimensions.get('window');
 
@@ -41,65 +40,65 @@ interface LiveDataState {
 export default function DashboardScreen() {
   const { theme, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
-  
+
   // Initialize the live OBD data hook to sync with Redux
   useLiveOBDData();
-  
+
   // Get odometer data from Redux store (shared with fraud detection)
   const reduxOdometer = useSelector((state: any) => state.data?.liveData?.odometer);
-  
+
   // --- State Management ---
   const [liveData, setLiveData] = useState<LiveDataState>({
     rpm: null, speed: null, coolantTemp: null, engineLoad: null, batteryVoltage: null,
     fuelLevel: null, throttlePosition: null, maf: null, intakeAirTemp: null, odometer: null,
   });
-  
+
   const [connectionStatus, setConnectionStatus] = useState(OBDIIService.getConnectionStatus().status);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [milActive, setMilActive] = useState(false);
-  
+
   // Unit preferences state
   const [tempUnit, setTempUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
   const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
 
   const quickActions = [
- {
-  id: 'diagnostics',
-  title: 'Diagnostics',
-  icon: 'medical-outline' as const,
-  route: '/(tabs)/diagnostics',
-  color: '#FF3B30',
- },
-//  {
-//   id: 'fraud-detection',
-//   title: 'Fraud Detection',
-//   icon: 'shield-checkmark-outline' as const,
-//   route: '/fraud-detection',
-//   color: '#9C27B0',
-//  },
- {
-  id: 'history',
-  title: 'History',
-  icon: 'time-outline' as const,
-  route: '/(tabs)/history',
-  color: '#007AFF',
- },
- {
-  id: 'alerts',
-  title: 'Alerts',
-  icon: 'notifications-outline' as const,
-  route: '/alerts',
-  color: '#FF9500',
- },
- {
-  id: 'reports',
-  title: 'Reports',
-  icon: 'document-text-outline' as const,
-  route: '/reports',
-  color: '#34C759',
- },
+    {
+      id: 'diagnostics',
+      title: 'Diagnostics',
+      icon: 'medical-outline' as const,
+      route: '/(tabs)/diagnostics',
+      color: '#FF3B30',
+    },
+    //  {
+    //   id: 'fraud-detection',
+    //   title: 'Fraud Detection',
+    //   icon: 'shield-checkmark-outline' as const,
+    //   route: '/fraud-detection',
+    //   color: '#9C27B0',
+    //  },
+    {
+      id: 'history',
+      title: 'History',
+      icon: 'time-outline' as const,
+      route: '/(tabs)/history',
+      color: '#007AFF',
+    },
+    {
+      id: 'alerts',
+      title: 'Alerts',
+      icon: 'notifications-outline' as const,
+      route: '/alerts',
+      color: '#FF9500',
+    },
+    {
+      id: 'reports',
+      title: 'Reports',
+      icon: 'document-text-outline' as const,
+      route: '/reports',
+      color: '#34C759',
+    },
 
- ];
+  ];
 
 
   // --- Data Subscription and Live Polling ---
@@ -111,20 +110,20 @@ export default function DashboardScreen() {
         setTempUnit(loadedSettings.temperature_unit);
         setDistanceUnit(loadedSettings.distance_unit);
       };
-      
+
       initializeSettings();
-      
+
       // Listen for settings changes
       const handleSettingsChange = () => {
         setTempUnit(SettingsService.getTemperatureUnit());
         setDistanceUnit(SettingsService.getDistanceUnit());
       };
-      
+
       SettingsService.on('settingChanged:temperature_unit', handleSettingsChange);
       SettingsService.on('settingChanged:distance_unit', handleSettingsChange);
-      
+
       const onDataUpdate = (event: string, data: any) => {
-        console.log(`[Dashboard] Received Event: ${event}`, JSON.stringify(data)); 
+        console.log(`[Dashboard] Received Event: ${event}`, JSON.stringify(data));
         if (event === 'connectionStatus') {
           setConnectionStatus(data.status);
           if (data.status !== 'connected') {
@@ -134,10 +133,10 @@ export default function DashboardScreen() {
           // Use centralized data processing for consistency
           const processedData = DataProcessor.processOBDData(data.name, data.value);
           console.log(`[Dashboard] Processed ${data.name}:`, processedData);
-          
+
           setLiveData(prevData => {
             const newData = { ...prevData };
-            
+
             // Update the appropriate field based on the PID name
             switch (data.name) {
               case 'ENGINE_RPM':
@@ -183,13 +182,13 @@ export default function DashboardScreen() {
           setMilActive(data.active);
         }
       };
-      
+
       const unsubscribe = OBDIIService.subscribe(onDataUpdate);
 
       // Start the live data stream when the screen is focused
       if (OBDIIService.getConnectionStatus().status === 'connected') {
         OBDIIService.startLiveData();
-        
+
         // Query MIL status initially and then periodically
         const queryMIL = async () => {
           try {
@@ -199,13 +198,13 @@ export default function DashboardScreen() {
             console.error('Failed to query MIL status:', error);
           }
         };
-        
+
         // Query immediately
         queryMIL();
-        
+
         // Query every 10 seconds
         const milInterval = setInterval(queryMIL, 10000);
-        
+
         // Store interval ID for cleanup
         (unsubscribe as any).milInterval = milInterval;
       }
@@ -213,16 +212,16 @@ export default function DashboardScreen() {
       // Cleanup function runs when the screen goes out of focus
       return () => {
         OBDIIService.stopLiveData();
-        
+
         // Clear MIL query interval if it exists
         if ((unsubscribe as any).milInterval) {
           clearInterval((unsubscribe as any).milInterval);
         }
-        
+
         // Remove settings listeners
         SettingsService.removeListener('settingChanged:temperature_unit', handleSettingsChange);
         SettingsService.removeListener('settingChanged:distance_unit', handleSettingsChange);
-        
+
         unsubscribe();
       };
     }, [])
@@ -242,11 +241,11 @@ export default function DashboardScreen() {
   };
 
   const handleQuickAction = (route: string) => router.push(route as any);
-  
+
   const formatValue = (processedData: ProcessedOBDData | null): string => {
     return processedData ? processedData.displayValue : '--';
   };
-  
+
   const getValueWithUnit = (processedData: ProcessedOBDData | null): string => {
     return processedData ? DataProcessor.formatForDisplay(processedData) : '--';
   };
@@ -302,10 +301,10 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>System Status</Text>
           <View style={styles.statusIndicators}>
             <View style={[styles.statusCard, milActive ? styles.statusCardActive : styles.statusCardInactive]}>
-              <Ionicons 
-                name="warning" 
-                size={24} 
-                color={milActive ? '#FF3B30' : '#8E8E93'} 
+              <Ionicons
+                name="warning"
+                size={24}
+                color={milActive ? '#FF3B30' : '#8E8E93'}
               />
               <Text style={[styles.statusLabel, { color: milActive ? '#FF3B30' : '#8E8E93' }]}>
                 Check Engine
@@ -362,50 +361,50 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
-          <View style={styles.section}>
-   <Text style={styles.sectionTitle}>Quick Actions</Text>
-   <View style={styles.quickActions}>
-   {quickActions.map((action, index) => (
-    <TouchableOpacity
-    key={`${action.id}-${index}`}
-    style={[styles.actionCard, { borderColor: action.color }]}
-    onPress={() => handleQuickAction(action.route)}
-    >
-    <View style={[styles.actionIcon, { backgroundColor: `${action.color}15` }]}>
-     <Ionicons name={action.icon} size={24} color={action.color} />
-    </View>
-    <Text style={styles.actionTitle}>{action.title}</Text>
-    </TouchableOpacity>
-   ))}
-   </View>
-  </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            {quickActions.map((action, index) => (
+              <TouchableOpacity
+                key={`${action.id}-${index}`}
+                style={[styles.actionCard, { borderColor: action.color }]}
+                onPress={() => handleQuickAction(action.route)}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: `${action.color}15` }]}>
+                  <Ionicons name={action.icon} size={24} color={action.color} />
+                </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
-  <View style={styles.section}>
-   <View style={styles.sectionHeader}>
-   <Text style={styles.sectionTitle}>Recent Activity</Text>
-   <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
-    <Text style={styles.seeAllText}>See All</Text>
-   </TouchableOpacity>
-   </View>
-   <View style={styles.activityCard}>
-   <View style={styles.activityItem}>
-    <Ionicons name="checkmark-circle" size={20} color="#34C759" />
-    <Text style={styles.activityText}>System scan completed - No issues found</Text>
-    <Text style={styles.activityTime}>2 min ago</Text>
-   </View>
-   <View style={styles.activityItem}>
-    <Ionicons name="information-circle" size={20} color="#007AFF" />
-    <Text style={styles.activityText}>Engine temperature within normal range</Text>
-    <Text style={styles.activityTime}>5 min ago</Text>
-   </View>
-   <View style={styles.activityItem}>
-    <Ionicons name="warning" size={20} color="#FF9500" />
-    <Text style={styles.activityText}>Low fuel level detected</Text>
-    <Text style={styles.activityTime}>1 hour ago</Text>
-   </View>
-   </View>
-  </View>
-        
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.activityCard}>
+            <View style={styles.activityItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+              <Text style={styles.activityText}>System scan completed - No issues found</Text>
+              <Text style={styles.activityTime}>2 min ago</Text>
+            </View>
+            <View style={styles.activityItem}>
+              <Ionicons name="information-circle" size={20} color="#007AFF" />
+              <Text style={styles.activityText}>Engine temperature within normal range</Text>
+              <Text style={styles.activityTime}>5 min ago</Text>
+            </View>
+            <View style={styles.activityItem}>
+              <Ionicons name="warning" size={20} color="#FF9500" />
+              <Text style={styles.activityText}>Low fuel level detected</Text>
+              <Text style={styles.activityTime}>1 hour ago</Text>
+            </View>
+          </View>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -415,7 +414,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingTop: 20,
   },
   centered: {
     justifyContent: 'center',
@@ -470,7 +468,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
-},
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -541,67 +539,67 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.text,
   },
   quickActions: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: 12,
- },
- actionCard: {
-  width: (width - 52) / 2,
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  padding: 16,
-  alignItems: 'center',
-  borderWidth: 1,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
- },
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionCard: {
+    width: (width - 52) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 
- actionIcon: {
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 12,
- },
+  actionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
 
- actionTitle: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: '#000000',
- },
+  actionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
 
- activityCard: {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 12,
-  padding: 16,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
- },
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
 
- activityItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: 12,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F2F2F7',
- },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
+  },
 
- activityText: {
-  flex: 1,
-  fontSize: 14,
-  color: '#000000',
-  marginLeft: 12,
+  activityText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#000000',
+    marginLeft: 12,
 
- },
+  },
 
- activityTime: {
+  activityTime: {
     fontSize: 12,
     color: '#8E8E93',
   },

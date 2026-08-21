@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  Modal,
-  TextInput,
-  Platform,
-  StatusBar,
-  Share,
-  SafeAreaView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import SettingsService, { AppSettings, SettingKey } from '../../services/settings/SettingsService';
-import ExportService from '../../services/export/ExportService';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import ExportService from '../../services/export/ExportService';
+import SettingsService, { AppSettings, SettingKey } from '../../services/settings/SettingsService';
 
 interface SettingsSection {
   title: string;
@@ -51,18 +49,18 @@ const SettingsScreen: React.FC = () => {
   useEffect(() => {
     loadAppSettings();
     setupSettingsListeners();
-    
+
     return () => {
       // Cleanup listeners
       SettingsService.removeAllListeners('settingChanged');
       SettingsService.removeAllListeners('settingsLoaded');
     };
   }, []);
-  
+
   useEffect(() => {
     buildSettingsData();
   }, [appSettings]);
-  
+
   const loadAppSettings = async () => {
     try {
       const loadedSettings = await SettingsService.loadSettings();
@@ -71,13 +69,13 @@ const SettingsScreen: React.FC = () => {
       console.error('Failed to load settings:', error);
     }
   };
-  
+
   const setupSettingsListeners = () => {
     SettingsService.on('settingChanged', ({ key, value }) => {
       console.log(`Setting ${key} changed to:`, value);
       setAppSettings(SettingsService.getAllSettings());
     });
-    
+
     SettingsService.on('settingsLoaded', (loadedSettings) => {
       setAppSettings(loadedSettings);
     });
@@ -337,7 +335,7 @@ const SettingsScreen: React.FC = () => {
 
     setSettings(settingsData);
   };
-  
+
   const getVehicleProfileText = (): string => {
     const profile = appSettings.vehicle_profile;
     if (profile.make && profile.model && profile.year) {
@@ -349,7 +347,7 @@ const SettingsScreen: React.FC = () => {
     }
     return 'Not configured';
   };
-  
+
   const getLanguageName = (code: string): string => {
     const languages: { [key: string]: string } = {
       en: 'English', es: 'Spanish', fr: 'French', de: 'German',
@@ -360,18 +358,18 @@ const SettingsScreen: React.FC = () => {
 
   const updateSetting = async (sectionIndex: number, itemIndex: number, newValue: any) => {
     const settingId = settings[sectionIndex].items[itemIndex].id as SettingKey;
-    
+
     try {
       setLoading(true);
-      
+
       // Convert string values to appropriate types
       let convertedValue: any = newValue;
       if (settingId === 'connection_timeout' || settingId === 'logging_frequency' || settingId === 'storage_limit') {
         convertedValue = parseInt(newValue, 10);
       }
-      
+
       const success = await SettingsService.updateSetting(settingId, convertedValue);
-      
+
       if (success) {
         console.log(`Setting ${settingId} updated to:`, convertedValue);
         // Settings will be updated via the listener
@@ -456,7 +454,7 @@ const SettingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              
+
               // Show options for export type
               Alert.alert(
                 'Export Data',
@@ -561,8 +559,6 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.headerBackground} />
-      
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
@@ -587,10 +583,10 @@ const SettingsScreen: React.FC = () => {
                   disabled={item.type === 'toggle'}
                 >
                   <View style={styles.settingIcon}>
-                    <Ionicons 
-                      name={item.icon as any} 
-                      size={20} 
-                      color={item.destructive ? theme.colors.error : theme.colors.primary} 
+                    <Ionicons
+                      name={item.icon as any}
+                      size={20}
+                      color={item.destructive ? theme.colors.error : theme.colors.primary}
                     />
                   </View>
                   <View style={styles.settingContent}>
@@ -647,7 +643,7 @@ const SettingsScreen: React.FC = () => {
                 <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            
+
             {selectedSetting?.type === 'selection' && (
               <ScrollView style={styles.optionsList}>
                 {selectedSetting.options?.map((option) => (

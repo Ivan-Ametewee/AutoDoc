@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
-  SafeAreaView,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
 import OBDIIService from '../../services/obdii/OBDIIService';
 import { unifiedDTCService } from '../../services/obdii/UnifiedDTCService';
 import SettingsService from '../../services/settings/SettingsService';
-import { UnitConverter } from '../../utils/unitConversion';
 import { DataProcessor } from '../../utils/dataProcessing';
+import { UnitConverter } from '../../utils/unitConversion';
 
 interface DiagnosticTroubleCode {
   code: string;
@@ -57,7 +57,7 @@ export default function DiagnosticsScreen() {
   const { theme, isDark } = useTheme();
   const styles = useThemedStyles(createStyles);
   const [dtcCodes, setDtcCodes] = useState<DiagnosticTroubleCode[]>([]);
-  
+
   // Unit preferences state
   const [tempUnit, setTempUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
   const [distanceUnit, setDistanceUnit] = useState<'km' | 'miles'>('km');
@@ -122,7 +122,7 @@ export default function DiagnosticsScreen() {
         if (monitorData.description) {
           displayName = monitorData.description;
         }
-        
+
         if (!monitorData.supported) {
           status = 'unsupported';
         } else if (monitorData.ready) {
@@ -157,13 +157,13 @@ export default function DiagnosticsScreen() {
   // Load DTCs on component mount and manage live data
   useEffect(() => {
     loadDTCs();
-    
+
     // Initialize unit preferences from settings
     const initializeSettings = async () => {
       const loadedSettings = await SettingsService.loadSettings();
       setTempUnit(loadedSettings.temperature_unit);
       setDistanceUnit(loadedSettings.distance_unit);
-      
+
       // Update live data units based on settings
       setLiveData(prev => prev.map(item => {
         switch (item.parameter) {
@@ -179,14 +179,14 @@ export default function DiagnosticsScreen() {
         }
       }));
     };
-    
+
     initializeSettings();
-    
+
     // Start live data polling if connected
     const connectionStatus = OBDIIService.getConnectionStatus();
     if (connectionStatus.status === 'connected') {
       OBDIIService.startLiveData();
-      
+
       // Query initial system readiness status using Mode 05/06
       const initialReadinessQuery = async () => {
         try {
@@ -196,17 +196,17 @@ export default function DiagnosticsScreen() {
           console.error('Diagnostics: Failed to query initial system readiness:', error);
         }
       };
-      
+
       initialReadinessQuery();
     }
-    
+
     // Listen for settings changes
     const handleSettingsChange = () => {
       const newTempUnit = SettingsService.getTemperatureUnit();
       const newDistanceUnit = SettingsService.getDistanceUnit();
       setTempUnit(newTempUnit);
       setDistanceUnit(newDistanceUnit);
-      
+
       // Update live data units
       setLiveData(prev => prev.map(item => {
         switch (item.parameter) {
@@ -222,10 +222,10 @@ export default function DiagnosticsScreen() {
         }
       }));
     };
-    
+
     SettingsService.on('settingChanged:temperature_unit', handleSettingsChange);
     SettingsService.on('settingChanged:distance_unit', handleSettingsChange);
-    
+
     // Subscribe to DTC events and live data from OBDIIService
     const unsubscribe = OBDIIService.subscribe((event, data) => {
       if (event === 'dtcScanComplete') {
@@ -239,10 +239,10 @@ export default function DiagnosticsScreen() {
       } else if (event === 'dataUpdate') {
         // Update live data based on OBD-II data updates
         console.log('Diagnostics: Received dataUpdate:', data.name, '=', data.value);
-        
+
         const processedData = DataProcessor.processOBDData(data.name, data.value);
         console.log('Diagnostics: Processed data:', processedData);
-        
+
         setLiveData(prev => prev.map(item => {
           // Map OBD-II PID names to display parameter names
           const parameterMap: { [key: string]: string } = {
@@ -261,9 +261,9 @@ export default function DiagnosticsScreen() {
             'VEHICLE_ODOMETER': 'Odometer',
             'TOTAL_DISTANCE_TRAVELED': 'Odometer'
           };
-          
+
           const matchingParameter = parameterMap[data.name];
-          
+
           if (item.parameter === matchingParameter) {
             return {
               ...item,
@@ -272,7 +272,7 @@ export default function DiagnosticsScreen() {
               status: processedData.status
             };
           }
-          
+
           return item;
         }));
       } else if (event === 'connectionStatus') {
@@ -284,12 +284,12 @@ export default function DiagnosticsScreen() {
         setSystemStatuses(updatedSystemStatuses);
       }
     });
-    
+
     return () => {
       // Remove settings listeners
       SettingsService.removeListener('settingChanged:temperature_unit', handleSettingsChange);
       SettingsService.removeListener('settingChanged:distance_unit', handleSettingsChange);
-      
+
       if (unsubscribe) unsubscribe();
       OBDIIService.stopLiveData();
     };
@@ -300,12 +300,12 @@ export default function DiagnosticsScreen() {
     useCallback(() => {
       const connectionStatus = OBDIIService.getConnectionStatus();
       console.log('Diagnostics: Connection status:', connectionStatus);
-      
+
       if (connectionStatus.status === 'connected') {
         // Always ensure live data is running when this screen is focused
         console.log('Diagnostics: Starting live data...');
         OBDIIService.startLiveData();
-        
+
         // Query system readiness status using proper Mode 05/06 methods
         const querySystemReadiness = async () => {
           try {
@@ -315,27 +315,27 @@ export default function DiagnosticsScreen() {
             console.error('Diagnostics: Failed to query system readiness:', error);
           }
         };
-        
+
         // Query immediately and then periodically
         querySystemReadiness();
         const readinessInterval = setInterval(querySystemReadiness, 10000); // Every 10 seconds
-        
+
         // Check which PIDs are being polled
         setTimeout(() => {
           const activePIDs = OBDIIService.getActivePollingPIDs();
           console.log('Diagnostics: Active polling PIDs:', activePIDs);
         }, 1000);
-        
+
         // Store interval ID for cleanup
         (useFocusEffect as any).readinessInterval = readinessInterval;
       }
-      
+
       return () => {
         // Clean up readiness query interval
         if ((useFocusEffect as any).readinessInterval) {
           clearInterval((useFocusEffect as any).readinessInterval);
         }
-        
+
         // Don't stop live data here as other screens might need it
         // The dashboard will manage the global live data state
       };
@@ -357,7 +357,7 @@ export default function DiagnosticsScreen() {
 
   const handleScanDTC = async () => {
     setIsScanning(true);
-    
+
     try {
       const connectionStatus = OBDIIService.getConnectionStatus();
       if (connectionStatus.status !== 'connected') {
@@ -374,7 +374,7 @@ export default function DiagnosticsScreen() {
       console.log('📡 Step 1: Querying MIL status to determine DTC count...');
       const milStatus = await OBDIIService.queryMILStatus();
       console.log('📊 MIL Status Result:', milStatus);
-      
+
       // Step 2: If DTCs are present, scan for actual codes (Mode 03)
       let dtcs = [];
       if (milStatus.dtcCount > 0) {
@@ -385,17 +385,17 @@ export default function DiagnosticsScreen() {
         console.log('✅ No DTCs stored, skipping Mode 03 scan');
         setDtcCodes([]);
       }
-      
+
       // Show comprehensive scan results
       const milStatusText = milStatus.milActive ? 'MIL ON' : 'MIL OFF';
       const activeCodes = dtcs.filter(code => code.status === 'active').length;
-      
+
       Alert.alert(
         'Scan Complete',
         `${milStatusText}\n` +
         `Stored DTCs: ${milStatus.dtcCount}\n` +
         `Active DTCs Found: ${activeCodes}\n\n` +
-        `${milStatus.dtcCount === 0 ? 'No diagnostic trouble codes found.' : 
+        `${milStatus.dtcCount === 0 ? 'No diagnostic trouble codes found.' :
           `Found ${activeCodes} active diagnostic trouble code${activeCodes !== 1 ? 's' : ''} out of ${milStatus.dtcCount} stored.`}`,
         [{ text: 'OK' }]
       );
@@ -433,12 +433,12 @@ export default function DiagnosticsScreen() {
           onPress: async () => {
             try {
               const success = await OBDIIService.clearDTC();
-              
+
               if (success) {
                 // Clear all DTCs from the list since they've been successfully cleared
                 setDtcCodes([]);
                 Alert.alert(
-                  'Success', 
+                  'Success',
                   'All diagnostic codes have been cleared and the Check Engine Light has turned off.'
                 );
               } else {
@@ -547,57 +547,57 @@ export default function DiagnosticsScreen() {
         ) : (
           dtcCodes.filter(code => code.status !== 'cleared').map((code: DiagnosticTroubleCode, index: number) => (
             <TouchableOpacity
-            key={`dtc-${code.code}-${index}`}
-            style={styles.codeItem}
-            onPress={async () => {
-              setSelectedDTC(code);
-              setShowDTCModal(true);
-              
-              // Refresh freeze frame data when DTC is selected
-              if (code.code) {
-                setLoadingFreezeFrame(true);
-                try {
-                  const connectionStatus = OBDIIService.getConnectionStatus();
-                  if (connectionStatus.status === 'connected') {
-                    const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
-                    
-                    // Update the selected DTC with fresh freeze frame data
-                    setSelectedDTC((prev: DiagnosticTroubleCode | null) => prev ? {
-                      ...prev,
-                      freezeFrameData: {
-                        ...freezeFrameData,
-                        timestamp: freezeFrameData.timestamp || new Date()
-                      }
-                    } : null);
+              key={`dtc-${code.code}-${index}`}
+              style={styles.codeItem}
+              onPress={async () => {
+                setSelectedDTC(code);
+                setShowDTCModal(true);
+
+                // Refresh freeze frame data when DTC is selected
+                if (code.code) {
+                  setLoadingFreezeFrame(true);
+                  try {
+                    const connectionStatus = OBDIIService.getConnectionStatus();
+                    if (connectionStatus.status === 'connected') {
+                      const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
+
+                      // Update the selected DTC with fresh freeze frame data
+                      setSelectedDTC((prev: DiagnosticTroubleCode | null) => prev ? {
+                        ...prev,
+                        freezeFrameData: {
+                          ...freezeFrameData,
+                          timestamp: freezeFrameData.timestamp || new Date()
+                        }
+                      } : null);
+                    }
+                  } catch (error) {
+                    console.error('Failed to refresh freeze frame data:', error);
+                  } finally {
+                    setLoadingFreezeFrame(false);
                   }
-                } catch (error) {
-                  console.error('Failed to refresh freeze frame data:', error);
-                } finally {
-                  setLoadingFreezeFrame(false);
                 }
-              }
-            }}
-          >
-            <View style={styles.codeHeader}>
-              <Text style={styles.codeNumber}>{code.code}</Text>
-              <View style={styles.codeStatus}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: getSeverityColor(code.severity) },
-                  ]}
-                />
-                <Text style={[styles.statusText, { color: getStatusColor(code.status) }]}>
-                  {code.status.toUpperCase()}
-                </Text>
+              }}
+            >
+              <View style={styles.codeHeader}>
+                <Text style={styles.codeNumber}>{code.code}</Text>
+                <View style={styles.codeStatus}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: getSeverityColor(code.severity) },
+                    ]}
+                  />
+                  <Text style={[styles.statusText, { color: getStatusColor(code.status) }]}>
+                    {code.status.toUpperCase()}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.codeDescription}>{code.description}</Text>
-            <View style={styles.codeFooter}>
-              <Text style={styles.codeSystem}>{code.system.toUpperCase()}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#666" />
-            </View>
-          </TouchableOpacity>
+              <Text style={styles.codeDescription}>{code.description}</Text>
+              <View style={styles.codeFooter}>
+                <Text style={styles.codeSystem}>{code.system.toUpperCase()}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#666" />
+              </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -687,7 +687,7 @@ export default function DiagnosticsScreen() {
           autoCorrect={false}
         />
       </View>
-      
+
       <ScrollView style={styles.searchResults}>
         {searchQuery.trim() === '' ? (
           <View style={styles.searchInstructions}>
@@ -717,9 +717,9 @@ export default function DiagnosticsScreen() {
                   severity: result.severity === 'critical' ? 'critical' : result.severity === 'high' ? 'critical' : result.severity === 'medium' ? 'moderate' : 'minor',
                   status: 'cleared' as const,
                   system: result.system.toLowerCase() === 'powertrain' ? 'engine' as const :
-                          result.system.toLowerCase() === 'body' ? 'airbag' as const :
-                          result.system.toLowerCase() === 'chassis' ? 'abs' as const :
-                          result.system.toLowerCase() === 'network/communication' ? 'electrical' as const : 'engine' as const
+                    result.system.toLowerCase() === 'body' ? 'airbag' as const :
+                      result.system.toLowerCase() === 'chassis' ? 'abs' as const :
+                        result.system.toLowerCase() === 'network/communication' ? 'electrical' as const : 'engine' as const
                 });
                 setShowDTCModal(true);
               }}
@@ -809,7 +809,7 @@ export default function DiagnosticsScreen() {
               <Ionicons name="close" size={24} color="#007AFF" />
             </TouchableOpacity>
           </View>
-          
+
           {selectedDTC && (
             <ScrollView style={styles.modalContent}>
               <View style={styles.dtcDetailHeader}>
@@ -818,21 +818,21 @@ export default function DiagnosticsScreen() {
                   <Text style={styles.dtcDetailSeverityText}>{selectedDTC.severity.toUpperCase()}</Text>
                 </View>
               </View>
-              
+
               <Text style={styles.dtcDetailDescription}>{selectedDTC.description}</Text>
-              
+
               <View style={styles.dtcDetailSection}>
                 <Text style={styles.dtcDetailSectionTitle}>System</Text>
                 <Text style={styles.dtcDetailSectionValue}>{selectedDTC.system.toUpperCase()}</Text>
               </View>
-              
+
               <View style={styles.dtcDetailSection}>
                 <Text style={styles.dtcDetailSectionTitle}>Status</Text>
                 <Text style={[styles.dtcDetailSectionValue, { color: getStatusColor(selectedDTC.status) }]}>
                   {selectedDTC.status.toUpperCase()}
                 </Text>
               </View>
-              
+
               {/* Additional DTC Information from unified database */}
               {(() => {
                 const dtcInfo = unifiedDTCService.getDTCInfo(selectedDTC.code);
@@ -846,7 +846,7 @@ export default function DiagnosticsScreen() {
                         ))}
                       </View>
                     )}
-                    
+
                     {dtcInfo.symptoms && dtcInfo.symptoms.length > 0 && (
                       <View style={styles.dtcDetailSection}>
                         <Text style={styles.dtcDetailSectionTitle}>Symptoms</Text>
@@ -855,7 +855,7 @@ export default function DiagnosticsScreen() {
                         ))}
                       </View>
                     )}
-                    
+
                     {dtcInfo.solutions && dtcInfo.solutions.length > 0 && (
                       <View style={styles.dtcDetailSection}>
                         <Text style={styles.dtcDetailSectionTitle}>Diagnostic Steps</Text>
@@ -887,8 +887,8 @@ export default function DiagnosticsScreen() {
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>Speed</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.speed !== null && selectedDTC.freezeFrameData.speed !== undefined ? 
-                            `${Math.round(UnitConverter.convertSpeed(selectedDTC.freezeFrameData.speed, true))} ${distanceUnit === 'miles' ? 'mph' : 'km/h'}` : 
+                          {selectedDTC.freezeFrameData.speed !== null && selectedDTC.freezeFrameData.speed !== undefined ?
+                            `${Math.round(UnitConverter.convertSpeed(selectedDTC.freezeFrameData.speed, true))} ${distanceUnit === 'miles' ? 'mph' : 'km/h'}` :
                             'N/A'}
                         </Text>
                       </View>
@@ -901,8 +901,8 @@ export default function DiagnosticsScreen() {
                       <View style={styles.freezeFrameItem}>
                         <Text style={styles.freezeFrameLabel}>Coolant</Text>
                         <Text style={styles.freezeFrameValue}>
-                          {selectedDTC.freezeFrameData.coolantTemp !== null && selectedDTC.freezeFrameData.coolantTemp !== undefined ? 
-                            `${Math.round(UnitConverter.convertTemperature(selectedDTC.freezeFrameData.coolantTemp, true))}${tempUnit === 'fahrenheit' ? '°F' : '°C'}` : 
+                          {selectedDTC.freezeFrameData.coolantTemp !== null && selectedDTC.freezeFrameData.coolantTemp !== undefined ?
+                            `${Math.round(UnitConverter.convertTemperature(selectedDTC.freezeFrameData.coolantTemp, true))}${tempUnit === 'fahrenheit' ? '°F' : '°C'}` :
                             'N/A'}
                         </Text>
                       </View>
@@ -940,8 +940,8 @@ export default function DiagnosticsScreen() {
                       )}
                     </View>
                     <Text style={styles.freezeFrameTimestamp}>
-                      Recorded: {selectedDTC.freezeFrameData.timestamp ? 
-                        new Date(selectedDTC.freezeFrameData.timestamp).toLocaleString() : 
+                      Recorded: {selectedDTC.freezeFrameData.timestamp ?
+                        new Date(selectedDTC.freezeFrameData.timestamp).toLocaleString() :
                         'Unknown'}
                     </Text>
                   </>
@@ -961,7 +961,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingVertical: 20,
   },
   header: {
     flexDirection: 'row',
