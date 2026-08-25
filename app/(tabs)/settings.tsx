@@ -68,13 +68,13 @@ const SettingsScreen: React.FC = () => {
       const loadedSettings = await SettingsService.loadSettings();
       setAppSettings(loadedSettings);
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      
     }
   };
   
   const setupSettingsListeners = () => {
     SettingsService.on('settingChanged', ({ key, value }) => {
-      console.log(`Setting ${key} changed to:`, value);
+      
       setAppSettings(SettingsService.getAllSettings());
     });
     
@@ -373,13 +373,13 @@ const SettingsScreen: React.FC = () => {
       const success = await SettingsService.updateSetting(settingId, convertedValue);
       
       if (success) {
-        console.log(`Setting ${settingId} updated to:`, convertedValue);
+        
         // Settings will be updated via the listener
       } else {
         Alert.alert('Error', 'Failed to update setting. Please try again.');
       }
     } catch (error: any) {
-      console.error('Error updating setting:', error);
+      
       Alert.alert('Error', `Failed to update ${settingId}: ${error.message}`);
     } finally {
       setLoading(false);

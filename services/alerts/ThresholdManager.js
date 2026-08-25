@@ -28,9 +28,9 @@ export class ThresholdManager extends EventEmitter {
       await this.loadAdaptiveSettings();
       await this.loadHistoricalData();
       this.isInitialized = true;
-      console.log('ThresholdManager initialized successfully');
+      
     } catch (error) {
-      console.error('Failed to initialize ThresholdManager:', error);
+      
       throw error;
     }
   }
@@ -47,7 +47,7 @@ export class ThresholdManager extends EventEmitter {
         this.initializeDefaultThresholds();
       }
     } catch (error) {
-      console.error('Error loading thresholds from database:', error);
+      
       this.initializeDefaultThresholds();
     }
   }
@@ -225,7 +225,7 @@ export class ThresholdManager extends EventEmitter {
         this.initializeDefaultProfiles();
       }
     } catch (error) {
-      console.error('Error loading vehicle profiles from database:', error);
+      
       this.initializeDefaultProfiles();
     }
   }
@@ -295,7 +295,7 @@ export class ThresholdManager extends EventEmitter {
         this.adaptiveSettings = { ...this.adaptiveSettings, ...settings };
       }
     } catch (error) {
-      console.error('Error loading adaptive settings from database:', error);
+      
     }
   }
 
@@ -305,7 +305,7 @@ export class ThresholdManager extends EventEmitter {
       const data = await DatabaseService.getHistoricalThresholdData();
       this.historicalData = new Map(data || []);
     } catch (error) {
-      console.error('Error loading historical data:', error);
+      
     }
   }
 
@@ -563,7 +563,7 @@ export class ThresholdManager extends EventEmitter {
       this.emit('thresholdsImported', { thresholds, profiles, settings });
       return true;
     } catch (error) {
-      console.error('Error importing thresholds:', error);
+      
       throw error;
     }
   }
@@ -592,7 +592,7 @@ export class ThresholdManager extends EventEmitter {
       
       await DatabaseService.saveThresholdConfigurations(data);
     } catch (error) {
-      console.error('Error saving thresholds to database:', error);
+      
     }
   }
 
@@ -607,7 +607,7 @@ export class ThresholdManager extends EventEmitter {
       
       await DatabaseService.saveVehicleProfiles(profiles);
     } catch (error) {
-      console.error('Error saving vehicle profiles to database:', error);
+      
     }
   }
 

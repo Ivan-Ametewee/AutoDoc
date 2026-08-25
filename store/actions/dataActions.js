@@ -94,7 +94,7 @@ export const startDataStreaming = (pids = []) => async (dispatch, getState) => {
         const pidData = await dataService.requestMultiplePIDs(streamingPids);
         dispatch(updateRealTimeData(pidData));
       } catch (error) {
-        console.error('Data streaming error:', error);
+        
         dispatch({
           type: DATA_TYPES.DATA_PROCESSING_ERROR,
           payload: { error: error.message }
@@ -227,7 +227,7 @@ export const saveDataPoint = (dataPoint) => async (dispatch) => {
       payload: { dataPoint }
     });
   } catch (error) {
-    console.error('Error saving data point:', error);
+    
   }
 };
 
@@ -330,7 +330,7 @@ export const checkDataAlerts = (data) => (dispatch, getState) => {
       });
     });
   } catch (error) {
-    console.error('Error checking alerts:', error);
+    
   }
 };
 

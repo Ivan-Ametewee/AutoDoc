@@ -57,17 +57,17 @@ export function useLiveOBDData() {
         year: vehicleInfo.year ?? undefined,
         vin: vehicleInfo.vin
       });
-      console.log('🚗 Vehicle info set in OBD service:', vehicleInfo);
+      
     }
   }, [vehicleInfo, isConnected]);
 
   useEffect(() => {
     if (!shouldListen) return;
 
-    console.log('Setting up OBD data subscription...');
+    
 
     const unsubscribe = OBDIIService.subscribe((eventType: string, data: any) => {
-      console.log('OBD Service event:', eventType, data);
+      
       
       if (eventType === 'dataUpdate' && data) {
         const pidData = data as ParsedPIDData;
@@ -96,7 +96,7 @@ export function useLiveOBDData() {
             
             // Only trigger fraud detection if odometer reading has changed
             if (lastOdometerReading === null || currentOdometer !== lastOdometerReading) {
-              console.log(`🔍 New odometer reading detected: ${currentOdometer} km (previous: ${lastOdometerReading || 'none'})`);
+              
               
               const odometerReading = createOdometerReading(vehicleData, 'obd');
               
@@ -106,7 +106,7 @@ export function useLiveOBDData() {
               // Update last reading
               setLastOdometerReading(currentOdometer);
               
-              console.log(`✅ Fraud detection triggered for odometer reading: ${currentOdometer} km`);
+              
             }
           }
           
@@ -114,11 +114,7 @@ export function useLiveOBDData() {
           else if (vehicleData.distanceSinceCodesCleared !== undefined || 
                    vehicleData.distanceWithMILOn !== undefined) {
             
-            console.log('📊 Processing fraud detection supporting data:', {
-              distanceSinceCodesCleared: vehicleData.distanceSinceCodesCleared,
-              distanceWithMILOn: vehicleData.distanceWithMILOn,
-              engineHours: vehicleData.engineHours
-            });
+            
             
             // Create reading with available distance data
             const supportingReading = {
@@ -130,14 +126,14 @@ export function useLiveOBDData() {
             
             if (supportingReading.odometer && supportingReading.odometer > 0) {
               dispatch(validateOdometerReading(supportingReading) as any);
-              console.log('📈 Fraud detection triggered with supporting distance data');
+              
             }
           }
         }
         
-        console.log('Processed PID data:', pidData.name, '=', pidData.value, vehicleData);
+        
       } else if (eventType === 'connectionStatus') {
-        console.log('Connection status update:', data);
+        
         
         // **FIX**: Dispatch connection status to Redux store for PID test screen
         const { status, type, device, error } = data;
@@ -173,38 +169,34 @@ export function useLiveOBDData() {
           const activeOdometerPID = OBDIIService.getActiveOdometerPID();
           const mode22Supported = OBDIIService.isMode22Supported();
           
-          console.log('🔧 OBD Connection Details:', {
-            activeOdometerPID,
-            mode22Supported,
-            vehicleMake: vehicleInfo?.make || 'Unknown'
-          });
+          
         }
       }
     });
 
     // Start live data if we're connected and the service is initialized
     if (OBDIIService.isThisInitialized()) {
-      console.log('Starting live data stream...');
+      
       OBDIIService.startLiveData();
       
       // Log polling information
       setTimeout(() => {
         const activePollingPIDs = OBDIIService.getActivePollingPIDs();
-        console.log('📡 Active polling PIDs:', activePollingPIDs);
+        
         
         const activeOdometerPID = OBDIIService.getActiveOdometerPID();
         if (activeOdometerPID && activePollingPIDs.includes(activeOdometerPID)) {
-          console.log('✅ Odometer PID is being actively polled:', activeOdometerPID);
+          
         } else if (activeOdometerPID) {
-          console.log('⚠️ Odometer PID configured but not polling:', activeOdometerPID);
+          
         } else {
-          console.log('❌ No odometer PID configured for this vehicle');
+          
         }
       }, 2000);
     }
 
     return () => {
-      console.log('Cleaning up OBD data subscription...');
+      
       unsubscribe?.();
       OBDIIService.stopLiveData();
     };
@@ -212,13 +204,13 @@ export function useLiveOBDData() {
 
   useEffect(() => {
     if (connectionType === 'simulation') {
-      console.log('Enabling simulation mode...');
+      
       OBDIIService.enableSimulation();
     }
 
     return () => {
       if (connectionType === 'simulation') {
-        console.log('Stopping simulation...');
+        
         simulationService.stopSimulation();
       }
     };
@@ -227,10 +219,10 @@ export function useLiveOBDData() {
   // Monitor connection status changes
   useEffect(() => {
     if (isConnected && OBDIIService.isThisInitialized()) {
-      console.log('Connection established, starting live data...');
+      
       OBDIIService.startLiveData();
     } else if (!isConnected && !isConnecting) {
-      console.log('Connection lost, stopping live data...');
+      
       OBDIIService.stopLiveData();
       setAccumulatedData({});
       setLastOdometerReading(null);
@@ -245,9 +237,9 @@ export function useLiveOBDData() {
     if (hasOdometerData(accumulatedData)) {
       const odometerReading = createOdometerReading(accumulatedData, 'manual');
       dispatch(validateOdometerReading(odometerReading) as any);
-      console.log('🔍 Manual fraud check triggered');
+      
     } else {
-      console.warn('No odometer data available for manual fraud check');
+      
     }
   };
 

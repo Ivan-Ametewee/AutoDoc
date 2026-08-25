@@ -31,7 +31,7 @@ class ExportService {
    */
   public async exportCompleteData(): Promise<string> {
     try {
-      console.log('📤 [EXPORT] Starting complete data export...');
+      
 
       const exportData: ExportData = {
         metadata: {
@@ -55,18 +55,18 @@ class ExportService {
         // Get DTC codes
         exportData.dtcCodes = await dbService.getStoredDTCs();
         
-        console.log('📤 [EXPORT] Database data included in export');
+        
       } catch (error) {
-        console.warn('📤 [EXPORT] Could not access database data:', error);
+        
         // Continue without database data
       }
 
       const jsonString = JSON.stringify(exportData, null, 2);
-      console.log(`📤 [EXPORT] Complete export data size: ${jsonString.length} characters`);
+      
       
       return jsonString;
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error exporting complete data:', error.message);
+      
       throw new Error(`Failed to export data: ${error.message}`);
     }
   }
@@ -76,7 +76,7 @@ class ExportService {
    */
   public async exportSettings(): Promise<string> {
     try {
-      console.log('📤 [EXPORT] Exporting settings only...');
+      
 
       const exportData: ExportData = {
         metadata: {
@@ -89,7 +89,7 @@ class ExportService {
 
       return JSON.stringify(exportData, null, 2);
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error exporting settings:', error.message);
+      
       throw new Error(`Failed to export settings: ${error.message}`);
     }
   }
@@ -99,7 +99,7 @@ class ExportService {
    */
   public async exportDiagnosticsCSV(): Promise<string> {
     try {
-      console.log('📤 [EXPORT] Exporting diagnostics as CSV...');
+      
 
       const dbService = DatabaseService;
       const diagnosticHistory = await dbService.getDiagnosticHistory();
@@ -120,10 +120,10 @@ class ExportService {
         csvContent += `${dateStr},${timeStr},${record.pid || ''},\"${record.parameter || ''}\",${record.value || ''},\"${record.unit || ''}\",\"${record.status || ''}\"\\n`;
       });
 
-      console.log(`📤 [EXPORT] CSV export completed with ${diagnosticHistory.length} records`);
+      
       return csvContent;
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error exporting CSV:', error.message);
+      
       throw new Error(`Failed to export CSV: ${error.message}`);
     }
   }
@@ -137,7 +137,7 @@ class ExportService {
     mimeType: string = 'application/json'
   ): Promise<boolean> {
     try {
-      console.log(`📤 [EXPORT] Sharing data as ${filename}...`);
+      
 
       // Create file in document directory
       const fileUri = `${FileSystem.documentDirectory}${filename}`;
@@ -149,19 +149,19 @@ class ExportService {
           dialogTitle: 'Export Vehicle Diagnostics Data',
           mimeType: mimeType,
         });
-        console.log('📤 [EXPORT] Data shared via Expo Sharing');
+        
       } else {
         // Fallback to React Native Share API
         await Share.share({
           message: data,
           title: 'Vehicle Diagnostics Export',
         });
-        console.log('📤 [EXPORT] Data shared via React Native Share');
+        
       }
 
       return true;
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error sharing data:', error.message);
+      
       throw new Error(`Failed to share data: ${error.message}`);
     }
   }
@@ -181,7 +181,7 @@ class ExportService {
    */
   public async importSettings(jsonData: string): Promise<boolean> {
     try {
-      console.log('📥 [IMPORT] Importing settings...');
+      
 
       const importData: ExportData = JSON.parse(jsonData);
       
@@ -198,12 +198,12 @@ class ExportService {
       const success = await SettingsService.importSettings(JSON.stringify(importData.settings));
       
       if (success) {
-        console.log('📥 [IMPORT] Settings imported successfully');
+        
       }
       
       return success;
     } catch (error: any) {
-      console.error('📥 [IMPORT] Error importing settings:', error.message);
+      
       throw new Error(`Failed to import settings: ${error.message}`);
     }
   }
@@ -262,7 +262,7 @@ class ExportService {
         },
       };
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error getting storage info:', error.message);
+      
       throw error;
     }
   }
@@ -285,7 +285,7 @@ class ExportService {
    */
   public async cleanupTempFiles(): Promise<boolean> {
     try {
-      console.log('📤 [EXPORT] Cleaning up temporary files...');
+      
 
       const docDir = FileSystem.documentDirectory;
       if (!docDir) return false;
@@ -307,14 +307,14 @@ class ExportService {
           
           if (fileAge > oneDayInMs) {
             await FileSystem.deleteAsync(filePath);
-            console.log(`📤 [EXPORT] Deleted old temp file: ${file}`);
+            
           }
         }
       }
 
       return true;
     } catch (error: any) {
-      console.error('📤 [EXPORT] Error cleaning up temp files:', error.message);
+      
       return false;
     }
   }

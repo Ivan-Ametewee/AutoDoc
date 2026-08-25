@@ -418,7 +418,7 @@ class PDFGenerator {
       const pdf = await RNHTMLtoPDF.convert(pdfOptions);
       return pdf.filePath;
     } catch (error) {
-      console.error('PDF generation failed:', error);
+      
       throw new Error(`Failed to generate PDF: ${error.message}`);
     }
   }

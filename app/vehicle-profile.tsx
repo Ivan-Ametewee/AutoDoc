@@ -113,7 +113,7 @@ const VehicleProfileScreen: React.FC = () => {
 
       setHasPermissions(cameraStatus === 'granted' && imageStatus === 'granted');
     } catch (error) {
-      console.log('Permission request failed:', error);
+      
       setHasPermissions(false);
     }
   };

@@ -132,7 +132,7 @@ export const updateSetting = (key, value) => async (dispatch) => {
   try {
     await DatabaseService.saveSetting(key, value);
   } catch (error) {
-    console.error('Error saving setting:', error);
+    
   }
 };
 
@@ -151,7 +151,7 @@ export const updateMultipleSettings = (settings) => async (dispatch) => {
   try {
     await DatabaseService.saveMultipleSettings(settings);
   } catch (error) {
-    console.error('Error saving settings:', error);
+    
   }
 };
 
@@ -164,7 +164,7 @@ export const resetSettings = () => async (dispatch) => {
   try {
     await DatabaseService.resetSettings();
   } catch (error) {
-    console.error('Error resetting settings:', error);
+    
   }
 };
 
@@ -179,7 +179,7 @@ export const loadSettings = () => async (dispatch) => {
     
     return settings;
   } catch (error) {
-    console.error('Error loading settings:', error);
+    
     // Load defaults on error
     dispatch({
       type: SETTINGS_TYPES.LOAD_SETTINGS,
@@ -411,7 +411,7 @@ export const exportSettings = () => async (dispatch, getState) => {
     const ExportService = require('../../services/export/ExportService').default;
     return await ExportService.exportSettings(settings);
   } catch (error) {
-    console.error('Error exporting settings:', error);
+    
     throw error;
   }
 };
@@ -425,7 +425,7 @@ export const importSettings = (settingsData) => async (dispatch) => {
     
     return validatedSettings;
   } catch (error) {
-    console.error('Error importing settings:', error);
+    
     throw error;
   }
 };

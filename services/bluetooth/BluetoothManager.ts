@@ -121,7 +121,7 @@ class BluetoothManager extends EventEmitter {
 
   async initialize(): Promise<boolean> {
     try {
-      console.log('Initializing Bluetooth Manager...');
+      
       const hasPermissions = await this.bluetoothService.requestPermissions();
       
       if (!hasPermissions) {
@@ -136,13 +136,13 @@ class BluetoothManager extends EventEmitter {
         //   throw new Error('Bluetooth could not be enabled');
         // }
       }
-      console.log('Bluetooth Manager initialized successfully');
+      
       this.emit('initialized');
       return true;
 
 
     } catch (error) {
-      console.error('Failed to initialize Bluetooth Manager:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -151,7 +151,7 @@ class BluetoothManager extends EventEmitter {
   // KEY FIX: Simplified scanning logic similar to your working version
   async scanForDevices(duration: number = 10000): Promise<ScanResult> {
     try {
-      console.log('Starting device scan...');
+      
       
       // Get bonded devices first - this is the key approach from your working version
       const bondedDevices = await this.bluetoothService.getBondedDevices();
@@ -167,7 +167,7 @@ class BluetoothManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('Error scanning for devices:', error);
+      
       this.emit('error', error);
       throw error;
     }
@@ -239,12 +239,12 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
         throw new Error('Device not found');
       }
 
-      console.log('Connecting to device:', device.name || device.address);
+      
       const success = await this.bluetoothService.connectToDevice(device);
       
       return success;
     } catch (error) {
-      console.error('Error connecting to device:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -255,7 +255,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
       const success = await this.bluetoothService.disconnect();
       return success;
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -273,13 +273,13 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
       const success = await this.bluetoothService.sendData(formattedCommand);
       
       if (success) {
-        console.log('Command sent:', command);
+        
       }
       
       return success;
 
     } catch (error) {
-      console.error('Error sending command:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -327,7 +327,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
       }
 
       // Note: react-native-bluetooth-classic handles pairing automatically during connection
-      console.log('Pairing with device:', device.name);
+      
       
       const success = await this.connectToDevice(deviceId);
       
@@ -338,7 +338,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
       return success;
 
     } catch (error) {
-      console.error('Error pairing device:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -346,7 +346,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
 
   async unpairDevice(deviceId: string): Promise<boolean> {
     try {
-      console.log('Unpairing device:', deviceId);
+      
       
       // For now, just disconnect if connected
       const connectedDevice = this.getConnectedDevice();
@@ -358,7 +358,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
       return true;
 
     } catch (error) {
-      console.error('Error unpairing device:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -381,7 +381,7 @@ private processDiscoveredDevices(devices: BluetoothDevice[]): void {
 
   // Cleanup
   destroy(): void {
-    console.log('Destroying Bluetooth Manager...');
+    
     this.bluetoothService.disconnect();
     this.discoveredDevices.clear();
     this.obdDevices.clear();

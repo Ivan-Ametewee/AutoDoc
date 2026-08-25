@@ -31,11 +31,11 @@ export class OBDIIParser {
       } else if (cleanResponse.startsWith('41')) {
         return this.parseStandardResponse(cleanResponse, rawResponse);
       } else {
-        console.warn('Unknown response format:', rawResponse);
+        
         return null;
       }
     } catch (error) {
-      console.error('Error parsing OBD response:', error, rawResponse);
+      
       return null;
     }
   }
@@ -54,7 +54,7 @@ export class OBDIIParser {
       const pidDefinition = this.findPIDByCode(pidCode, '01');
       
       if (!pidDefinition) {
-        console.warn(`Unknown PID code: ${pidCode}`);
+        
         return {
           name: `UNKNOWN_PID_${pidCode}`,
           value: dataHex,
@@ -80,7 +80,7 @@ export class OBDIIParser {
         mode: '01'
       };
     } catch (error) {
-      console.error('Error parsing standard response:', error);
+      
       return null;
     }
   }
@@ -115,7 +115,7 @@ export class OBDIIParser {
       if (!pidDefinition) {
         // Try to extract PID from known patterns
         const possiblePid = cleanResponse.substring(2, 6); // Assume 4-char PID
-        console.warn(`Unknown Mode 22 PID: ${possiblePid}`);
+        
         
         return {
           name: `UNKNOWN_MODE22_PID_${possiblePid}`,
@@ -133,7 +133,7 @@ export class OBDIIParser {
 
       // Validate we have enough bytes
       if (dataBytes.length < pidDefinition.bytes) {
-        console.warn(`Insufficient data bytes for PID ${pidDefinition.name}: expected ${pidDefinition.bytes}, got ${dataBytes.length}`);
+        
         return null;
       }
 
@@ -150,7 +150,7 @@ export class OBDIIParser {
         manufacturer: pidDefinition.manufacturer
       };
     } catch (error) {
-      console.error('Error parsing Mode 22 response:', error);
+      
       return null;
     }
   }

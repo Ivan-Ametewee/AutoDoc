@@ -47,7 +47,7 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
       // Fraud detection can work without a vehicle profile, but it's helpful for context
       let vehicleProfile = activeProfile;
       if (!vehicleProfile) {
-        console.log('No active vehicle profile found, fraud detection will proceed with default profile');
+        
         // Use a basic default profile for fraud detection context
         vehicleProfile = {
           id: '1',
@@ -82,9 +82,9 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
           checkResults: results.checkResults,
           dataSource: currentReading.source || 'unknown'
         });
-        console.log('✅ Fraud detection result saved to database');
+        
       } catch (dbError) {
-        console.warn('⚠️ Failed to save fraud detection result to database:', dbError);
+        
         // Continue execution even if database save fails - fraud detection should still work
       }
 
@@ -123,7 +123,7 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
       return results;
 
     } catch (error: any) {
-      console.error('Fraud detection failed:', error);
+      
       
       // Dispatch error alert
       dispatch({
@@ -161,7 +161,7 @@ export const validateOdometerReading = (newReading: OdometerReading) => {
     try {
       await dispatch(runFraudDetection(newReading) as any);
     } catch (error) {
-      console.error('Odometer validation failed:', error);
+      
     }
   };
 };
@@ -176,17 +176,17 @@ export const handleRealTimeFraudResult = (fraudData: {
   source: string;
 }) => {
   return (dispatch: Dispatch<FraudDetectionAction>) => {
-    console.log('📊 Processing real-time fraud detection result:', fraudData);
-    console.log('📊 About to dispatch FRAUD_CHECK_COMPLETE with riskScore:', fraudData.result.overallRiskScore);
+    
+    
 
     try {
       // Validate fraudData structure
       if (!fraudData || !fraudData.result || typeof fraudData.result !== 'object') {
-        console.error('❌ Invalid fraud data structure:', fraudData);
+        
         return;
       }
       // Dispatch the fraud check result
-      console.log('🚀 Dispatching FRAUD_CHECK_COMPLETE action...');
+      
       dispatch({
         type: FRAUD_DETECTION_TYPES.FRAUD_CHECK_COMPLETE,
         payload: {
@@ -197,7 +197,7 @@ export const handleRealTimeFraudResult = (fraudData: {
           timestamp: fraudData.timestamp
         },
       });
-      console.log('✅ FRAUD_CHECK_COMPLETE action dispatched');
+      
 
       // Process any anomalies found
       if (fraudData.result.checkResults) {
@@ -207,7 +207,7 @@ export const handleRealTimeFraudResult = (fraudData: {
             result.anomalies.forEach((anomaly: any) => {
               // Skip processing if anomaly is null/undefined
               if (!anomaly || typeof anomaly !== 'object') {
-                console.warn('⚠️ Skipping invalid anomaly:', anomaly);
+                
                 return;
               }
 
@@ -228,8 +228,8 @@ export const handleRealTimeFraudResult = (fraudData: {
                     },
                   });
                 } catch (alertError: any) {
-                  console.error('❌ Error creating fraud alert:', alertError);
-                  console.error('❌ Alert data:', anomaly);
+                  
+                  
                 }
               }
 
@@ -252,15 +252,15 @@ export const handleRealTimeFraudResult = (fraudData: {
                   },
                 });
               } catch (anomalyError: any) {
-                console.error('❌ Error creating anomaly payload:', anomalyError);
-                console.error('❌ Anomaly data:', anomaly);
+                
+                
               }
             });
           }
           });
         } catch (checkResultsError: any) {
-          console.error('❌ Error processing check results:', checkResultsError);
-          console.error('❌ CheckResults data:', fraudData.result.checkResults);
+          
+          
         }
       }
 
@@ -282,7 +282,7 @@ export const handleRealTimeFraudResult = (fraudData: {
       }
 
     } catch (error: any) {
-      console.error('❌ Error processing real-time fraud result:', error);
+      
       
       dispatch({
         type: FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT,
@@ -307,25 +307,25 @@ export const handleRealTimeFraudResult = (fraudData: {
 export const initializeRealTimeFraudDetection = (obdService: any) => {
   return (dispatch: Dispatch<FraudDetectionAction>) => {
     if (isRealTimeFraudDetectionActive) {
-      console.log('⚠️ Real-time fraud detection already active');
+      
       // Return a no-op cleanup function instead of undefined
       return () => {
-        console.log('🔄 No-op cleanup - fraud detection was already active');
+        
       };
     }
 
-    console.log('🚀 Initializing real-time fraud detection');
-    console.log('📋 OBD Service received:', !!obdService);
-    console.log('📋 OBD Service subscribe method:', !!obdService?.subscribe);
+    
+    
+    
 
     try {
       // Subscribe to real-time fraud alerts from OBD service
       const unsubscribe = obdService.subscribe((eventType: string, data: any) => {
-        console.log('🔔 Redux received OBD event:', eventType);
+        
         if (eventType === 'realtimeFraudAlert') {
-          console.log('📊 Processing real-time fraud detection result:', data);
-          console.log('📊 Risk Score from event:', data?.result?.overallRiskScore);
-          console.log('📊 Status from event:', data?.result?.status);
+          
+          
+          
           (handleRealTimeFraudResult(data) as any)(dispatch);
         }
       });
@@ -343,7 +343,7 @@ export const initializeRealTimeFraudDetection = (obdService: any) => {
         },
       });
 
-      console.log('✅ Real-time fraud detection initialized successfully');
+      
 
       // Return cleanup function
       return () => {
@@ -364,7 +364,7 @@ export const initializeRealTimeFraudDetection = (obdService: any) => {
       };
 
     } catch (error: any) {
-      console.error('❌ Failed to initialize real-time fraud detection:', error);
+      
       
       dispatch({
         type: FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT,
@@ -382,7 +382,7 @@ export const initializeRealTimeFraudDetection = (obdService: any) => {
       
       // Return a no-op cleanup function even if initialization failed
       return () => {
-        console.log('🔄 No-op cleanup - initialization failed');
+        
       };
     }
   };
@@ -393,7 +393,7 @@ export const initializeRealTimeFraudDetection = (obdService: any) => {
  */
 export const stopRealTimeFraudDetection = () => {
   return (dispatch: Dispatch<FraudDetectionAction>) => {
-    console.log('🛑 Stopping real-time fraud detection');
+    
 
     try {
       // Disable real-time monitoring in the service
@@ -411,10 +411,10 @@ export const stopRealTimeFraudDetection = () => {
         },
       });
 
-      console.log('✅ Real-time fraud detection stopped');
+      
 
     } catch (error: any) {
-      console.error('❌ Error stopping real-time fraud detection:', error);
+      
     }
   };
 };
@@ -576,7 +576,7 @@ export const analyzeHistoricalFraudPatterns = () => {
       };
 
     } catch (error: any) {
-      console.error('Historical fraud analysis failed:', error);
+      
       throw error;
     }
   };
@@ -605,7 +605,7 @@ export const exportFraudDetectionReport = () => {
     try {
       // For React Native, we would use a different approach
       // This is a placeholder that could be adapted for actual file system access
-      console.log('Fraud Detection Report:', JSON.stringify(report, null, 2));
+      
       
       // In a real React Native app, you might use:
       // - react-native-fs to write to device storage
@@ -614,7 +614,7 @@ export const exportFraudDetectionReport = () => {
       
       return report;
     } catch (error) {
-      console.error('Error exporting fraud detection report:', error);
+      
       dispatch({
         type: FRAUD_DETECTION_TYPES.ADD_FRAUD_ALERT,
         payload: {
@@ -660,10 +660,10 @@ export const updateFraudCheckSettings = (payload: { checkType: string; enabled: 
         },
       });
 
-      console.log(`✅ Updated ${payload.checkType} fraud check setting: ${payload.enabled ? 'enabled' : 'disabled'}`);
+      
 
     } catch (error: any) {
-      console.error('❌ Failed to update fraud check settings:', error);
+      
       throw error;
     }
   };

@@ -234,7 +234,7 @@ class MockDataGenerator extends EventEmitter {
       // Capture freeze frame data at the moment this DTC is generated
       const freezeFrame = this.generateFreezeFrame();
       this.freezeFrameCache.set(fault.code, freezeFrame);
-      console.log(`🔒 Captured freeze frame for ${fault.code} at DTC detection:`, freezeFrame);
+      
     }
   }
 
@@ -252,12 +252,12 @@ class MockDataGenerator extends EventEmitter {
       // Capture freeze frame data at the moment this DTC is generated
       const freezeFrame = this.generateFreezeFrame();
       this.freezeFrameCache.set(fault.code, freezeFrame);
-      console.log(`🔒 Captured freeze frame for ${fault.code} at DTC detection:`, freezeFrame);
+      
       
       this.emit('faultsChanged', this.faults);
       this.emit('alertsChanged', this.getActiveAlerts());
       this.emit('riskChanged', this.getRiskScoreAndStatus());
-      console.log(`🚨 Added fraud-related fault: ${fault.code} - ${fault.description}`);
+      
     }
   }
 
@@ -309,7 +309,7 @@ class MockDataGenerator extends EventEmitter {
   generatePIDData(pidName: string): number {
     const readings = this.getCurrentReadings();
     const value = readings[pidName] || 0;
-    console.log(`MockData: ${pidName} = ${value} (engine running: ${this.engineState.running})`);
+    
     return value;
   }
 
@@ -361,14 +361,14 @@ class MockDataGenerator extends EventEmitter {
     if (!this.freezeFrameCache.has(dtcCode)) {
       // If no freeze frame exists, this DTC may have been created before the freeze frame capture was implemented
       // Generate one using current state as fallback, but log this as unusual
-      console.warn(`⚠️ No freeze frame found for ${dtcCode}, generating fallback using current state`);
+      
       const freezeFrame = this.generateFreezeFrame();
       this.freezeFrameCache.set(dtcCode, freezeFrame);
       return freezeFrame;
     }
     
     const freezeFrame = this.freezeFrameCache.get(dtcCode);
-    console.log(`📋 Retrieved freeze frame for ${dtcCode}:`, freezeFrame);
+    
     return freezeFrame;
   }
 
@@ -424,7 +424,7 @@ class MockDataGenerator extends EventEmitter {
    * Enable fraud simulation with specific scenarios
    */
   public enableFraudSimulation(mode: FraudMode = 'rollback'): void {
-    console.log(`🚨 Enabling fraud simulation mode: ${mode}`);
+    
 
     this.fraudSimulation.enabled = true;
     this.fraudSimulation.mode = mode;
@@ -434,16 +434,16 @@ class MockDataGenerator extends EventEmitter {
     switch (mode) {
       case 'rollback':
         this.fraudSimulation.rollbackAmount = Math.floor(Math.random() * 50000) + 10000; // 10k-60k rollback
-        console.log(`📉 Odometer rollback will occur: ${this.fraudSimulation.rollbackAmount} units`);
+        
         break;
       case 'tampering':
         this.fraudSimulation.tamperingPatterns = ['speed_rpm_mismatch', 'impossible_values'];
-        console.log('⚙️ ECU tampering patterns enabled');
+        
         break;
       case 'multiple':
         this.fraudSimulation.rollbackAmount = Math.floor(Math.random() * 25000) + 5000;
         this.fraudSimulation.tamperingPatterns = ['speed_rpm_mismatch'];
-        console.log('🔥 Multiple fraud patterns enabled');
+        
         break;
     }
   }
@@ -452,7 +452,7 @@ class MockDataGenerator extends EventEmitter {
    * Disable fraud simulation
    */
   public disableFraudSimulation(): void {
-    console.log('✅ Disabling fraud simulation');
+    
     this.fraudSimulation.enabled = false;
     this.fraudSimulation.mode = 'none';
     this.fraudSimulation.rollbackTriggered = false;
@@ -488,8 +488,8 @@ class MockDataGenerator extends EventEmitter {
       const originalDistance = this.totalDistance;
       this.totalDistance = Math.max(0, this.totalDistance - this.fraudSimulation.rollbackAmount);
 
-      console.log(`🚨 FRAUD SIMULATION: Odometer rollback occurred!`);
-      console.log(`📉 ${originalDistance} km → ${this.totalDistance} km (-${this.fraudSimulation.rollbackAmount} km)`);
+      
+      
 
       this.fraudSimulation.rollbackTriggered = true;
       this.fraudSimulation.lastFraudEvent = Date.now();
@@ -515,12 +515,12 @@ class MockDataGenerator extends EventEmitter {
         if (this.engineState.speed > 20) {
           // Force RPM to 0 while showing speed (impossible)
           this.engineState.rpm = 0;
-          console.log('⚠️ FRAUD SIMULATION: Impossible speed/RPM combination');
+          
         } else {
           // Or show high RPM with no speed
           this.engineState.rpm = 3000 + Math.random() * 2000;
           this.engineState.speed = 0;
-          console.log('⚠️ FRAUD SIMULATION: High RPM with no movement');
+          
         }
       }
     }
@@ -534,17 +534,17 @@ class MockDataGenerator extends EventEmitter {
           case 0:
             // Impossible speed
             this.engineState.speed = Math.random() * 200 + 250; // 250-450 km/h
-            console.log('⚠️ FRAUD SIMULATION: Impossible speed value generated:', this.engineState.speed);
+            
             break;
           case 1:
             // Impossible temperature
             this.engineState.coolantTemp = Math.random() * 50 + 150; // 150-200°C (overheating)
-            console.log('⚠️ FRAUD SIMULATION: Impossible temperature generated:', this.engineState.coolantTemp);
+            
             break;
           case 2:
             // Impossible fuel level (over 100%)
             this.engineState.fuelLevel = 100 + Math.random() * 20; // 100-120%
-            console.log('⚠️ FRAUD SIMULATION: Impossible fuel level generated:', this.engineState.fuelLevel);
+            
             break;
         }
       }
@@ -554,7 +554,7 @@ class MockDataGenerator extends EventEmitter {
     if (timeSinceStart % 10000 < 1000) { // Glitch for 1 second every 10 seconds
       this.engineState.throttlePosition = Math.random() * 100;
       this.engineState.engineLoad = Math.random() * 100;
-      console.log('⚡ FRAUD SIMULATION: Parameter glitch active');
+      
     }
   }
 
@@ -568,7 +568,7 @@ class MockDataGenerator extends EventEmitter {
         this.disableFraudSimulation();
         this.totalDistance = 45231;
         this.clearDTCs(); // Remove all fault codes
-        console.log('✅ Clean vehicle scenario - no fraud patterns, all faults cleared');
+        
         break;
 
       case 'rollback':
@@ -584,7 +584,7 @@ class MockDataGenerator extends EventEmitter {
           severity: 'high'
         });
         
-        console.log('📉 Rollback fraud scenario - immediate 500km decrease, major rollback in 15s');
+        
         break;
 
       case 'tampering':
@@ -607,7 +607,7 @@ class MockDataGenerator extends EventEmitter {
           severity: 'medium'
         });
         
-        console.log('⚙️ ECU tampering scenario - immediate impossible parameter values');
+        
         break;
 
       case 'sophisticated':
@@ -639,7 +639,7 @@ class MockDataGenerator extends EventEmitter {
           severity: 'high'
         });
         
-        console.log('🔥 Sophisticated fraud scenario - immediate 15000km rollback + tampering + multiple faults');
+        
         break;
     }
     

@@ -22,7 +22,7 @@ class SettingsDataService {
       await this.loadSettings();
       return true;
     } catch (error) {
-      console.error('Failed to initialize SettingsDataService:', error);
+      
       return false;
     }
   }
@@ -215,7 +215,7 @@ class SettingsDataService {
       this.notifyListeners('*', this.settings, {});
       return true;
     } catch (error) {
-      console.error('Failed to import settings:', error);
+      
       return false;
     }
   }
@@ -246,7 +246,7 @@ class SettingsDataService {
       try {
         listener(key, newValue, oldValue);
       } catch (error) {
-        console.error('Error in settings listener:', error);
+        
       }
     });
   }
@@ -266,7 +266,7 @@ class SettingsDataService {
         this.settings = { ...this.defaultSettings };
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      
       this.settings = { ...this.defaultSettings };
     }
   }
@@ -278,7 +278,7 @@ class SettingsDataService {
     try {
       await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.settings));
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      
       throw error;
     }
   }

@@ -19,15 +19,15 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        console.log('🔄 Starting database initialization...');
+        
         await DatabaseService.initialize();
-        console.log('✅ Database initialized successfully');
+        
         
         // Create default vehicle profile if none exists
         try {
           const activeVehicle = await DatabaseService.getActiveVehicle();
           if (!activeVehicle) {
-            console.log('Creating default vehicle profile...');
+            
             const defaultProfileId = await DatabaseService.createVehicleProfile({
               name: 'Default Vehicle',
               make: 'Unknown',
@@ -39,14 +39,14 @@ export default function RootLayout() {
               fuel_type: 'Unknown'
             });
             await DatabaseService.setActiveVehicle(defaultProfileId);
-            console.log('✅ Default vehicle profile created and activated');
+            
           }
         } catch (profileError) {
-          console.warn('⚠️ Could not create default vehicle profile:', profileError);
+          
           // Continue anyway - this is not critical for app startup
         }
       } catch (error) {
-        console.error('❌ Database initialization failed:', error);
+        
         // Don't throw here - let the app continue without database
       }
     };

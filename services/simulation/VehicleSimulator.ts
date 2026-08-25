@@ -161,7 +161,7 @@ export class VehicleSimulator {
     this.engineRunTime = 0;
     this.tripDistance = 0;
     this.fuelConsumed = 0;
-    console.log('Vehicle simulator initialized');
+    
   }
 
   /**

@@ -190,10 +190,10 @@ export default function DiagnosticsScreen() {
       // Query initial system readiness status using Mode 05/06
       const initialReadinessQuery = async () => {
         try {
-          console.log('Diagnostics: Querying initial system readiness status using Mode 05/06...');
+
           await OBDIIService.querySystemReadiness();
         } catch (error) {
-          console.error('Diagnostics: Failed to query initial system readiness:', error);
+
         }
       };
       
@@ -238,11 +238,11 @@ export default function DiagnosticsScreen() {
         }
       } else if (event === 'dataUpdate') {
         // Update live data based on OBD-II data updates
-        console.log('Diagnostics: Received dataUpdate:', data.name, '=', data.value);
-        
+
+
         const processedData = DataProcessor.processOBDData(data.name, data.value);
-        console.log('Diagnostics: Processed data:', processedData);
-        
+
+
         setLiveData(prev => prev.map(item => {
           // Map OBD-II PID names to display parameter names
           const parameterMap: { [key: string]: string } = {
@@ -279,7 +279,7 @@ export default function DiagnosticsScreen() {
         setConnectionStatus(data.status);
       } else if (event === 'systemReadiness') {
         // Update system readiness status from OBD-II data
-        console.log('Diagnostics: Received system readiness update:', data);
+
         const updatedSystemStatuses = convertReadinessToSystemStatus(data);
         setSystemStatuses(updatedSystemStatuses);
       }
@@ -299,20 +299,20 @@ export default function DiagnosticsScreen() {
   useFocusEffect(
     useCallback(() => {
       const connectionStatus = OBDIIService.getConnectionStatus();
-      console.log('Diagnostics: Connection status:', connectionStatus);
-      
+
+
       if (connectionStatus.status === 'connected') {
         // Always ensure live data is running when this screen is focused
-        console.log('Diagnostics: Starting live data...');
+
         OBDIIService.startLiveData();
         
         // Query system readiness status using proper Mode 05/06 methods
         const querySystemReadiness = async () => {
           try {
-            console.log('Diagnostics: Querying system readiness status using Mode 05/06...');
+
             await OBDIIService.querySystemReadiness();
           } catch (error) {
-            console.error('Diagnostics: Failed to query system readiness:', error);
+
           }
         };
         
@@ -323,7 +323,7 @@ export default function DiagnosticsScreen() {
         // Check which PIDs are being polled
         setTimeout(() => {
           const activePIDs = OBDIIService.getActivePollingPIDs();
-          console.log('Diagnostics: Active polling PIDs:', activePIDs);
+
         }, 1000);
         
         // Store interval ID for cleanup
@@ -350,7 +350,7 @@ export default function DiagnosticsScreen() {
         setDtcCodes(dtcs);
       }
     } catch (error) {
-      console.error('Error loading DTCs:', error);
+
     }
   };
 
@@ -371,18 +371,18 @@ export default function DiagnosticsScreen() {
       }
 
       // Step 1: Query MIL status (Mode 01 PID 01) to determine number of stored DTCs
-      console.log('📡 Step 1: Querying MIL status to determine DTC count...');
+
       const milStatus = await OBDIIService.queryMILStatus();
-      console.log('📊 MIL Status Result:', milStatus);
-      
+
+
       // Step 2: If DTCs are present, scan for actual codes (Mode 03)
       let dtcs = [];
       if (milStatus.dtcCount > 0) {
-        console.log(`📡 Step 2: ${milStatus.dtcCount} DTCs detected, scanning for actual codes...`);
+
         dtcs = await OBDIIService.scanDTC();
         setDtcCodes(dtcs);
       } else {
-        console.log('✅ No DTCs stored, skipping Mode 03 scan');
+
         setDtcCodes([]);
       }
       
@@ -400,7 +400,7 @@ export default function DiagnosticsScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('DTC scan failed:', error);
+
       Alert.alert(
         'Scan Failed',
         'Failed to scan for diagnostic trouble codes. Please try again.',
@@ -448,7 +448,7 @@ export default function DiagnosticsScreen() {
                 );
               }
             } catch (error) {
-              console.error('Clear DTC failed:', error);
+
               Alert.alert(
                 'Error',
                 'An error occurred while clearing diagnostic codes.'
@@ -547,57 +547,56 @@ export default function DiagnosticsScreen() {
         ) : (
           dtcCodes.filter(code => code.status !== 'cleared').map((code: DiagnosticTroubleCode, index: number) => (
             <TouchableOpacity
-            key={`dtc-${code.code}-${index}`}
-            style={styles.codeItem}
-            onPress={async () => {
-              setSelectedDTC(code);
-              setShowDTCModal(true);
-              
-              // Refresh freeze frame data when DTC is selected
-              if (code.code) {
-                setLoadingFreezeFrame(true);
-                try {
-                  const connectionStatus = OBDIIService.getConnectionStatus();
-                  if (connectionStatus.status === 'connected') {
-                    const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
-                    
-                    // Update the selected DTC with fresh freeze frame data
-                    setSelectedDTC((prev: DiagnosticTroubleCode | null) => prev ? {
-                      ...prev,
-                      freezeFrameData: {
-                        ...freezeFrameData,
-                        timestamp: freezeFrameData.timestamp || new Date()
-                      }
-                    } : null);
+              key={`dtc-${code.code}-${index}`}
+              style={styles.codeItem}
+              onPress={async () => {
+                setSelectedDTC(code);
+                setShowDTCModal(true);
+
+                // Refresh freeze frame data when DTC is selected
+                if (code.code) {
+                  setLoadingFreezeFrame(true);
+                  try {
+                    const connectionStatus = OBDIIService.getConnectionStatus();
+                    if (connectionStatus.status === 'connected') {
+                      const freezeFrameData = await OBDIIService.queryFreezeFrameData(code.code);
+
+                      // Update the selected DTC with fresh freeze frame data
+                      setSelectedDTC((prev: DiagnosticTroubleCode | null) => prev ? {
+                        ...prev,
+                        freezeFrameData: {
+                          ...freezeFrameData,
+                          timestamp: freezeFrameData.timestamp || new Date()
+                        }
+                      } : null);
+                    }
+                  } catch (error) {
+                  } finally {
+                    setLoadingFreezeFrame(false);
                   }
-                } catch (error) {
-                  console.error('Failed to refresh freeze frame data:', error);
-                } finally {
-                  setLoadingFreezeFrame(false);
                 }
-              }
-            }}
-          >
-            <View style={styles.codeHeader}>
-              <Text style={styles.codeNumber}>{code.code}</Text>
-              <View style={styles.codeStatus}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: getSeverityColor(code.severity) },
-                  ]}
-                />
-                <Text style={[styles.statusText, { color: getStatusColor(code.status) }]}>
-                  {code.status.toUpperCase()}
-                </Text>
+              }}
+            >
+              <View style={styles.codeHeader}>
+                <Text style={styles.codeNumber}>{code.code}</Text>
+                <View style={styles.codeStatus}>
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: getSeverityColor(code.severity) },
+                    ]}
+                  />
+                  <Text style={[styles.statusText, { color: getStatusColor(code.status) }]}>
+                    {code.status.toUpperCase()}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.codeDescription}>{code.description}</Text>
-            <View style={styles.codeFooter}>
-              <Text style={styles.codeSystem}>{code.system.toUpperCase()}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#666" />
-            </View>
-          </TouchableOpacity>
+              <Text style={styles.codeDescription}>{code.description}</Text>
+              <View style={styles.codeFooter}>
+                <Text style={styles.codeSystem}>{code.system.toUpperCase()}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#666" />
+              </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -669,7 +668,6 @@ export default function DiagnosticsScreen() {
       const results = unifiedDTCService.searchCodes(query);
       setSearchResults(results);
     } catch (error) {
-      console.error('Search failed:', error);
       setSearchResults([]);
     }
   };

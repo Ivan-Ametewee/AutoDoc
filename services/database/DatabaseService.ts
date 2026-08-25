@@ -67,9 +67,9 @@ class DatabaseService {
       this.database = await SQLite.openDatabaseAsync('OBDIIApp.db');
       await this.createTables();
       this.isInitialized = true;
-      console.log('Database initialized successfully');
+      
     } catch (error) {
-      console.error('Database initialization failed:', error);
+      
       throw error;
     }
   }
@@ -317,7 +317,7 @@ class DatabaseService {
     const isoDate = cutoffDate.toISOString();
     
     const result = await this.database!.runAsync(query, [isoDate]);
-    console.log(`Cleaned up ${result.changes} old alerts`);
+    
   }
 
   /**
@@ -429,7 +429,7 @@ class DatabaseService {
       vehicleId
     ]);
     
-    console.log('✅ Fraud detection result saved to database');
+    
   }
 
   /**
@@ -601,7 +601,7 @@ class DatabaseService {
       await this.database.closeAsync();
       this.database = null;
       this.isInitialized = false;
-      console.log('Database connection closed');
+      
     }
   }
 
@@ -635,7 +635,7 @@ class DatabaseService {
         }))
       ];
     } catch (error) {
-      console.warn('Failed to get diagnostic history:', error);
+      
       return [];
     }
   }
@@ -647,7 +647,7 @@ class DatabaseService {
       const results = await this.database!.getAllAsync(query);
       return results as any[];
     } catch (error) {
-      console.warn('Failed to get vehicle data history:', error);
+      
       return [];
     }
   }
@@ -665,7 +665,7 @@ class DatabaseService {
         freezeFrameData: dtc.freeze_frame_data ? JSON.parse(dtc.freeze_frame_data) : null
       }));
     } catch (error) {
-      console.warn('Failed to get stored DTCs:', error);
+      
       return [];
     }
   }

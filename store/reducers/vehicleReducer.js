@@ -1019,13 +1019,13 @@ const vehicleReducer = (state = initialState, action) => {
       
       // Only add anomaly if both checkType and anomaly are valid
       if (!checkType || !anomaly || typeof anomaly !== 'object') {
-        console.warn('⚠️ Invalid anomaly data received:', action.payload);
+        
         return state;
       }
       
       // Ensure the check type exists in state
       if (!state.fraudDetection.checks[checkType]) {
-        console.warn('⚠️ Unknown check type:', checkType);
+        
         return state;
       }
       

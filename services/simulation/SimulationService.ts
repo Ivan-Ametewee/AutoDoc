@@ -37,18 +37,18 @@ class SimulationService {
    */
   public startSimulation(): void {
     if (this.isSimulating) {
-      console.log('Simulation already running');
+      
       return;
     }
 
-    console.log('Starting OBDII simulation...');
+    
     this.isSimulating = true;
     this.lastUpdateTime = Date.now();
     
     // Initialize MockDataGenerator with current scenario
     const mockScenario = this.mapToMockDataScenario(this.currentScenario);
     mockDataGenerator.setDrivingScenario(mockScenario);
-    console.log(`🚗 Set initial driving scenario: ${mockScenario} (from ${this.currentScenario})`);
+    
     
     // Initialize vehicle state. Assuming initialize method exists on VehicleSimulator
     // this.vehicleSimulator.initialize(); 
@@ -69,11 +69,11 @@ class SimulationService {
    */
   public stopSimulation(): void {
     if (!this.isSimulating) {
-      console.log('Simulation not running');
+      
       return;
     }
 
-    console.log('Stopping OBDII simulation...');
+    
     this.isSimulating = false;
     
     if (this.simulationInterval) {
@@ -129,7 +129,7 @@ class SimulationService {
    */
   public setScenario(scenario: string): void {
     if (Object.values(this.scenarios).includes(scenario)) {
-      console.log(`Changing simulation scenario to: ${scenario}`);
+      
       // **FIXED**: Correctly assign to `this.currentScenario`
       this.currentScenario = scenario; 
       // Assuming `setScenario` exists on VehicleSimulator
@@ -140,7 +140,7 @@ class SimulationService {
         timestamp: Date.now()
       });
     } else {
-      console.warn(`Invalid scenario: ${scenario}`);
+      
     }
   }
 
@@ -197,7 +197,7 @@ class SimulationService {
       this.milActive = false;
       this.notifyCallbacks('mil_status', { active: false });
       this.notifyCallbacks('dtc_cleared', { success: true });
-      console.log('Simulation: DTCs cleared, MIL turned off');
+      
     }
     return success;
   }
@@ -313,7 +313,7 @@ class SimulationService {
       baseReadiness.misfireMonitor.ready = false;
     }
 
-    console.log('🔧 Generated system readiness status for scenario:', this.currentScenario);
+    
     return baseReadiness;
   }
 
@@ -407,7 +407,7 @@ class SimulationService {
    * Generate historical data for fraud detection testing
    */
   public generateHistoricalData(daysBack: number = 30): any[] {
-    console.log(`🗂️ Generating ${daysBack} days of historical data for fraud detection`);
+    
     
     const historicalData = [];
     const now = new Date();
@@ -448,7 +448,7 @@ class SimulationService {
     // Sort by timestamp (oldest first)
     historicalData.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     
-    console.log(`✅ Generated ${historicalData.length} historical data points`);
+    
     return historicalData;
   }
 
@@ -456,7 +456,7 @@ class SimulationService {
    * Set up fraud demo scenarios (delegates to MockDataGenerator)
    */
   public setupFraudDemoScenario(scenario: 'clean' | 'rollback' | 'tampering' | 'sophisticated'): void {
-    console.log(`🎯 SimulationService: Setting up fraud demo scenario: ${scenario}`);
+    
     
     // Delegate to MockDataGenerator which has the actual implementation
     if (mockDataGenerator && typeof mockDataGenerator.setupFraudDemoScenario === 'function') {
@@ -469,7 +469,7 @@ class SimulationService {
         fraudStatus: mockDataGenerator.getFraudSimulationStatus()
       });
     } else {
-      console.error('❌ MockDataGenerator.setupFraudDemoScenario method not available');
+      
       throw new Error('Fraud demo scenario setup not available in MockDataGenerator');
     }
   }

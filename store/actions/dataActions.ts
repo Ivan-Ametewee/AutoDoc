@@ -88,7 +88,7 @@ export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData
         case 'TOTAL_DISTANCE_TRAVELED':
         case 'VEHICLE_ODOMETER':
             result.odometer = typeof pidData.value === 'number' ? pidData.value : 0;
-            console.log(`🚗 Odometer reading received: ${result.odometer} km from ${pidData.name}`);
+            
             break;
             
         case 'TRIP_ODOMETER':
@@ -102,7 +102,7 @@ export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData
         case 'TOTAL_DISTANCE':
         case 'totalDistance':
             result.odometer = typeof pidData.value === 'number' ? pidData.value : 0;
-            console.log(`🚗 Total distance reading: ${result.odometer} km`);
+            
             break;
         case 'TRIP_DISTANCE':
         case 'tripDistance':
@@ -112,21 +112,21 @@ export function mapPIDToVehicleData(pidData: ParsedPIDData): Partial<VehicleData
         // === FRAUD DETECTION DATA ===
         case 'DISTANCE_SINCE_CODES_CLEARED':
             result.distanceSinceCodesCleared = typeof pidData.value === 'number' ? pidData.value : 0;
-            console.log(`📊 Distance since codes cleared: ${result.distanceSinceCodesCleared} km`);
+            
             break;
         case 'DISTANCE_WITH_MIL_ON':
             result.distanceWithMILOn = typeof pidData.value === 'number' ? pidData.value : 0;
-            console.log(`⚠️ Distance with MIL on: ${result.distanceWithMILOn} km`);
+            
             break;
         case 'RUNTIME_SINCE_ENGINE_START':
             result.runtimeSinceEngineStart = typeof pidData.value === 'number' ? pidData.value : 0;
             // Convert seconds to hours for easier fraud detection calculations
             result.engineHours = result.runtimeSinceEngineStart / 3600;
-            console.log(`⏱️ Runtime since engine start: ${result.runtimeSinceEngineStart} seconds (${result.engineHours?.toFixed(2)} hours)`);
+            
             break;
             
         default:
-            console.log(`⚠️ Unmapped PID: ${pidData.name} = ${pidData.value} ${pidData.unit || ''}`);
+            
             break;
     }
 

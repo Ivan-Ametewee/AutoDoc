@@ -1214,19 +1214,19 @@ let BluetoothService: any = null;
 try {
   OBDIIService = require('../services/obdii/OBDIIService').default;
 } catch (error) {
-  console.warn('OBDIIService not available:', error);
+  
 }
 
 try {
   WiFiService = require('../services/wifi/WiFiService').default;
 } catch (error) {
-  console.warn('WiFiService not available:', error);
+  
 }
 
 try {
   BluetoothService = require('../services/bluetooth/BluetoothService').default;
 } catch (error) {
-  console.warn('BluetoothService not available:', error);
+  
 }
 
 // Define types for discovered devices to be used in the list
@@ -1255,11 +1255,11 @@ export default function ConnectionScreen() {
       if (OBDIIService) {
         // Listen for the final connection status from the central service
         unsubscribe = OBDIIService.subscribe((event: string, data: any) => {
-          console.log('OBDIIService event:', event, data);
+          
           if (event === 'connectionStatus') {
             if (data.status === 'connected') {
               // On successful connection, navigate to the dashboard
-              console.log('Connected, navigating to dashboard');
+              
               router.replace('/(tabs)/dashboard');
             } else if (data.status === 'error') {
               setError(data.error || 'An unknown connection error occurred.');
@@ -1273,12 +1273,12 @@ export default function ConnectionScreen() {
         // Check if already connected on mount
         const connectionInfo = OBDIIService.getConnectionStatus();
         if (connectionInfo && connectionInfo.status === 'connected') {
-          console.log('Already connected on mount, navigating to dashboard');
+          
           router.replace('/(tabs)/dashboard');
         }
       }
     } catch (error) {
-      console.warn('Service subscription failed:', error);
+      
     }
 
     return () => {
@@ -1286,7 +1286,7 @@ export default function ConnectionScreen() {
         try {
           unsubscribe();
         } catch (error) {
-          console.warn('Error during service unsubscribe:', error);
+          
         }
       }
     };
@@ -1335,7 +1335,7 @@ export default function ConnectionScreen() {
       }
       setDevices(foundDevices);
     } catch (e: any) {
-      console.warn(`Discovery failed for ${type}:`, e);
+      
       setError(`Failed to scan for ${type} devices. Please check permissions and try again.`);
       setView('initial');
     }
@@ -1352,7 +1352,7 @@ export default function ConnectionScreen() {
       const connectionTarget = device.type === 'wifi' ? { ssid: device.address, password: '' } : device.raw;
       await OBDIIService.connect(connectionTarget, device.type);
     } catch (e: any) {
-      console.warn('Device connection failed:', e);
+      
       setError(e.message || 'Failed to connect.');
       setView('initial');
     }
@@ -1373,13 +1373,13 @@ export default function ConnectionScreen() {
       const checkConnectionAndNavigate = () => {
         try {
           const connectionInfo = OBDIIService.getConnectionStatus();
-          console.log('Demo mode connection status:', connectionInfo);
+          
           
           // Navigate regardless of connection status for demo mode
-          console.log('Demo mode enabled, navigating to dashboard');
+          
           router.replace('/(tabs)/dashboard');
         } catch (error) {
-          console.warn('Demo mode navigation error:', error);
+          
           // Still navigate even if there's an error, for demo purposes
           router.replace('/(tabs)/dashboard');
         }
@@ -1391,7 +1391,7 @@ export default function ConnectionScreen() {
       });
       
     } catch (error) {
-      console.error('Demo mode error:', error);
+      
       setError('Failed to start demo mode');
       setView('initial');
     }

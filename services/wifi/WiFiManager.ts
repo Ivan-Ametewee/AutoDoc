@@ -179,7 +179,7 @@ class WiFiManager extends EventEmitter {
 
   async initialize(): Promise<boolean> {
     try {
-      console.log('Initializing WiFi Manager...');
+      
 
       const hasPermissions = await this.wifiService.requestPermissions();
       if (!hasPermissions) {
@@ -194,12 +194,12 @@ class WiFiManager extends EventEmitter {
         }
       }
 
-      console.log('WiFi Manager initialized successfully');
+      
       this.emit('initialized');
       return true;
 
     } catch (error: any) {
-      console.error('Failed to initialize WiFi Manager:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -207,11 +207,11 @@ class WiFiManager extends EventEmitter {
 
   async scanForNetworks(): Promise<{ all: Network[]; obd: Network[] }> {
     try {
-      console.log('Starting network scan...');
+      
       const result = await this.wifiService.scanNetworks();
       return result;
     } catch (error: any) {
-      console.error('Error scanning for networks:', error);
+      
       this.emit('error', error);
       throw error;
     }
@@ -232,7 +232,7 @@ class WiFiManager extends EventEmitter {
       this.emit('obdNetworkFound', network);
     });
 
-    console.log(`Processed ${allNetworks.length} networks, ${obdNetworks.length} OBDII networks`);
+    
   }
 
   private getSignalStrength(network: Network): SignalStrength {
@@ -257,7 +257,7 @@ class WiFiManager extends EventEmitter {
 
   async connectToOBDNetwork(ssid: string, password = ''): Promise<boolean> {
     try {
-      console.log('Connecting to OBDII network and server:', ssid);
+      
 
       // // Listen for the network connection event
       // this.wifiService.once('networkConnected', async (network) => {
@@ -305,11 +305,11 @@ class WiFiManager extends EventEmitter {
         throw new Error('Connected to WiFi, but failed to connect to the OBDII server. Check the device IP and port.');
       }
 
-      console.log('Successfully connected to OBDII network and server');
+      
       return true;
 
     } catch (error: any) {
-      console.error('Error connecting to OBDII network:', error.message || error);
+      
       this.emit('error', error);
       return false;
     }
@@ -317,7 +317,7 @@ class WiFiManager extends EventEmitter {
 
   async connectToCustomServer(ssid: string, password: string, host: string, port: number): Promise<boolean> {
     try {
-      console.log(`Connecting to custom OBDII server at ${host}:${port}`);
+      
 
       this.setServerConfig(host, port);
 
@@ -333,11 +333,11 @@ class WiFiManager extends EventEmitter {
         throw new Error('Failed to connect to custom OBDII server');
       }
 
-      console.log('Successfully connected to custom OBDII server');
+      
       return true;
 
     } catch (error: any) {
-      console.error('Error connecting to custom server:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -345,7 +345,7 @@ class WiFiManager extends EventEmitter {
 
   async disconnect(): Promise<boolean> {
     try {
-      console.log('Disconnecting from WiFi network and server...');
+      
 
       await this.wifiService.closeSocket();
 
@@ -354,7 +354,7 @@ class WiFiManager extends EventEmitter {
       return success;
 
     } catch (error: any) {
-      console.error('Error disconnecting:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -371,13 +371,13 @@ class WiFiManager extends EventEmitter {
       const success = await this.wifiService.sendData(formattedCommand);
 
       if (success) {
-        console.log('Command sent:', command);
+        
       }
 
       return success;
 
     } catch (error: any) {
-      console.error('Error sending command:', error);
+      
       this.emit('error', error);
       return false;
     }
@@ -389,7 +389,7 @@ class WiFiManager extends EventEmitter {
         throw new Error('Not connected to OBDII server');
       }
 
-      console.log('Testing OBDII connection...');
+      
 
       const success = await this.sendData('ATZ');
 
@@ -400,7 +400,7 @@ class WiFiManager extends EventEmitter {
       return success;
 
     } catch (error: any) {
-      console.error('Error testing connection:', error);
+      
       this.emit('connectionTested', { success: false, error });
       return false;
     }
@@ -423,7 +423,7 @@ class WiFiManager extends EventEmitter {
       }
       return null;
     } catch (error: any) {
-      console.error('Error getting current network:', error);
+      
       return null;
     }
   }
@@ -433,7 +433,7 @@ class WiFiManager extends EventEmitter {
       const info = await this.wifiService.getNetworkInfo();
       return info;
     } catch (error: any) {
-      console.error('Error getting network info:', error);
+      
       return null;
     }
   }
@@ -515,13 +515,13 @@ class WiFiManager extends EventEmitter {
       const targetHost = host || this.serverConfig.host;
       const targetPort = port || this.serverConfig.port;
 
-      console.log(`Pinging OBDII server at ${targetHost}:${targetPort}`);
+      
 
       const testSocket = TcpSocket.createConnection({
         port: targetPort,
         host: targetHost
       }, () => {
-        console.log('Ping successful');
+        
       });
       testSocket.setTimeout(3000);
 
@@ -535,20 +535,20 @@ class WiFiManager extends EventEmitter {
         // The TypeScript definition for `EventEmitter.on('error', ...)` on some platforms
         // expects the callback to potentially receive more than one argument.
         testSocket.on('error', (error: Error, extra?: any) => {
-          console.error('Ping socket error:', error);
+          
           testSocket.destroy();
           resolve(false);
         });
 
         testSocket.on('timeout', () => {
-          console.log('Ping socket timeout');
+          
           testSocket.destroy();
           resolve(false);
         });
       });
 
     } catch (error: any) {
-      console.error('Error pinging server:', error);
+      
       return false;
     }
   }
@@ -576,7 +576,7 @@ class WiFiManager extends EventEmitter {
   }
 
   destroy(): void {
-    console.log('Destroying WiFi Manager...');
+    
     this.wifiService.destroy();
     this.discoveredNetworks.clear();
     this.obdNetworks.clear();

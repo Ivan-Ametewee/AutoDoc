@@ -114,11 +114,11 @@ export class ELM327Handler {
     const trimmed = rawResponse.trim();
     const upper = trimmed.toUpperCase();
     
-    console.log(`ELM327Handler: Parsing response: "${rawResponse}" -> "${upper}"`);
+    
 
     // Handle empty responses
     if (!trimmed) {
-      console.log(`ELM327Handler: Empty response detected`);
+      
       return {
         success: false,
         data: '',
@@ -241,7 +241,7 @@ export class ELM327Handler {
     // Handle corrupted data by extracting the ELM327 part
     const elm327Match = trimmed.match(/(ELM327[^\r\n]*v?\d+\.\d+[^\r\n]*)/i);
     if (elm327Match || upper.includes('ELM327') || upper.includes('V1.') || upper.includes('V2.')) {
-      console.log(`ELM327Handler: Detected ELM327 version info in response`);
+      
       const cleanData = elm327Match ? elm327Match[1] : trimmed;
       return {
         success: true,
@@ -447,33 +447,33 @@ export class ELM327Handler {
   public static isCompleteResponse(response: ELM327Response, command: string): boolean {
     const cleanCommand = command.trim().toUpperCase().replace(/\r$/, '');
     
-    console.log(`ELM327Handler: Checking if response is complete for command "${cleanCommand}": ${response.responseType}`);
+    
     
     switch (response.responseType) {
       case 'OK':
       case 'ERROR':
       case 'UNABLE_TO_CONNECT':
       case 'NO_DATA':
-        console.log(`ELM327Handler: Response type ${response.responseType} indicates completion`);
+        
         return true;
         
       case 'DATA':
         // For ATZ, ELM327 version info indicates completion
         if (cleanCommand === 'ATZ' && response.data.toUpperCase().includes('ELM327')) {
-          console.log(`ELM327Handler: ATZ command completed with ELM327 version info`);
+          
           return true;
         }
         // For OBD commands, hex data indicates completion
         if (/^[0-9A-F]{2,6}$/.test(cleanCommand) && this.isHexData(response.data)) {
-          console.log(`ELM327Handler: OBD command completed with hex data`);
+          
           return true;
         }
         // For other AT commands expecting data
         if (cleanCommand.startsWith('AT') && response.data.length > 0) {
-          console.log(`ELM327Handler: AT command completed with data`);
+          
           return true;
         }
-        console.log(`ELM327Handler: DATA response but not recognized as complete for ${cleanCommand}`);
+        
         return false;
         
       case 'ECHO':

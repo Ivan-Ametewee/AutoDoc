@@ -47,7 +47,7 @@ class OdometerFraudDetectionService {
    * Initialize real-time ECU monitoring
    */
   public initializeRealTimeMonitoring(obdService: any): void {
-    console.log('🔍 Initializing real-time fraud detection monitoring');
+    
     
     this.obdService = obdService;
     this.isRealTimeEnabled = true;
@@ -58,7 +58,7 @@ class OdometerFraudDetectionService {
     // Subscribe to other fraud-relevant data
     this.subscribeToFraudRelevantData();
     
-    console.log('✅ Real-time fraud detection monitoring initialized');
+    
   }
 
   /**
@@ -70,7 +70,7 @@ class OdometerFraudDetectionService {
     // Subscribe to OBD service events - correct pattern
     const odometerSubscription = this.obdService.subscribe((eventType: string, data: any) => {
       if (eventType === 'dataUpdate' && this.isOdometerData(data)) {
-        console.log('📊 Real-time odometer data received:', data);
+        
         this.processRealTimeOdometerData(data);
       }
     });
@@ -96,7 +96,7 @@ class OdometerFraudDetectionService {
     // Subscribe to OBD service events - correct pattern
     const fraudDataSubscription = this.obdService.subscribe((eventType: string, data: any) => {
       if (eventType === 'dataUpdate' && relevantPIDs.includes(data.name)) {
-        console.log(`📈 Fraud-relevant data received: ${data.name} = ${data.value}`);
+        
         this.processFraudRelevantData(data);
       }
     });
@@ -145,13 +145,13 @@ class OdometerFraudDetectionService {
       };
 
       // Check if this is a new reading (avoid duplicate processing)
-      console.log('🔍 Checking if reading is new...');
+      
       if (this.isNewReading(odometerReading)) {
-        console.log('🚨 Processing new real-time odometer reading for fraud detection');
+        
         
         // Use real-time historical data for comparison (more reliable than Redux store)
         const historicalData = [...this.realtimeHistoricalData];
-        console.log(`📈 Using ${historicalData.length} real-time historical readings for comparison`);
+        
         
         // Run fraud detection on real-time data
         const fraudResult = await this.detectFraud(odometerReading, historicalData);
@@ -159,8 +159,8 @@ class OdometerFraudDetectionService {
         // Store this reading in our real-time history AFTER fraud detection
         this.addToRealtimeHistory(odometerReading);
         
-        console.log('📨 About to emit fraud detection result to Redux...');
-        console.log('📊 Fraud result:', JSON.stringify(fraudResult, null, 2));
+        
+        
         
         // Emit fraud detection results
         this.emitFraudDetectionResult(fraudResult, odometerReading);
@@ -168,7 +168,7 @@ class OdometerFraudDetectionService {
         this.lastProcessedReading = odometerReading;
       }
     } catch (error) {
-      console.error('❌ Error processing real-time odometer data:', error);
+      
     }
   }
 
@@ -181,7 +181,7 @@ class OdometerFraudDetectionService {
     
     // Trigger immediate validation if we have concerning patterns
     if (this.detectImmediateConcerns(data)) {
-      console.log('⚠️ Immediate fraud concern detected, triggering analysis');
+      
       this.triggerImmediateFraudCheck();
     }
   }
@@ -204,9 +204,9 @@ class OdometerFraudDetectionService {
    * Emit fraud detection results to Redux store
    */
   private emitFraudDetectionResult(fraudResult: any, odometerReading: OdometerReading): void {
-    console.log('📤 Attempting to emit fraud detection result...');
-    console.log('📋 OBD Service available:', !!this.obdService);
-    console.log('📋 OBD Service emit method:', !!this.obdService?.emit);
+    
+    
+    
     
     // Emit event that Redux middleware can listen to
     this.obdService?.emit('fraudDetectionResult', {
@@ -216,7 +216,7 @@ class OdometerFraudDetectionService {
       source: 'realtime'
     });
     
-    console.log('✅ Fraud detection result emission attempted');
+    
   }
 
   /**
@@ -248,7 +248,7 @@ class OdometerFraudDetectionService {
       
       this.emitFraudDetectionResult(fraudResult, this.lastProcessedReading);
     } catch (error) {
-      console.error('❌ Error in immediate fraud check:', error);
+      
     }
   }
 
@@ -278,7 +278,7 @@ class OdometerFraudDetectionService {
    */
   public setReduxStore(store: any): void {
     this.reduxStore = store;
-    console.log('📦 Redux store reference set for fraud detection service');
+    
   }
 
   private getHistoricalData(): OdometerReading[] {
@@ -289,7 +289,7 @@ class OdometerFraudDetectionService {
       }
       return [];
     } catch (error) {
-      console.warn('⚠️ Could not fetch historical data from Redux store:', error);
+      
       return [];
     }
   }
@@ -306,7 +306,7 @@ class OdometerFraudDetectionService {
       this.realtimeHistoricalData = this.realtimeHistoricalData.slice(-this.maxHistoricalEntries);
     }
     
-    console.log(`📊 Real-time history now contains ${this.realtimeHistoricalData.length} readings`);
+    
   }
 
   /**
@@ -314,14 +314,14 @@ class OdometerFraudDetectionService {
    */
   private clearRealtimeHistory(): void {
     this.realtimeHistoricalData = [];
-    console.log('🧹 Cleared real-time historical data');
+    
   }
 
   /**
    * Disable real-time monitoring
    */
   public disableRealTimeMonitoring(): void {
-    console.log('🔇 Disabling real-time fraud detection monitoring');
+    
     
     this.isRealTimeEnabled = false;
     
@@ -338,7 +338,7 @@ class OdometerFraudDetectionService {
     // Clear historical data when stopping monitoring
     this.clearRealtimeHistory();
     
-    console.log('✅ Real-time fraud detection monitoring disabled');
+    
   }
 
   /**
@@ -382,9 +382,9 @@ class OdometerFraudDetectionService {
     fraudDetectionSettings?: FraudDetectionState
   ): Promise<FraudDetectionResult> {
     
-    console.log('🔍 Starting enhanced fraud detection with real ECU data');
-    console.log('📊 Current reading:', currentReading);
-    console.log('📈 Historical data points:', historicalData.length);
+    
+    
+    
     
     // Initialize result
     const result: FraudDetectionResult = {
@@ -403,11 +403,11 @@ class OdometerFraudDetectionService {
 
     // Enhanced ECU data analysis for OBD readings
     if (currentReading.source === 'obd') {
-      console.log('✅ Processing real ECU data from OBD-II');
+      
       result.dataSourceAnalysis.ecuConsistency = this.calculateECUConsistency(currentReading, historicalData);
       result.dataSourceAnalysis.crossValidationScore = this.performCrossValidation(currentReading);
     } else {
-      console.log('⚠️ Processing non-ECU data source:', currentReading.source);
+      
     }
 
     // Run all fraud detection checks (only enabled ones)
@@ -432,13 +432,7 @@ class OdometerFraudDetectionService {
     result.riskLevel = this.determineRiskLevel(result.overallRiskScore);
     result.status = this.determineStatus(result.riskLevel);
 
-    console.log('🎯 Fraud detection complete:', {
-      riskScore: result.overallRiskScore,
-      riskLevel: result.riskLevel,
-      status: result.status,
-      realECUDataUsed: result.realECUDataUsed,
-      ecuConsistency: result.dataSourceAnalysis.ecuConsistency
-    });
+    
 
     return result;
   }
@@ -460,16 +454,16 @@ class OdometerFraudDetectionService {
     result.enabled = hasObdData && isEnabledInSettings;
 
     if (!hasObdData) {
-      console.log('⚠️ ECU cross-validation skipped - no OBD data available');
+      
       return result;
     }
     
     if (!isEnabledInSettings) {
-      console.log('⏸️ ECU cross-validation disabled by user settings');
+      
       return result;
     }
 
-    console.log('🔬 Performing ECU cross-validation');
+    
 
     // 1. Engine hours vs odometer correlation
     if (currentReading.engineHours && currentReading.odometer) {
@@ -844,7 +838,7 @@ class OdometerFraudDetectionService {
     result.enabled = isEnabled;
     
     if (!isEnabled) {
-      console.log('⏸️ Odometer rollback detection is disabled by user settings');
+      
       return result;
     }
 
@@ -852,7 +846,7 @@ class OdometerFraudDetectionService {
       return result;
     }
 
-    console.log('🔄 Detecting odometer rollback...');
+    
 
     // Prioritize ECU data for comparison
     const ecuData = historicalData.filter(reading => reading.source === 'obd');
@@ -942,7 +936,7 @@ class OdometerFraudDetectionService {
     result.enabled = isEnabled;
     
     if (!isEnabled) {
-      console.log('⏸️ Inconsistent reporting detection is disabled by user settings');
+      
       return result;
     }
 
@@ -950,7 +944,7 @@ class OdometerFraudDetectionService {
       return result;
     }
 
-    console.log('📊 Detecting reporting inconsistencies...');
+    
 
     // Analyze daily mileage patterns
     const dailyMileages = this.calculateDailyMileages([...historicalData, currentReading]);
@@ -1004,11 +998,11 @@ class OdometerFraudDetectionService {
     result.enabled = isEnabled;
     
     if (!isEnabled) {
-      console.log('⏸️ Digital tampering detection is disabled by user settings');
+      
       return result;
     }
 
-    console.log('🔐 Detecting digital tampering...');
+    
 
     // Enhanced ECU data analysis for OBD readings
     if (currentReading.source === 'obd') {
@@ -1062,11 +1056,11 @@ class OdometerFraudDetectionService {
     result.enabled = isEnabled;
     
     if (!isEnabled) {
-      console.log('⏸️ Data integrity detection is disabled by user settings');
+      
       return result;
     }
 
-    console.log('🔍 Checking data integrity...');
+    
 
     // Check for missing or invalid timestamps
     if (!currentReading.timestamp) {

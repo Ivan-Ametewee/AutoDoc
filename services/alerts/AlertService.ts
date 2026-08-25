@@ -48,9 +48,9 @@ class AlertService extends EventEmitter {
       await this.loadAlertHistory();
       await this.notificationService.initialize();
       this.isInitialized = true;
-      console.log('AlertService initialized successfully');
+      
     } catch (error) {
-      console.error('Failed to initialize AlertService:', error);
+      
       throw error;
     }
   }
@@ -65,7 +65,7 @@ class AlertService extends EventEmitter {
         this.setDefaultThresholds();
       }
     } catch (error) {
-      console.error('Error loading thresholds:', error);
+      
       this.setDefaultThresholds();
     }
   }
@@ -97,7 +97,7 @@ class AlertService extends EventEmitter {
       const thresholdsObj = Object.fromEntries(this.thresholds);
       await AsyncStorage.setItem('alert_thresholds', JSON.stringify(thresholdsObj));
     } catch (error) {
-      console.error('Error saving thresholds:', error);
+      
     }
   }
 
@@ -106,7 +106,7 @@ class AlertService extends EventEmitter {
       const history = await DatabaseService.getAlertHistory();
       this.alertHistory = history || [];
     } catch (error) {
-      console.error('Error loading alert history:', error);
+      
     }
   }
 
@@ -192,9 +192,9 @@ class AlertService extends EventEmitter {
       await this.saveAlertToDatabase(alert);
       await this.notificationService.sendAlert(alert);
       this.emit('alertTriggered', alert);
-      console.log(`Alert triggered: ${alert.message}`);
+      
     } catch (error) {
-      console.error('Error triggering alert:', error);
+      
     }
   }
 
@@ -205,7 +205,7 @@ class AlertService extends EventEmitter {
       alert.resolvedAt = new Date().toISOString();
       this.activeAlerts.delete(alertKey);
       this.emit('alertCleared', alert);
-      console.log(`Alert cleared: ${alert.parameter}`);
+      
     }
   }
 
@@ -224,7 +224,7 @@ class AlertService extends EventEmitter {
     try {
       await DatabaseService.saveAlert(alert);
     } catch (error) {
-      console.error('Error saving alert to database:', error);
+      
     }
   }
 
@@ -294,9 +294,9 @@ class AlertService extends EventEmitter {
       );
 
       await DatabaseService.cleanupOldAlerts(cutoffDate);
-      console.log(`Alert history cleaned up, kept last ${daysToKeep} days`);
+      
     } catch (error) {
-      console.error('Error cleaning up alert history:', error);
+      
     }
   }
 

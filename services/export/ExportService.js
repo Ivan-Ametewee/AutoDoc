@@ -77,7 +77,7 @@ class ExportService {
 
       return result;
     } catch (error) {
-      console.error('Export failed:', error);
+      
       return {
         success: false,
         error: error.message,
@@ -215,7 +215,7 @@ class ExportService {
       await this.removeScheduleConfig(scheduleId);
       return true;
     } catch (error) {
-      console.error('Failed to cancel scheduled export:', error);
+      
       return false;
     }
   }
@@ -247,7 +247,7 @@ class ExportService {
 
       return fileDetails.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (error) {
-      console.error('Failed to get exported files:', error);
+      
       return [];
     }
   }
@@ -262,7 +262,7 @@ class ExportService {
       await RNFS.unlink(filePath);
       return true;
     } catch (error) {
-      console.error('Failed to delete exported file:', error);
+      
       return false;
     }
   }
@@ -287,7 +287,7 @@ class ExportService {
       return true;
     } catch (error) {
       if (error.message !== 'User did not share') {
-        console.error('Failed to share file:', error);
+        
       }
       return false;
     }
@@ -316,7 +316,7 @@ class ExportService {
 
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
-      console.error('Permission request error:', error);
+      
       return false;
     }
   }
@@ -371,7 +371,7 @@ class ExportService {
   async storeScheduleConfig(scheduleId, config) {
     // Implementation would store in AsyncStorage or database
     // Placeholder for now
-    console.log('Storing schedule config:', scheduleId, config);
+    
   }
 
   /**
@@ -381,7 +381,7 @@ class ExportService {
   async removeScheduleConfig(scheduleId) {
     // Implementation would remove from AsyncStorage or database
     // Placeholder for now
-    console.log('Removing schedule config:', scheduleId);
+    
   }
 
   /**
@@ -406,7 +406,7 @@ class ExportService {
         newestExport: files.length > 0 ? files[0].createdAt : null
       };
     } catch (error) {
-      console.error('Failed to get export statistics:', error);
+      
       return {
         totalFiles: 0,
         totalSize: 0,
@@ -467,7 +467,7 @@ class ExportService {
         remainingFiles: files.length - deletedCount
       };
     } catch (error) {
-      console.error('Failed to cleanup old exports:', error);
+      
       return {
         success: false,
         error: error.message,

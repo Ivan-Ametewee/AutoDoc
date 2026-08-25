@@ -88,7 +88,7 @@ const serializePIDDataForRedux = (pidData: any) => ({
 });
 
 const FraudDetectionDashboard: React.FC = () => {
-  console.log('🔄 FraudDetectionDashboard component rendering... [UPDATED]');
+  
   
   const dispatch = useDispatch();
   
@@ -105,10 +105,10 @@ const FraudDetectionDashboard: React.FC = () => {
   const isDemoMode = connectionType === 'simulation' || connectionType === 'demo' || !connectionType;
   
   // Debug logging for demo mode detection
-  console.log('🔍 FraudDetection Debug - connectionType:', connectionType, 'isDemoMode:', isDemoMode);
-  console.log('🔍 FraudDetection Debug - Redux connection state:', useSelector((state: any) => state.connection));
   
-  console.log('📊 Current fraud data from Redux:', fraudDataFromStore);
+  
+  
+  
   
   // Get initial odometer reading from ECU on app startup
   React.useEffect(() => {
@@ -119,10 +119,10 @@ const FraudDetectionDashboard: React.FC = () => {
           // Try to get current odometer reading from ECU
           const odometerPID = OBDIIService.getActiveOdometerPID();
           if (odometerPID) {
-            console.log('📡 Getting initial odometer reading from ECU...');
+            
             const odometerData = await OBDIIService.queryPID(odometerPID);
             if (odometerData && odometerData.value) {
-              console.log('🚗 Initial odometer reading:', odometerData.value, 'km');
+              
               // Store in Redux via data action with serialized timestamps
               const { updatePIDData, mapPIDToVehicleData } = require('../../store/actions/dataActions');
               const vehicleData = mapPIDToVehicleData(odometerData);
@@ -133,26 +133,26 @@ const FraudDetectionDashboard: React.FC = () => {
             const commonOdometerPIDs = ['TOTAL_DISTANCE', 'ODOMETER', 'VEHICLE_ODOMETER'];
             for (const pidName of commonOdometerPIDs) {
               try {
-                console.log(`📡 Trying to get initial reading from ${pidName}...`);
+                
                 const data = await OBDIIService.queryPID(pidName);
                 if (data && data.value) {
-                  console.log('🚗 Initial odometer reading:', data.value, 'km from', pidName);
+                  
                   const { updatePIDData, mapPIDToVehicleData } = require('../../store/actions/dataActions');
                   const vehicleData = mapPIDToVehicleData(data);
                   dispatch(updatePIDData({ pidData: serializePIDDataForRedux(data), vehicleData }));
                   break; // Stop after first successful reading
                 }
               } catch (error) {
-                console.log(`❌ Failed to get reading from ${pidName}:`, error);
+                
                 continue; // Try next PID
               }
             }
           }
         } catch (error) {
-          console.log('❌ Failed to get initial odometer reading:', error);
+          
         }
       } else {
-        console.log('ℹ️ Not connected to ECU - will use cached/simulated data');
+        
       }
       
       // Always stop loading after attempt (success or failure)
@@ -281,7 +281,7 @@ const FraudDetectionDashboard: React.FC = () => {
       
       // If no historical data exists, generate sample data based on current reading
       if (!dataToUse || dataToUse.length === 0) {
-        console.log('No historical data found, generating sample data for fraud detection...');
+        
         
         const now = new Date();
         const sampleData = [];
@@ -305,7 +305,7 @@ const FraudDetectionDashboard: React.FC = () => {
         }
         
         dataToUse = sampleData;
-        console.log('Generated sample historical data:', sampleData.length, 'points');
+        
       }
 
       

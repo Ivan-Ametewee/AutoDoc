@@ -28,7 +28,7 @@ class HistoryDataService {
       await this.loadCurrentSession();
       return true;
     } catch (error) {
-      console.error('Failed to initialize HistoryDataService:', error);
+      
       return false;
     }
   }
@@ -549,7 +549,7 @@ class HistoryDataService {
 
     // Check record count limit
     if (this.currentSession.recordCount >= this.maxRecordsPerSession) {
-      console.warn('Session reached maximum record count, stopping...');
+      
       await this.stopSession();
       return;
     }
@@ -558,7 +558,7 @@ class HistoryDataService {
     if (metadata.maxDuration) {
       const elapsed = (new Date() - new Date(this.currentSession.startTime)) / 1000;
       if (elapsed >= metadata.maxDuration) {
-        console.warn('Session reached maximum duration, stopping...');
+        
         await this.stopSession();
         return;
       }
@@ -729,7 +729,7 @@ class HistoryDataService {
         this.sessions = JSON.parse(data);
       }
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      
       this.sessions = [];
     }
   }
@@ -744,7 +744,7 @@ class HistoryDataService {
       await AsyncStorage.setItem(this.storageKey, JSON.stringify(sessionsToSave));
       this.sessions = sessionsToSave;
     } catch (error) {
-      console.error('Failed to save sessions:', error);
+      
       throw error;
     }
   }
@@ -760,7 +760,7 @@ class HistoryDataService {
         this.isRecording = this.currentSession.status === 'active';
       }
     } catch (error) {
-      console.error('Failed to load current session:', error);
+      
     }
   }
 
@@ -773,7 +773,7 @@ class HistoryDataService {
         await AsyncStorage.setItem(this.currentSessionKey, JSON.stringify(this.currentSession));
       }
     } catch (error) {
-      console.error('Failed to save current session:', error);
+      
       throw error;
     }
   }

@@ -24,7 +24,7 @@ class VehicleDataService {
       await this.loadCurrentVehicle();
       return true;
     } catch (error) {
-      console.error('Failed to initialize VehicleDataService:', error);
+      
       return false;
     }
   }
@@ -289,7 +289,7 @@ class VehicleDataService {
       }
       return true;
     } catch (error) {
-      console.error('Failed to import vehicle data:', error);
+      
       throw error;
     }
   }
@@ -304,7 +304,7 @@ class VehicleDataService {
         this.vehicles = JSON.parse(data);
       }
     } catch (error) {
-      console.error('Failed to load vehicles:', error);
+      
       this.vehicles = [];
     }
   }
@@ -316,7 +316,7 @@ class VehicleDataService {
     try {
       await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.vehicles));
     } catch (error) {
-      console.error('Failed to save vehicles:', error);
+      
       throw error;
     }
   }
@@ -331,7 +331,7 @@ class VehicleDataService {
         this.currentVehicle = this.getVehicleById(vehicleId);
       }
     } catch (error) {
-      console.error('Failed to load current vehicle:', error);
+      
     }
   }
 

@@ -1,8 +1,8 @@
 // src/services/alerts/NotificationService.js
-import PushNotification from 'react-native-push-notification';
-import { Platform, Alert, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { Alert, Platform, Vibration } from 'react-native';
+import { check, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
+import PushNotification from 'react-native-push-notification';
 
 export class NotificationService {
   constructor() {
@@ -32,9 +32,9 @@ export class NotificationService {
       this.createNotificationChannel();
       this.configurePushNotification();
       this.isInitialized = true;
-      console.log('NotificationService initialized successfully');
+
     } catch (error) {
-      console.error('Failed to initialize NotificationService:', error);
+
       throw error;
     }
   }
@@ -43,10 +43,10 @@ export class NotificationService {
   async requestPermissions() {
     try {
       if (Platform.OS === 'android') {
-        const permission = Platform.Version >= 33 
-          ? PERMISSIONS.ANDROID.POST_NOTIFICATIONS 
+        const permission = Platform.Version >= 33
+          ? PERMISSIONS.ANDROID.POST_NOTIFICATIONS
           : PERMISSIONS.ANDROID.WRITE_EXTERNAL_STORAGE;
-        
+
         const result = await check(permission);
         if (result !== RESULTS.GRANTED) {
           await request(permission);
@@ -60,7 +60,7 @@ export class NotificationService {
         });
       }
     } catch (error) {
-      console.error('Error requesting notification permissions:', error);
+
     }
   }
 
@@ -72,7 +72,7 @@ export class NotificationService {
         this.notificationSettings = { ...this.notificationSettings, ...JSON.parse(saved) };
       }
     } catch (error) {
-      console.error('Error loading notification settings:', error);
+
     }
   }
 
@@ -81,7 +81,7 @@ export class NotificationService {
     try {
       await AsyncStorage.setItem('notification_settings', JSON.stringify(this.notificationSettings));
     } catch (error) {
-      console.error('Error saving notification settings:', error);
+
     }
   }
 
@@ -99,7 +99,7 @@ export class NotificationService {
           vibrate: this.notificationSettings.vibration,
           vibration: 300
         },
-        (created) => console.log('Notification channel created:', created)
+        () => { }
       );
     }
   }
@@ -108,32 +108,32 @@ export class NotificationService {
   configurePushNotification() {
     PushNotification.configure({
       onRegister: (token) => {
-        console.log('Notification token:', token);
+
       },
-      
+
       onNotification: (notification) => {
-        console.log('Notification received:', notification);
-        
+
+
         // Handle notification tap
         if (notification.userInteraction) {
           this.handleNotificationTap(notification);
         }
       },
-      
+
       onAction: (notification) => {
-        console.log('Notification action:', notification);
+
       },
-      
+
       onRegistrationError: (err) => {
-        console.error('Notification registration error:', err);
+
       },
-      
+
       permissions: {
         alert: true,
         badge: true,
         sound: true,
       },
-      
+
       popInitialNotification: true,
       requestPermissions: Platform.OS === 'ios'
     });
@@ -147,16 +147,16 @@ export class NotificationService {
 
     try {
       const notificationData = this.buildNotificationData(alert);
-      
+
       // Send local notification
       PushNotification.localNotification(notificationData);
-      
+
       // Handle additional alert actions
       await this.handleAlertActions(alert);
-      
-      console.log(`Notification sent for alert: ${alert.parameter}`);
+
+
     } catch (error) {
-      console.error('Error sending notification:', error);
+
     }
   }
 
@@ -186,10 +186,10 @@ export class NotificationService {
   isInQuietHours() {
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
-    
+
     const startTime = this.parseTime(this.notificationSettings.quietHours.startTime);
     const endTime = this.parseTime(this.notificationSettings.quietHours.endTime);
-    
+
     if (startTime <= endTime) {
       return currentTime >= startTime && currentTime <= endTime;
     } else {
@@ -209,7 +209,7 @@ export class NotificationService {
     const title = this.getNotificationTitle(alert);
     const message = alert.message;
     const priority = this.getNotificationPriority(alert.priority);
-    
+
     return {
       channelId: this.channelId,
       title,
@@ -238,10 +238,10 @@ export class NotificationService {
 
   // Get notification title based on alert
   getNotificationTitle(alert) {
-    const priorityText = alert.priority === 'high' ? '🚨 CRITICAL' : 
-                       alert.priority === 'medium' ? '⚠️ WARNING' : 
-                       '💡 NOTICE';
-    
+    const priorityText = alert.priority === 'high' ? '🚨 CRITICAL' :
+      alert.priority === 'medium' ? '⚠️ WARNING' :
+        '💡 NOTICE';
+
     return `${priorityText} Vehicle Alert`;
   }
 
@@ -278,11 +278,11 @@ export class NotificationService {
   // Get notification actions
   getNotificationActions(alert) {
     const actions = ['Acknowledge', 'View Details'];
-    
+
     if (alert.priority === 'high') {
       actions.unshift('Dismiss');
     }
-    
+
     return actions;
   }
 
@@ -310,7 +310,7 @@ export class NotificationService {
   // Handle notification tap
   handleNotificationTap(notification) {
     const { userInfo } = notification;
-    
+
     if (userInfo && userInfo.type === 'vehicle_alert') {
       this.viewAlertDetails(userInfo.alertId);
     }
@@ -319,13 +319,13 @@ export class NotificationService {
   // Acknowledge alert
   acknowledgeAlert(alertId) {
     // This would typically dispatch an action or call a service method
-    console.log(`Alert acknowledged: ${alertId}`);
+
   }
 
   // View alert details
   viewAlertDetails(alertId) {
     // This would typically navigate to alert details screen
-    console.log(`Viewing alert details: ${alertId}`);
+
   }
 
   // Send connection status notification
@@ -334,7 +334,7 @@ export class NotificationService {
 
     const title = status === 'connected' ? 'Device Connected' : 'Device Disconnected';
     const message = `${deviceName} ${status === 'connected' ? 'is now connected' : 'has been disconnected'}`;
-    
+
     PushNotification.localNotification({
       channelId: this.channelId,
       title,
@@ -357,7 +357,7 @@ export class NotificationService {
 
     const title = dtcCount === 1 ? 'Diagnostic Code Detected' : 'Diagnostic Codes Detected';
     const message = `${dtcCount} diagnostic trouble code${dtcCount > 1 ? 's' : ''} found`;
-    
+
     PushNotification.localNotification({
       channelId: this.channelId,
       title,
@@ -389,7 +389,7 @@ export class NotificationService {
   async updateSettings(newSettings) {
     this.notificationSettings = { ...this.notificationSettings, ...newSettings };
     await this.saveSettings();
-    
+
     // Recreate channel if sound/vibration settings changed
     if (newSettings.sound !== undefined || newSettings.vibration !== undefined) {
       this.createNotificationChannel();

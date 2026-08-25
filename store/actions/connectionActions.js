@@ -66,7 +66,7 @@ export const startScanning = (connectionType = 'bluetooth') => async (dispatch) 
 
     return devices;
   } catch (error) {
-    console.error('Scan error:', error);
+    
     dispatch({
       type: CONNECTION_TYPES.SCAN_ERROR,
       payload: { error: error.message }
@@ -85,7 +85,7 @@ export const stopScanning = (connectionType = 'bluetooth') => async (dispatch) =
 
     dispatch({ type: CONNECTION_TYPES.STOP_SCANNING, payload: { connectionType } });
   } catch (error) {
-    console.error('Error stopping scan:', error);
+    
   }
 };
 
@@ -132,7 +132,7 @@ export const connectToDevice = (device) => async (dispatch) => {
 
     return connectedDevice;
   } catch (error) {
-    console.error('Connection error:', error);
+    
     dispatch({
       type: CONNECTION_TYPES.CONNECT_FAILED,
       payload: { error: error.message }
@@ -148,7 +148,7 @@ export const disconnectDevice = () => async (dispatch) => {
 
     dispatch({ type: CONNECTION_TYPES.DISCONNECT });
   } catch (error) {
-    console.error('Disconnect error:', error);
+    
     // Still dispatch disconnect even if there's an error
     dispatch({ type: CONNECTION_TYPES.DISCONNECT });
     throw error;
@@ -236,7 +236,7 @@ export const reconnectToLastDevice = () => async (dispatch, getState) => {
     try {
       await dispatch(connectToDevice(connection.lastConnectedDevice));
     } catch (error) {
-      console.error('Failed to reconnect to last device:', error);
+      
       throw error;
     }
   } else {
@@ -256,7 +256,7 @@ export const startConnectionMonitoring = () => async (dispatch) => {
         clearInterval(monitorInterval);
       }
     } catch (error) {
-      console.error('Connection monitoring error:', error);
+      
     }
   }, 5000);
 
@@ -274,7 +274,7 @@ export const enableDemoMode = () => async (dispatch) => {
     await obdiiService.enableSimulation();
     dispatch({ type: CONNECTION_TYPES.SET_SIMULATION_MODE, payload: { enabled: true } });
   } catch (error) {
-    console.error('Demo mode error:', error);
+    
     throw error;
   }
 };
@@ -291,7 +291,7 @@ export const checkBluetoothStatus = () => async (dispatch) => {
     });
     return status;
   } catch (error) {
-    console.error('Bluetooth status check error:', error);
+    
     throw error;
   }
 };
@@ -305,7 +305,7 @@ export const requestBluetoothPermissions = () => async (dispatch) => {
     });
     return granted;
   } catch (error) {
-    console.error('Permission request error:', error);
+    
     throw error;
   }
 };

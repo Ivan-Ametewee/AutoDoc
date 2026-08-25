@@ -87,7 +87,7 @@ class SettingsService {
         listener(...args);
       } catch (e) {
         // swallow listener errors to avoid breaking emitter
-        console.error(`[SettingsService] Event listener error for ${event}:`, e);
+        
       }
     });
   }
@@ -139,16 +139,16 @@ class SettingsService {
 
   public async loadSettings(): Promise<AppSettings> {
     try {
-      console.log('📋 [SETTINGS] Loading settings from storage...');
+      
       const storedSettings = await AsyncStorage.getItem(this.STORAGE_KEY);
 
       if (storedSettings) {
         const parsed = JSON.parse(storedSettings);
         // Merge with defaults to ensure all keys exist
         this.settings = { ...this.getDefaultSettings(), ...parsed };
-        console.log('📋 [SETTINGS] Settings loaded successfully');
+        
       } else {
-        console.log('📋 [SETTINGS] No stored settings found, using defaults');
+        
         this.settings = this.getDefaultSettings();
         await this.saveSettings(); // Save defaults
       }
@@ -156,7 +156,7 @@ class SettingsService {
       this.emit('settingsLoaded', this.settings);
       return this.settings;
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error loading settings:', error.message);
+      
       this.settings = this.getDefaultSettings();
       return this.settings;
     }
@@ -164,13 +164,13 @@ class SettingsService {
 
   public async saveSettings(): Promise<boolean> {
     try {
-      console.log('📋 [SETTINGS] Saving settings to storage...');
+      
       await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.settings));
-      console.log('📋 [SETTINGS] Settings saved successfully');
+      
       this.emit('settingsSaved', this.settings);
       return true;
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error saving settings:', error.message);
+      
       return false;
     }
   }
@@ -180,7 +180,7 @@ class SettingsService {
     value: AppSettings[K]
   ): Promise<boolean> {
     try {
-      console.log(`📋 [SETTINGS] Updating ${key}:`, value);
+      
 
       const oldValue = this.settings[key];
       this.settings[key] = value;
@@ -193,7 +193,7 @@ class SettingsService {
 
       return saved;
     } catch (error: any) {
-      console.error(`📋 [SETTINGS] Error updating ${key}:`, error.message);
+      
       return false;
     }
   }
@@ -208,7 +208,7 @@ class SettingsService {
 
   public async resetToDefaults(): Promise<boolean> {
     try {
-      console.log('📋 [SETTINGS] Resetting settings to defaults...');
+      
       this.settings = this.getDefaultSettings();
       const saved = await this.saveSettings();
 
@@ -218,7 +218,7 @@ class SettingsService {
 
       return saved;
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error resetting settings:', error.message);
+      
       return false;
     }
   }
@@ -324,7 +324,7 @@ class SettingsService {
   // Storage management
   public async clearCache(): Promise<boolean> {
     try {
-      console.log('📋 [SETTINGS] Clearing app cache...');
+      
 
       // Get all AsyncStorage keys
       const keys = await AsyncStorage.getAllKeys();
@@ -339,13 +339,13 @@ class SettingsService {
 
       if (cacheKeys.length > 0) {
         await AsyncStorage.multiRemove(cacheKeys);
-        console.log(`📋 [SETTINGS] Cleared ${cacheKeys.length} cache entries`);
+        
       }
 
       this.emit('cacheCleared');
       return true;
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error clearing cache:', error.message);
+      
       return false;
     }
   }
@@ -360,7 +360,7 @@ class SettingsService {
 
       return JSON.stringify(exportData, null, 2);
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error exporting settings:', error.message);
+      
       throw error;
     }
   }
@@ -383,7 +383,7 @@ class SettingsService {
 
       throw new Error('Invalid settings format');
     } catch (error: any) {
-      console.error('📋 [SETTINGS] Error importing settings:', error.message);
+      
       return false;
     }
   }

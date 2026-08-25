@@ -38,7 +38,7 @@ class StorageManager {
       await AsyncStorage.setItem(this._generateKey(key), serializedValue);
       return true;
     } catch (error) {
-      console.error(`Storage setItem error for key ${key}:`, error);
+      
       return false;
     }
   }
@@ -62,7 +62,7 @@ class StorageManager {
       // Return the data, handling both new format (with metadata) and legacy format
       return parsed.data !== undefined ? parsed.data : parsed;
     } catch (error) {
-      console.error(`Storage getItem error for key ${key}:`, error);
+      
       return defaultValue;
     }
   }
@@ -77,7 +77,7 @@ class StorageManager {
       await AsyncStorage.removeItem(this._generateKey(key));
       return true;
     } catch (error) {
-      console.error(`Storage removeItem error for key ${key}:`, error);
+      
       return false;
     }
   }
@@ -97,7 +97,7 @@ class StorageManager {
       
       return true;
     } catch (error) {
-      console.error('Storage clearAll error:', error);
+      
       return false;
     }
   }
@@ -113,7 +113,7 @@ class StorageManager {
         .filter(key => key.startsWith(this.prefix))
         .map(key => key.replace(this.prefix, ''));
     } catch (error) {
-      console.error('Storage getAllKeys error:', error);
+      
       return [];
     }
   }
@@ -142,7 +142,7 @@ class StorageManager {
         formattedSize: this._formatBytes(totalSize),
       };
     } catch (error) {
-      console.error('Storage getStorageInfo error:', error);
+      
       return {
         totalItems: 0,
         totalSize: 0,

@@ -124,7 +124,7 @@ export default function DashboardScreen() {
       SettingsService.on('settingChanged:distance_unit', handleSettingsChange);
       
       const onDataUpdate = (event: string, data: any) => {
-        console.log(`[Dashboard] Received Event: ${event}`, JSON.stringify(data)); 
+        
         if (event === 'connectionStatus') {
           setConnectionStatus(data.status);
           if (data.status !== 'connected') {
@@ -133,8 +133,8 @@ export default function DashboardScreen() {
         } else if (event === 'dataUpdate') {
           // Use centralized data processing for consistency
           const processedData = DataProcessor.processOBDData(data.name, data.value);
-          console.log(`[Dashboard] Processed ${data.name}:`, processedData);
           
+
           setLiveData(prevData => {
             const newData = { ...prevData };
             
@@ -174,7 +174,7 @@ export default function DashboardScreen() {
               case 'TOTAL_DISTANCE_TRAVELED':
               case 'ODOMETER_STANDARD':
                 newData.odometer = processedData;
-                console.log(`[Dashboard] Odometer update:`, processedData);
+                
                 break;
             }
             return newData;
@@ -196,7 +196,7 @@ export default function DashboardScreen() {
             const milData = await OBDIIService.queryMILStatus();
             setMilActive(milData.milActive);
           } catch (error) {
-            console.error('Failed to query MIL status:', error);
+            
           }
         };
         
