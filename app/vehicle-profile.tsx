@@ -720,7 +720,7 @@ const VehicleProfileScreen: React.FC = () => {
                 }}
               />
             ) : ( */}
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
                 <Text style={{ color: '#fff', textAlign: 'center', padding: 20 }}>
                   VIN scanner not available.{"\n"}Camera functionality has been disabled
                 </Text>

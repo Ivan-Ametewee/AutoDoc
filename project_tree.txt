@@ -1,0 +1,315 @@
+﻿.claude
+android
+app
+assets
+components
+constants
+contexts
+error-images
+hooks
+ios
+scripts
+services
+store
+types
+utils
+.easignore
+App.js
+app.json
+CLAUDE.md
+clean-android.js
+DTC_SCANNING_ANALYSIS.md
+eas.json
+ELM327PDF_250321_130927.pdf
+ELM327_REFACTOR_SUMMARY.md
+eslint.config.js
+index.js
+logs.txt
+metro.config.js
+mode6.csv
+mode6.xlsx
+package-lock.json
+package.json
+pid-test.tsx
+project_tree.txt
+react-native-safe-area-context-shim.js
+README.md
+temp1.txt
+temp2.txt
+temp3.txt
+temp4.txt
+temp5.txt
+temp6.txt
+terminal.tsx
+test-realtime-fraud.js
+tsconfig.json
+    settings.local.json
+    app
+    gradle
+    gradle.properties
+    gradlew
+    gradlew.bat
+    settings.gradle
+        src
+        debug.keystore
+        proguard-rules.pro
+            debug
+            debugOptimized
+            main
+                AndroidManifest.xml
+                AndroidManifest.xml
+                java
+                res
+                AndroidManifest.xml
+                    com
+                        ivanametewee
+                            simulate
+                                MainActivity.kt
+                                MainApplication.kt
+                    drawable
+                    drawable-hdpi
+                    drawable-mdpi
+                    drawable-night-hdpi
+                    drawable-night-mdpi
+                    drawable-night-xhdpi
+                    drawable-night-xxhdpi
+                    drawable-night-xxxhdpi
+                    drawable-xhdpi
+                    drawable-xxhdpi
+                    drawable-xxxhdpi
+                    mipmap-anydpi-v26
+                    mipmap-hdpi
+                    mipmap-mdpi
+                    mipmap-xhdpi
+                    mipmap-xxhdpi
+                    mipmap-xxxhdpi
+                    values
+                    values-night
+                        ic_launcher_background.xml
+                        rn_edit_text_material.xml
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        splashscreen_logo.png
+                        ic_launcher.xml
+                        ic_launcher_round.xml
+                        ic_launcher.webp
+                        ic_launcher_foreground.webp
+                        ic_launcher_round.webp
+                        ic_launcher.webp
+                        ic_launcher_foreground.webp
+                        ic_launcher_round.webp
+                        ic_launcher.webp
+                        ic_launcher_foreground.webp
+                        ic_launcher_round.webp
+                        ic_launcher.webp
+                        ic_launcher_foreground.webp
+                        ic_launcher_round.webp
+                        ic_launcher.webp
+                        ic_launcher_foreground.webp
+                        ic_launcher_round.webp
+                        colors.xml
+                        strings.xml
+                        styles.xml
+                        colors.xml
+        wrapper
+            gradle-wrapper.jar
+            gradle-wrapper.properties
+    (tabs)
+    alerts.tsx
+    fraud-detection.tsx
+    index.tsx
+    reports.tsx
+    vehicle-profile.tsx
+    _layout.tsx
+        dashboard.tsx
+        diagnostics.tsx
+        history.tsx
+        settings.tsx
+        _layout.tsx
+    fonts
+    icons
+    images
+        SpaceMono-Regular.ttf
+        adaptive-icon.png
+        ios-dark.png
+        ios-light.png
+        ios-tinted.png
+        splash-icon-dark.png
+        splash-icon-light.png
+        adaptive-icon.png
+        favicon.png
+        icon.png
+        notification_icon.jpg
+        partial-react-logo.png
+        react-logo.png
+        react-logo@2x.png
+        react-logo@3x.png
+        splash-icon.png
+        splash.png
+    charts
+    common
+    connection
+    fraud
+    gauges
+    ui
+    Collapsible.tsx
+    ExternalLink.tsx
+    HapticTab.tsx
+    HelloWave.tsx
+    ParallaxScrollView.tsx
+    ThemedText.tsx
+    ThemedView.tsx
+        BarChart.js
+        HistoryChart.js
+        LineChart.js
+        Button.js
+        Card.js
+        Header.js
+        LoadingSpinner.js
+        Modal.js
+        ConnectionStatus.js
+        DeviceList.js
+        ScanningIndicator.js
+        FraudDetectionDashboard.tsx
+        CircularGauge.js
+        DigitalDisplay.js
+        LinearGauge.js
+        SpeedometerGauge.js
+        IconSymbol.ios.tsx
+        IconSymbol.tsx
+        TabBarBackground.tsx
+    Colors.ts
+    ThemeContext.tsx
+    currentAppIcon.jpg
+    largeSplashScreen.jpg
+    useColorScheme.ts
+    useColorScheme.web.ts
+    useLiveOBDData.ts
+    useThemeColor.ts
+    AutoDoc
+    AutoDoc.xcodeproj
+    simulate
+    simulate.xcodeproj
+    simulate.xcworkspace
+    .xcode.env
+    Podfile
+    Podfile.lock
+    Podfile.properties.json
+        Images.xcassets
+        Supporting
+        AppDelegate.swift
+        AutoDoc-Bridging-Header.h
+        Info.plist
+        SplashScreen.storyboard
+            AppIcon.appiconset
+            Contents.json
+                Contents.json
+            Expo.plist
+        project.xcworkspace
+        xcshareddata
+        project.pbxproj
+            xcshareddata
+            contents.xcworkspacedata
+                IDEWorkspaceChecks.plist
+            xcschemes
+                AutoDoc.xcscheme
+        Images.xcassets
+        Supporting
+        AppDelegate.swift
+        Info.plist
+        PrivacyInfo.xcprivacy
+        simulate-Bridging-Header.h
+        simulate.entitlements
+        SplashScreen.storyboard
+            AppIcon.appiconset
+            SplashScreenBackground.colorset
+            SplashScreenLogo.imageset
+            Contents.json
+                App-Icon-1024x1024@1x.png
+                Contents.json
+                Contents.json
+                Contents.json
+                image.png
+                image@2x.png
+                image@3x.png
+            Expo.plist
+        xcshareddata
+        project.pbxproj
+            xcschemes
+                simulate.xcscheme
+        contents.xcworkspacedata
+    reset-project.js
+    alerts
+    bluetooth
+    database
+    export
+    fraud
+    obdii
+    settings
+    simulation
+    wifi
+        AlertService.ts
+        NotificationService.js
+        ThresholdManager.js
+        BluetoothManager.ts
+        BluetoothService.ts
+        DatabaseService.ts
+        HistoryData.js
+        SettingsData.js
+        VehicleData.js
+        CSVExporter.js
+        ExportService.js
+        ExportService.ts
+        PDFGenerator.js
+        OdometerFraudDetectionService.ts
+        BodyDTCCodes.ts
+        ChassisDTCCodes.ts
+        ComprehensiveDTCCodes.js
+        DTCCodes.js
+        ELM327Handler.ts
+        NetworkDTCCodes.ts
+        OBDIIParser.ts
+        OBDIIService.ts
+        PIDDefinitions.ts
+        PowertrainDTCCodes.ts
+        UnifiedDTCService.ts
+        SettingsService.ts
+        MockDataGenerator.ts
+        SimulationService.ts
+        VehicleSimulator.ts
+        WiFiManager.ts
+        WiFiService.ts
+    actions
+    reducers
+    types
+    index.ts
+        connectionActions.js
+        dataActions.js
+        dataActions.ts
+        fraudDetectionActions.ts
+        settingsActions.js
+        vehicleActions.js
+        connectionReducer.d.ts
+        connectionReducer.js
+        dataReducer.d.ts
+        dataReducer.js
+        settingsReducer.js
+        vehicleReducer.d.ts
+        vehicleReducer.js
+        fraudTypes.ts
+    constants.js
+    converters.js
+    dataProcessing.ts
+    deviceFilters.ts
+    formatters.js
+    fraudValidators.ts
+    storage.js
+    unitConversion.ts
+    validators.js
