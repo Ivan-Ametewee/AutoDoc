@@ -26,6 +26,7 @@ function serializePIDData(pidData: ParsedPIDData): SerializedPIDData {
 }
 
 type RootState = ReturnType<typeof store.getState>;
+const EMPTY_VEHICLES: any[] = [];
 
 export function useLiveOBDData() {
   const dispatch = useDispatch();
@@ -37,7 +38,7 @@ export function useLiveOBDData() {
   const activeVehicleId = useSelector((state: RootState) => state.vehicle?.activeVehicle);
   const vehicles = useSelector((state: RootState) => {
     const vehicleArray = state.vehicle?.vehicles;
-    return Array.isArray(vehicleArray) ? vehicleArray : [];
+    return Array.isArray(vehicleArray) ? vehicleArray : EMPTY_VEHICLES;
   });
   const vehicleInfo = vehicles.find(v => v.id === activeVehicleId);
   
