@@ -17,7 +17,8 @@ import {
 // Types for root state
 interface RootState {
   vehicle: {
-    activeProfile: VehicleProfile | null;
+    activeVehicle: string | null;
+    vehicles: any[];
     fraudDetection: any;
   };
   data: {
@@ -27,6 +28,25 @@ interface RootState {
 
 // Use fraud detection service singleton
 const fraudDetectionService = OdometerFraudDetectionService;
+
+// Resolve the active vehicle from the real vehicle state shape:
+// state.vehicle.vehicles is an array, state.vehicle.activeVehicle is an id.
+function resolveActiveVehicleProfile(state: RootState): VehicleProfile | null {
+  const vehicles = state.vehicle?.vehicles;
+  const activeId = state.vehicle?.activeVehicle;
+  if (!Array.isArray(vehicles) || activeId == null) return null;
+  const v = vehicles.find((x: any) => x.id === activeId);
+  if (!v) return null;
+  return {
+    id: String(v.id),
+    vin: v.vin || undefined,
+    year: v.year ?? 0,
+    make: v.make || 'Unknown',
+    model: v.model || 'Unknown',
+    odometer: v.maintenance?.mileage ?? 0,
+    createdAt: v.statistics?.createdAt ?? new Date().toISOString(),
+  };
+}
 
 // Real-time fraud detection flag
 let isRealTimeFraudDetectionActive = false;
@@ -40,7 +60,7 @@ export const runFraudDetection = (currentReading: OdometerReading) => {
       const state = getState();
       // Try to get active vehicle profile from different possible locations
       // Note: activeVehicle is typically just an ID, activeProfile would be the full object
-      const activeProfile = state.vehicle?.activeProfile;
+      const activeProfile = resolveActiveVehicleProfile(state);
       const { historicalData } = state.data;
       const fraudDetectionSettings = state.vehicle?.fraudDetection;
 
@@ -523,8 +543,7 @@ export const analyzeHistoricalFraudPatterns = () => {
     try {
       const state = getState();
       const { historicalData } = state.data;
-      const { activeProfile } = state.vehicle;
-
+      const activeProfile = resolveActiveVehicleProfile(state);
       if (!historicalData || historicalData.length < 5 || !activeProfile) {
         return;
       }
