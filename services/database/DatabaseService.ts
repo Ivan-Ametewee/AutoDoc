@@ -581,9 +581,15 @@ class DatabaseService {
   }
 
   async getDTCs(vehicleId: number | null = null, includeCleared = false): Promise<DtcCode[]> {
-    let query = 'SELECT * FROM dtc_codes';
+    let query = 'SELECT * FROM dtc_codes WHERE 1=1';
     const params: any[] = [];
-    // ... logic from original file
+    if (vehicleId !== null) {
+      query += ' AND vehicle_id = ?';
+      params.push(vehicleId);
+    }
+    if (!includeCleared) {
+      query += " AND status != 'cleared'";
+    }
     const dtcs = await this.database!.getAllAsync(query, params) as DtcCode[];
     // Parse freeze_frame_data back to object
     dtcs.forEach(dtc => {
@@ -609,7 +615,7 @@ class DatabaseService {
   async getDiagnosticHistory(): Promise<any[]> {
     // Return DTC history and alert history combined
     try {
-      const dtcs = await this.getDTCs();
+      const dtcs = await this.getDTCs(null, true);
       const alerts = await this.getAlertHistory();
       
       return [
@@ -625,9 +631,9 @@ class DatabaseService {
         })),
         ...alerts.map(alert => ({
           type: 'Alert',
-          code: alert.alert_type,
+          code: alert.parameter,
           description: alert.message,
-          severity: alert.severity,
+          severity: alert.priority,
           status: alert.resolved ? 'cleared' : 'active',
           first_detected: alert.timestamp,
           last_detected: alert.timestamp,
@@ -655,14 +661,14 @@ class DatabaseService {
   async getStoredDTCs(): Promise<any[]> {
     // Alias for getDTCs for export compatibility
     try {
-      const dtcs = await this.getDTCs();
+      const dtcs = await this.getDTCs(null, true);
       return dtcs.map(dtc => ({
         code: dtc.code,
         description: dtc.description,
         status: dtc.status,
         detectedAt: dtc.first_detected,
         clearedAt: dtc.cleared_at,
-        freezeFrameData: dtc.freeze_frame_data ? JSON.parse(dtc.freeze_frame_data) : null
+        freezeFrameData: dtc.freeze_frame_data || null
       }));
     } catch (error) {
       

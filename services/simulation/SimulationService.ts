@@ -1,6 +1,5 @@
 // services/simulation/SimulationService.ts
 
-import { VehicleSimulator } from './VehicleSimulator';
 import mockDataGenerator from './MockDataGenerator';
 
 type SimulationCallback = (eventType: string, data: any) => void;
@@ -8,7 +7,6 @@ type SimulationCallback = (eventType: string, data: any) => void;
 class SimulationService {
   private isSimulating = false;
   private simulationInterval: number | null = null;
-  private vehicleSimulator: VehicleSimulator;
   private callbacks: Set<SimulationCallback> = new Set();
   private currentData: any = {};
   private simulationSpeed = 1000; // ms
@@ -29,7 +27,6 @@ class SimulationService {
   private currentScenario: string = this.scenarios.NORMAL_DRIVING;
 
   constructor() {
-    this.vehicleSimulator = new VehicleSimulator();
   }
 
   /**
@@ -88,14 +85,12 @@ class SimulationService {
    * Update simulation data
    */
   private updateSimulation(): void {
-    const deltaTime = (Date.now() - this.lastUpdateTime) / 1000;
     this.lastUpdateTime = Date.now();
 
     // Map simulation scenarios to MockDataGenerator driving scenarios
     const mockScenario = this.mapToMockDataScenario(this.currentScenario);
     mockDataGenerator.setDrivingScenario(mockScenario);
 
-    this.vehicleSimulator.update(deltaTime, this.currentScenario);
     this.currentData = mockDataGenerator.generateRealtimeData();
     
     // Check if there are active DTCs to set MIL status
@@ -133,7 +128,6 @@ class SimulationService {
       // **FIXED**: Correctly assign to `this.currentScenario`
       this.currentScenario = scenario; 
       // Assuming `setScenario` exists on VehicleSimulator
-      this.vehicleSimulator.setScenario(scenario);
       
       this.notifyCallbacks('scenario_changed', { 
         scenario: scenario,
@@ -390,7 +384,6 @@ class SimulationService {
     }
     
     // **FIXED**: Call reset on the instances
-    this.vehicleSimulator.reset(); 
     mockDataGenerator.reset(); 
     mockDataGenerator.startEngine(); // Restart engine after reset for simulation
     this.currentData = {};
