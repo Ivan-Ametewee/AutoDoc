@@ -32,7 +32,6 @@ export interface PIDDataPayload {
     vehicleData: Partial<VehicleData>;
 }
 
-export const updateRealTimeData = createAction<VehicleData>('data/updateRealTimeData');
 export const updatePIDData = createAction<PIDDataPayload>('data/updatePIDData');
 
 // Utility function to map PID data to VehicleData format

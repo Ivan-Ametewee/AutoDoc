@@ -141,30 +141,6 @@ const initialState = {
 
 const dataReducer = (state = initialState, action) => {
   switch (action.type) {
-    case 'data/updateRealTimeData':
-      const newDataPoint = {
-        timestamp: new Date().toISOString(),
-        ...action.payload,
-      };
-
-      return {
-        ...state,
-        liveData: {
-          ...state.liveData,
-          ...action.payload,
-          lastUpdate: new Date(),
-        },
-        lastDataUpdate: new Date().toISOString(),
-        dataPoints: [
-          ...state.dataPoints.slice(-(state.maxDataPoints - 1)),
-          newDataPoint,
-        ],
-        sessionData: [
-          ...state.sessionData,
-          newDataPoint,
-        ],
-      };
-
     case 'data/updatePIDData':
       const { pidData, vehicleData } = action.payload;
       

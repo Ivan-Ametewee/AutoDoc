@@ -3,7 +3,7 @@
 // Characterization tests for store/reducers/dataReducer.js.
 // Written BEFORE removing the 26 unreachable cases (REF-022): these tests must pass against the
 // current reducer AND after the trim. They cover only what the live app can actually trigger:
-// the two RTK action types from dataActions.ts, plus unknown actions and the initial state shape.
+// the RTK action type data/updatePIDData from dataActions.ts, plus unknown actions and the initial state shape.
 
 import dataReducerModule from '../../store/reducers/dataReducer';
 
@@ -34,35 +34,6 @@ describe('dataReducer — initial state and unknown actions', () => {
     expect(initial.liveData.odometer).toBeNull();
     expect(initial.liveData.batteryVoltage).toBeNull();
     expect(initial.liveData.rpm).toBe(0);
-  });
-});
-
-describe("dataReducer — 'data/updateRealTimeData'", () => {
-  it('merges the payload into liveData and records a data point', () => {
-    const next = dataReducer(initial, {
-      type: 'data/updateRealTimeData',
-      payload: { rpm: 2500, speed: 60 },
-    });
-    expect(next.liveData.rpm).toBe(2500);
-    expect(next.liveData.speed).toBe(60);
-    expect(next.liveData.engineTemp).toBe(0); // untouched fields are preserved
-    expect(next.liveData.lastUpdate).toBeInstanceOf(Date);
-    expect(typeof next.lastDataUpdate).toBe('string');
-    expect(next.dataPoints).toHaveLength(1);
-    expect(next.dataPoints[0]).toMatchObject({ rpm: 2500, speed: 60 });
-    expect(typeof next.dataPoints[0].timestamp).toBe('string');
-    expect(next.sessionData).toHaveLength(1);
-  });
-
-  it('keeps at most maxDataPoints data points (sessionData is not capped — documents current behavior)', () => {
-    // Characterization only: sessionData grows without bound in the current reducer.
-    let state: any = { ...initial, maxDataPoints: 3 };
-    for (let i = 1; i <= 5; i++) {
-      state = dataReducer(state, { type: 'data/updateRealTimeData', payload: { rpm: i * 100 } });
-    }
-    expect(state.dataPoints).toHaveLength(3);
-    expect(state.dataPoints.map((d: any) => d.rpm)).toEqual([300, 400, 500]);
-    expect(state.sessionData).toHaveLength(5);
   });
 });
 
