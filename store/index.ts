@@ -7,15 +7,8 @@ import connectionReducer from './reducers/connectionReducer';
 import type { ConnectionState } from './reducers/connectionReducer.d';
 import dataReducer from './reducers/dataReducer';
 import type { DataState } from './reducers/dataReducer.d';
-import settingsReducer from './reducers/settingsReducer';
 import vehicleReducer from './reducers/vehicleReducer';
 import type { VehicleState } from './reducers/vehicleReducer.d';
-
-// Settings persist config
-const settingsPersistConfig = {
-  key: 'settings',
-  storage: AsyncStorage,
-};
 
 // Vehicle persist config - exclude alerts from persistence
 const vehiclePersistConfig = {
@@ -54,7 +47,6 @@ const vehiclePersistConfig = {
 const rootReducer = combineReducers({
   connection: connectionReducer as unknown as (state: ConnectionState | undefined, action: any) => ConnectionState,
   data: dataReducer as unknown as (state: DataState | undefined, action: any) => DataState,
-  settings: persistReducer(settingsPersistConfig, settingsReducer),
   vehicle: persistReducer(vehiclePersistConfig, vehicleReducer as unknown as (state: VehicleState | undefined, action: any) => VehicleState),
 });
 
@@ -63,7 +55,7 @@ const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
   // Only persist certain reducers
-  whitelist: ['settings', 'vehicle'],
+  whitelist: ['vehicle'],
   // Don't persist connection state and real-time data
   blacklist: ['connection', 'data']
 };
