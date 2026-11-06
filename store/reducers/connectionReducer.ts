@@ -1,42 +1,84 @@
-// src/store/reducers/connectionReducer.js
+// store/reducers/connectionReducer.ts
 
-const initialState = {
+export interface ConnectionDevice {
+  id: string;
+  name?: string;
+  address?: string;
+  bonded?: boolean;
+  rssi?: number;
+  type?: string;
+}
+
+export interface ConnectionState {
+  isConnected: boolean;
+  isConnecting: boolean;
+  isScanning: boolean;
+  connectionType: string | null;
+  mode: string | null;
+  connectedDevice: ConnectionDevice | null;
+  availableDevices: ConnectionDevice[];
+  lastConnectedDevice: ConnectionDevice | null;
+  connectionStrength: number;
+  lastDataReceived: string | null;
+  connectionErrors: any[];
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+  supportedProtocols: any[];
+  activeProtocol: string | null;
+  protocolVersion: string | null;
+  error: any;
+  lastError: any;
+  errorCount: number;
+  autoReconnect: boolean;
+  connectionTimeout: number;
+  scanDuration: number;
+}
+
+export interface ConnectionAction {
+  type: string;
+  payload?: any;
+}
+
+const initialState: ConnectionState = {
   // Connection Status
   isConnected: false,
   isConnecting: false,
   isScanning: false,
   connectionType: null, // 'bluetooth' | 'wifi' | null
   mode: null, // 'demo' | 'bluetooth' | 'wifi' | null
-  
+
   // Device Information
   connectedDevice: null,
   availableDevices: [],
   lastConnectedDevice: null,
-  
+
   // Connection Health
   connectionStrength: 0,
   lastDataReceived: null,
   connectionErrors: [],
   reconnectAttempts: 0,
   maxReconnectAttempts: 5,
-  
+
   // Protocol Information
   supportedProtocols: [],
   activeProtocol: null,
   protocolVersion: null,
-  
+
   // Error Handling
   error: null,
   lastError: null,
   errorCount: 0,
-  
+
   // Settings
   autoReconnect: true,
   connectionTimeout: 10000,
   scanDuration: 30000,
 };
 
-const connectionReducer = (state = initialState, action) => {
+const connectionReducer = (
+  state: ConnectionState = initialState,
+  action: ConnectionAction
+): ConnectionState => {
   switch (action.type) {
     // Connection Actions
     case 'START_CONNECTION':

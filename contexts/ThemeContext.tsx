@@ -191,6 +191,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
 
     loadThemePreference();
+    // Settings load asynchronously from storage; re-apply the saved theme once they have loaded
+    SettingsService.on('settingsLoaded', loadThemePreference);
 
     // Listen for theme changes
     const handleThemeChange = (value: any) => {
@@ -204,6 +206,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     return () => {
       SettingsService.removeListener('settingChanged:theme', handleThemeChange);
+      SettingsService.removeListener('settingsLoaded', loadThemePreference);
     };
   }, []);
 

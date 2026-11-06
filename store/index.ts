@@ -4,7 +4,6 @@ import { persistReducer, persistStore } from 'redux-persist';
 
 // Import reducers
 import connectionReducer from './reducers/connectionReducer';
-import type { ConnectionState } from './reducers/connectionReducer.d';
 import dataReducer from './reducers/dataReducer';
 import type { DataState } from './reducers/dataReducer.d';
 import vehicleReducer from './reducers/vehicleReducer';
@@ -45,7 +44,7 @@ const vehiclePersistConfig = {
 
 // Combine all reducers with explicit types
 const rootReducer = combineReducers({
-  connection: connectionReducer as unknown as (state: ConnectionState | undefined, action: any) => ConnectionState,
+  connection: connectionReducer,
   data: dataReducer as unknown as (state: DataState | undefined, action: any) => DataState,
   vehicle: persistReducer(vehiclePersistConfig, vehicleReducer as unknown as (state: VehicleState | undefined, action: any) => VehicleState),
 });
