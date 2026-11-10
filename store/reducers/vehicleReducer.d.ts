@@ -22,10 +22,8 @@ export interface VehicleInfo {
 
 export interface VehicleState {
     activeVehicle: string | null;
-    activeProfile?: VehicleInfo | null;
     vehicles: VehicleInfo[];
     defaultVehicleInfo: VehicleInfo;
     loading?: any;
-    currentVehicle?: VehicleInfo | null;
     fraudDetection?: any;
 }
