@@ -1,6 +1,57 @@
-// src/store/reducers/dataReducer.js
+// store/reducers/dataReducer.ts
 
-const initialState = {
+export interface HistoricalSession {
+  id: string | null;
+  startTime: string | null;
+  endTime: string;
+  duration: number;
+  dataPoints: number;
+  calculatedValues: any;
+}
+
+// All top-level fields of the data slice. Inner objects stay loosely typed (`any`) on purpose:
+// precise typing of liveData and friends is a separate concern. There is deliberately NO index
+// signature, so reading a field that does not exist on state.data is a compile error.
+export interface DataState {
+  liveData: any;
+  pidData: any;
+  rawPIDValues: any;
+  isCollectingData: boolean;
+  dataCollectionInterval: number;
+  lastDataUpdate: string | null;
+  dataPoints: any[];
+  maxDataPoints: number;
+  sessionData: any[];
+  historicalSessions: HistoricalSession[];
+  currentSessionId: string | null;
+  sessionStartTime: string | null;
+  sessionDuration: number;
+  dtcCodes: any[];
+  pendingDtcCodes: any[];
+  permanentDtcCodes: any[];
+  dtcCount: number;
+  milStatus: boolean;
+  freezeFrameData: any[];
+  readinessTests: any;
+  vehicleInfo: any;
+  calculatedValues: any;
+  activeAlerts: any[];
+  alertHistory: any[];
+  thresholds: any;
+  exportSettings: any;
+  dataErrors: any[];
+  lastDataError: any;
+  errorCount: number;
+  isSimulationMode: boolean;
+  simulationScenario: string;
+}
+
+export interface DataAction {
+  type: string;
+  payload?: any;
+}
+
+const initialState: DataState = {
   // Real-time Vehicle Data
   liveData: {
     rpm: 0,
@@ -29,7 +80,7 @@ const initialState = {
     evapSystemVaporPressure: 0,
     // Odometer and related fields for fraud detection
     odometer: null, // Will show dashes until real data received
-    tripOdometer: null, // Trip distance in km  
+    tripOdometer: null, // Trip distance in km
     engineHours: null, // Engine runtime in hours
     distanceSinceCodesCleared: null, // Distance since codes cleared
     distanceWithMILOn: null, // Distance with MIL on
@@ -139,11 +190,11 @@ const initialState = {
   simulationScenario: 'normal', // 'normal' | 'highway' | 'city' | 'idle' | 'diagnostic'
 };
 
-const dataReducer = (state = initialState, action) => {
+const dataReducer = (state: DataState = initialState, action: DataAction): DataState => {
   switch (action.type) {
-    case 'data/updatePIDData':
+    case 'data/updatePIDData': {
       const { pidData, vehicleData } = action.payload;
-      
+
       return {
         ...state,
         // Update PID-specific storage with serialized timestamps
@@ -165,6 +216,7 @@ const dataReducer = (state = initialState, action) => {
         },
         lastDataUpdate: pidData.timestamp instanceof Date ? pidData.timestamp.toISOString() : String(pidData.timestamp),
       };
+    }
 
     default:
       return state;
